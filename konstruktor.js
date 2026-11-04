@@ -272,10 +272,17 @@ const BOLIMLAR = [
   ["eshik", "Eshik", ik(ramaIk(6, 12) + '<circle cx="15" cy="12" r="1"/>')],
 ];
 
+// Tugma ostidagi qisqa nom (belgining oʻzi tushunarsiz boʻlmasin)
+const QISQA = {
+  tik: "Tik", yotiq: "Yotiq", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", shtulp: "Shtulp", ochir: "Oʻchirish",
+  tab_chap: "Chap", tab_ong: "Oʻng", dv_chap: "Dvaynoy chap", dv_ong: "Dvaynoy oʻng", gluxoy: "Gluxoy",
+  esh1_chap: "1 tab. chap", esh1_ong: "1 tab. oʻng", esh2_ong: "2 tab. ruchka oʻng", esh2_chap: "2 tab. ruchka chap",
+};
+
 function asboblarniChiz() {
   $("k-bolimlar").innerHTML = BOLIMLAR.map(([id, nom, i]) => `<button data-bolim="${id}" class="${id === bolim ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("") +
     `<span class="bosh"></span><button data-tarix="orqaga" ${orqaga.length ? "" : "disabled"} aria-label="Orqaga">↶</button><button data-tarix="oldinga" ${oldinga.length ? "" : "disabled"} aria-label="Oldinga">↷</button>`;
-  let html = ASBOBLAR[bolim].map(([id, nom, i]) => `<button data-asbob="${id}" class="${id === asbob ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("");
+  let html = ASBOBLAR[bolim].map(([id, nom, i]) => `<button data-asbob="${id}" class="nomli${id === asbob ? " faol" : ""}" title="${nom}" aria-label="${nom}">${i}<small>${QISQA[id] || ""}</small></button>`).join("");
   if (bolim === "eshik" || (bolim === "impost" && asbob === "shtulp")) html += `<button data-ochilish class="matnli">${eshikOchilish === "tashqariga" ? "Tashqariga" : "Ichkariga"} ⇄</button>`;
   $("k-asboblar").innerHTML = html;
   const nom = asbob ? ASBOBLAR[bolim].find((a) => a[0] === asbob)[1] : null;
