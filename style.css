@@ -1,0 +1,54 @@
+:root {
+  --fon: #eef0f4; --karta: #fff; --matn: #1b1f24; --xira: #667085; --chiziq: #d5d8de;
+  --asosiy: #0d47a1; --asosiy-matn: #fff; --urgu: #e65100; --xato: #b3261e; --yaxshi: #1b7f3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --fon: #121417; --karta: #1d2126; --matn: #e8eaed; --xira: #9aa3ad; --chiziq: #333a42;
+          --asosiy: #5b8def; --asosiy-matn: #0b0d10; --urgu: #ff9f5a; --xato: #ff8a80; --yaxshi: #6fcf8f; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fon); color: var(--matn);
+       font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+         gap: 8px; padding: 12px 16px; background: var(--asosiy); color: var(--asosiy-matn); }
+header h1 { margin: 0; font-size: 18px; }
+.holat { font-size: 13px; opacity: .9; }
+main { max-width: 720px; margin: 0 auto; padding: 12px 16px 24px; }
+.karta { background: var(--karta); border: 1px solid var(--chiziq); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.karta h2, summary { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+summary { cursor: pointer; margin: 0; }
+details[open] summary { margin-bottom: 10px; }
+.tugmalar { display: flex; flex-wrap: wrap; gap: 8px; }
+.tugma { flex: 1 1 auto; min-height: 44px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--chiziq);
+         background: var(--karta); color: var(--matn); font: inherit; text-align: center; cursor: pointer; }
+.tugma.asosiy { background: var(--asosiy); color: var(--asosiy-matn); border-color: var(--asosiy); }
+.tugma:disabled { opacity: .5; }
+textarea, input { width: 100%; font: inherit; color: var(--matn); background: var(--fon);
+                  border: 1px solid var(--chiziq); border-radius: 10px; padding: 10px; }
+textarea { margin: 10px 0 8px; font-family: ui-monospace, monospace; font-size: 13px; }
+.qator { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.qator label { white-space: nowrap; }
+.qator input { max-width: 140px; }
+.xira { color: var(--xira); font-size: 14px; }
+.xato { background: var(--karta); color: var(--xato); border: 1px solid var(--xato); border-radius: 12px; padding: 12px; }
+.jami-qator { display: flex; justify-content: space-between; padding: 3px 0; }
+.jami-qator.katta { font-size: 20px; border-top: 1px solid var(--chiziq); margin-top: 6px; padding-top: 8px; }
+.jami-qator.katta b { color: var(--urgu); }
+#j-holat { margin: 8px 0 0; font-size: 14px; }
+.yaxshi { color: var(--yaxshi); } .ogoh { color: var(--xato); }
+.konstr { border-top: 1px solid var(--chiziq); padding: 10px 0; }
+.konstr:first-child { border-top: 0; padding-top: 0; }
+.konstr-bosh { display: flex; justify-content: space-between; gap: 8px; }
+.konstr-bosh b { font-size: 16px; }
+.konstr-past { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.soni { display: flex; align-items: center; gap: 4px; }
+.soni button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--chiziq);
+               background: var(--fon); color: var(--matn); font-size: 20px; }
+.soni span { min-width: 28px; text-align: center; font-weight: 600; }
+.konstr.nol { opacity: .45; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 6px 4px; border-bottom: 1px solid var(--chiziq); text-align: left; vertical-align: top; }
+td.son, th.son { text-align: right; white-space: nowrap; }
+.bolim { margin: 12px 0 4px; font-weight: 600; color: var(--xira); font-size: 13px; text-transform: uppercase; }
+.bolim:first-child { margin-top: 0; }
+footer { text-align: center; padding: 0 16px 24px; }

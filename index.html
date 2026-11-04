@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d47a1">
+<title>BKT 70 hisob</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>BKT 70 hisob</h1>
+  <span id="holat" class="holat">Yuklanmoqda…</span>
+</header>
+
+<main>
+  <section id="narx-quti" class="karta" hidden>
+    <h2>Narxlar fayli</h2>
+    <p class="xira">Narxlar ilovada saqlanmaydi. <b>narxlar.json</b> faylini bir marta yuklang, u shu telefonda qoladi.</p>
+    <label class="tugma asosiy">Narxlarni yuklash<input id="narx-fayl" type="file" accept=".json,application/json" hidden></label>
+  </section>
+
+  <section class="karta">
+    <h2>Zakaz</h2>
+    <div class="tugmalar">
+      <label class="tugma asosiy">Fayl ochish<input id="fayl" type="file" accept=".json,application/json" hidden></label>
+      <button id="matn-tugma" class="tugma">Matn qoʻyish</button>
+      <button id="namuna" class="tugma">Namuna</button>
+    </div>
+    <div id="matn-quti" hidden>
+      <textarea id="matn" rows="6" placeholder="Claude bergan zakaz JSON matnini shu yerga qoʻying"></textarea>
+      <button id="matn-hisobla" class="tugma asosiy">Hisobla</button>
+    </div>
+    <div class="qator">
+      <label for="kurs">Kurs, 1 $ =</label>
+      <input id="kurs" type="number" inputmode="decimal" min="1" step="1">
+      <span>soʻm</span>
+    </div>
+    <p id="zakaz-nomi" class="xira"></p>
+  </section>
+
+  <p id="xato" class="xato" hidden></p>
+
+  <section id="natija" hidden>
+    <section class="karta jami">
+      <div class="jami-qator"><span>Materiallar</span><b id="j-mat"></b></div>
+      <div class="jami-qator"><span>Straxovka 3%</span><b id="j-str"></b></div>
+      <div class="jami-qator katta"><span>JAMI TANNARX</span><b id="j-usd"></b></div>
+      <div class="jami-qator"><span></span><b id="j-som"></b></div>
+      <p id="j-holat"></p>
+    </section>
+
+    <section class="karta">
+      <h2>Konstruksiyalar</h2>
+      <div id="konstruksiyalar"></div>
+    </section>
+
+    <details class="karta">
+      <summary>Materiallar</summary>
+      <div id="materiallar"></div>
+    </details>
+
+    <details class="karta">
+      <summary>Oynalar <span id="oyna-m2" class="xira"></span></summary>
+      <div id="oynalar"></div>
+    </details>
+
+    <details class="karta">
+      <summary>Profil raskroyi va otxod</summary>
+      <div id="otxod"></div>
+    </details>
+
+    <section class="karta">
+      <div class="tugmalar">
+        <button id="ulash" class="tugma asosiy">Natijani ulashish</button>
+        <button id="saqlash" class="tugma">Zakazni saqlash (JSON)</button>
+        <label class="tugma">Narxlarni yangilash<input id="narx-fayl2" type="file" accept=".json,application/json" hidden></label>
+      </div>
+    </section>
+  </section>
+</main>
+
+<footer class="xira" id="versiya"></footer>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

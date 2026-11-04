@@ -1,0 +1,89 @@
+{
+ "nom": "Z-002 grey (namuna)",
+ "umumiy": {
+  "rama": "F702",
+  "oyna_qalinligi": 24,
+  "tanlov": {
+   "rang": "Laminatsiya",
+   "oyna_turi": "Oq+oq",
+   "ruchka": "Komfort dver ruchka",
+   "zamok": "Zamok Dver (3147) (Otvetka) (Tr)",
+   "montaj": false
+  }
+ },
+ "konstruksiyalar": [
+  {
+   "nom": "1 Eshik",
+   "soni": 1,
+   "L": 151,
+   "H": 282,
+   "tanlov": {
+    "oyna_turi": "Oq+qora"
+   },
+   "bolak": {
+    "tur": "bolinish",
+    "yonalish": "gorizontal",
+    "olchamlar": [
+     55,
+     null
+    ],
+    "bolaklar": [
+     {
+      "tur": "gluxoy"
+     },
+     {
+      "tur": "eshik",
+      "tabaqa_soni": 2,
+      "ochilish": "tashqariga"
+     }
+    ]
+   }
+  },
+  {
+   "nom": "2 Vitraj",
+   "soni": 1,
+   "L": 327,
+   "H": 256,
+   "tanlov": {
+    "oyna_turi": "Oq+qora"
+   },
+   "bolak": {
+    "tur": "bolinish",
+    "yonalish": "vertikal",
+    "olchamlar": [
+     90,
+     null,
+     null,
+     null
+    ],
+    "bolaklar": [
+     {
+      "tur": "eshik",
+      "tabaqa_soni": 1,
+      "ochilish": "ichkariga"
+     },
+     {
+      "tur": "gluxoy"
+     },
+     {
+      "tur": "gluxoy"
+     },
+     {
+      "tur": "gluxoy"
+     }
+    ]
+   }
+  },
+  {
+   "nom": "3 Eshik",
+   "soni": 1,
+   "L": 147,
+   "H": 256,
+   "bolak": {
+    "tur": "eshik",
+    "tabaqa_soni": 2,
+    "ochilish": "ichkariga"
+   }
+  }
+ ]
+}
