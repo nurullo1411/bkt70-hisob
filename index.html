@@ -94,19 +94,37 @@
 </main>
 
 <main id="konstruktor" hidden>
-  <section class="karta">
-    <div class="tugmalar">
-      <button id="k-bekor" class="tugma">← Bekor</button>
-      <button id="k-saqla" class="tugma asosiy">Saqlash</button>
-    </div>
-  </section>
-  <section class="karta" id="k-maydon"></section>
-  <section class="karta">
-    <div id="k-chizma"></div>
-    <div id="k-holat" class="xira"></div>
-  </section>
+  <div class="k-tepa">
+    <button id="k-bekor" class="dumaloq" aria-label="Bekor qilish">←</button>
+    <span id="k-nom" class="k-nom"></span>
+    <button id="k-tozala" class="dumaloq" aria-label="Tozalash">🗑</button>
+    <button id="k-sozlama" class="dumaloq" aria-label="Sozlamalar">⚙</button>
+    <button id="k-saqla" class="dumaloq asosiy" aria-label="Saqlash">✓</button>
+  </div>
+  <div id="k-bolimlar" class="asbob-qator bolimlar"></div>
+  <div id="k-asboblar" class="asbob-qator"></div>
+  <p id="k-maslahat" class="xira maslahat"></p>
+  <div id="k-chizma"></div>
+  <div id="k-holat" class="xira"></div>
   <section class="karta" id="k-panel"></section>
 </main>
+
+<div id="son-oyna" class="parda" hidden>
+  <div class="oyna-quti">
+    <div id="son-sarlavha" class="sarlavha-katta"></div>
+    <input id="son-qiymat" type="number" inputmode="decimal" step="0.1">
+    <p id="son-izoh" class="xira"></p>
+    <div class="tugmalar"><button id="son-bekor" class="tugma">Bekor</button><button id="son-ok" class="tugma asosiy">OK</button></div>
+  </div>
+</div>
+
+<div id="sozlama-oyna" class="parda" hidden>
+  <div class="oyna-quti">
+    <div class="sarlavha-katta">Konstruksiya sozlamalari</div>
+    <div id="k-maydon"></div>
+    <button id="sozlama-yop" class="tugma asosiy keng">Tayyor</button>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script src="app.js"></script>
