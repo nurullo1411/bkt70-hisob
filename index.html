@@ -109,12 +109,17 @@
   <section class="karta" id="k-panel"></section>
 </main>
 
-<div id="son-oyna" class="parda" hidden>
-  <div class="oyna-quti">
-    <div id="son-sarlavha" class="sarlavha-katta"></div>
-    <input id="son-qiymat" type="number" inputmode="decimal" step="0.1">
-    <p id="son-izoh" class="xira"></p>
-    <div class="tugmalar"><button id="son-bekor" class="tugma">Bekor</button><button id="son-ok" class="tugma asosiy">OK</button></div>
+<div id="son-oyna" class="parda markaz" hidden>
+  <div class="klav">
+    <div class="klav-bosh"><span id="son-sarlavha"></span><button id="son-bekor" class="yop" aria-label="Yopish">✕</button></div>
+    <div id="son-qiymat" class="klav-qiymat"></div>
+    <div class="klav-tugmalar">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-k=",">,</button><button data-k="0">0</button><button data-k="del" aria-label="Oʻchirish">⌫</button>
+    </div>
+    <div class="klav-past"><button id="son-teng" class="tugma">Teng (avto)</button><button id="son-ok" class="tugma yashil">Saqlash</button></div>
   </div>
 </div>
 

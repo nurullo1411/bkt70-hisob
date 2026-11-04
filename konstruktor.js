@@ -247,6 +247,7 @@ const ASBOBLAR = {
     ["tik", "Tik impost", ik('<line x1="12" y1="3" x2="12" y2="21" class="q"/>')],
     ["yotiq", "Yotiq impost", ik('<line x1="3" y1="12" x2="21" y2="12" class="q"/>')],
     ["tik3", "3 ga boʻlish", ik('<line x1="8" y1="3" x2="8" y2="21" class="q"/><line x1="16" y1="3" x2="16" y2="21" class="q"/>')],
+    ["shtulp", "Shtulp: 2 tabaqali eshik", ik('<line x1="12" y1="3" x2="12" y2="21" class="q"/><path d="M9 9h6M9 15h6"/>')],
     ["yotiq3", "3 ga boʻlish (yotiq)", ik('<line x1="3" y1="8" x2="21" y2="8" class="q"/><line x1="3" y1="16" x2="21" y2="16" class="q"/>')],
     ["ochir", "Boʻlakni oʻchirish", ik(ramaIk() + '<path d="M8 8l8 8M16 8l-8 8" class="x"/>')],
   ],
@@ -275,7 +276,7 @@ function asboblarniChiz() {
   $("k-bolimlar").innerHTML = BOLIMLAR.map(([id, nom, i]) => `<button data-bolim="${id}" class="${id === bolim ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("") +
     `<span class="bosh"></span><button data-tarix="orqaga" ${orqaga.length ? "" : "disabled"} aria-label="Orqaga">↶</button><button data-tarix="oldinga" ${oldinga.length ? "" : "disabled"} aria-label="Oldinga">↷</button>`;
   let html = ASBOBLAR[bolim].map(([id, nom, i]) => `<button data-asbob="${id}" class="${id === asbob ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("");
-  if (bolim === "eshik") html += `<button data-ochilish class="matnli">${eshikOchilish === "tashqariga" ? "Tashqariga" : "Ichkariga"} ⇄</button>`;
+  if (bolim === "eshik" || (bolim === "impost" && asbob === "shtulp")) html += `<button data-ochilish class="matnli">${eshikOchilish === "tashqariga" ? "Tashqariga" : "Ichkariga"} ⇄</button>`;
   $("k-asboblar").innerHTML = html;
   const nom = asbob ? ASBOBLAR[bolim].find((a) => a[0] === asbob)[1] : null;
   $("k-maslahat").textContent = nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbob tanlang yoki boʻlakka bosib sozlang. Oʻlchamni oʻzgartirish uchun raqamga bosing.";
@@ -292,6 +293,8 @@ function asbobniQolla(p) {
     case "yotiq": bolish(p, "gorizontal"); break;
     case "tik3": bolish(p, "vertikal", 3); break;
     case "yotiq3": bolish(p, "gorizontal", 3); break;
+    case "shtulp":
+      almashtir(p, { tur: "eshik", tabaqa_soni: 2, ochilish: b.tur === "eshik" ? b.ochilish : eshikOchilish, aktiv: b.aktiv || "ong" }); break;
     case "ochir": if (!ochir(p)) { orqaga.pop(); xabar("Bitta boʻlakni oʻchirib boʻlmaydi"); return; } break;
     case "tab_chap": almashtir(p, tabaqa("chap")); break;
     case "tab_ong": almashtir(p, tabaqa("ong")); break;
@@ -311,28 +314,55 @@ function asbobniQolla(p) {
 
 function xabar(m) { $("k-maslahat").textContent = m; }
 
-// ---------- oʻlcham kiritish oynasi ----------
+// ---------- oʻlcham kiritish: oʻz raqam klaviaturasi (Romchi kabi) ----------
+// Eski qiymat kulrang koʻrinadi; birinchi bosilgan raqam uning oʻrniga yoziladi.
 function soraSon(sarlavha, qiymat, boshMumkin) {
   return new Promise((hal) => {
+    let matn = "", yangi = true;
+    const eski = qiymat == null ? "" : String(yx(Number(qiymat))).replace(".", ",");
+    const korsat = () => {
+      $("son-qiymat").textContent = yangi ? (eski || "0") : (matn || "0");
+      $("son-qiymat").classList.toggle("eski", yangi);
+    };
     $("son-sarlavha").textContent = sarlavha;
-    $("son-izoh").textContent = boshMumkin ? "Boʻsh qoldirsangiz, qolgan joy teng boʻlinadi." : "";
-    const inp = $("son-qiymat");
-    inp.value = qiymat ?? "";
+    $("son-teng").hidden = !boshMumkin;
     $("son-oyna").hidden = false;
-    setTimeout(() => { inp.focus(); inp.select(); }, 50);
+    korsat();
     const tugat = (natija) => {
       $("son-oyna").hidden = true;
-      $("son-ok").onclick = $("son-bekor").onclick = inp.onkeydown = null;
+      $("son-oyna").onclick = null;
+      document.removeEventListener("keydown", klav);
       hal(natija);
     };
-    $("son-ok").onclick = () => {
-      const x = sonOl(inp.value);
-      if (x == null) { if (boshMumkin) tugat({ bosh: true }); else inp.focus(); return; }
-      if (x <= 0) { inp.focus(); return; }
+    const bos = (k) => {
+      if (k === "del") { if (yangi) { matn = eski; yangi = false; } matn = matn.slice(0, -1); }
+      else if (k === ",") { if (yangi) { matn = "0"; yangi = false; } if (!matn.includes(",")) matn += ","; }
+      else { if (yangi) { matn = ""; yangi = false; } if (matn.length < 7) matn = matn === "0" ? k : matn + k; }
+      korsat();
+    };
+    const saqlash = () => {
+      const x = yangi ? sonOl(eski) : sonOl(matn);
+      if (x == null || x <= 0) { if (yangi && !eski && boshMumkin) tugat({ bosh: true }); return; }
       tugat({ son: x });
     };
-    $("son-bekor").onclick = () => tugat(null);
-    inp.onkeydown = (e) => { if (e.key === "Enter") $("son-ok").click(); if (e.key === "Escape") tugat(null); };
+    $("son-oyna").onclick = (e) => {
+      const b = e.target.closest("button");
+      if (!b) { if (e.target.id === "son-oyna") tugat(null); return; }
+      if (b.dataset.k) bos(b.dataset.k);
+      else if (b.id === "son-ok") saqlash();
+      else if (b.id === "son-teng") tugat({ bosh: true });
+      else if (b.id === "son-bekor") tugat(null);
+    };
+    function klav(e) {
+      if (/^[0-9]$/.test(e.key)) bos(e.key);
+      else if (e.key === "," || e.key === ".") bos(",");
+      else if (e.key === "Backspace") bos("del");
+      else if (e.key === "Enter") saqlash();
+      else if (e.key === "Escape") tugat(null);
+      else return;
+      e.preventDefault();
+    }
+    document.addEventListener("keydown", klav);
   });
 }
 
