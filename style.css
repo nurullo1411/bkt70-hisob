@@ -144,3 +144,7 @@ select { width: 100%; font: inherit; color: var(--matn); background: var(--fon);
 .klav-past { display: flex; gap: 8px; margin-top: 12px; }
 .klav-past .tugma { flex: 1; }
 .tugma.yashil { background: #1faa3a; border-color: #1faa3a; color: #fff; font-weight: 600; }
+
+/* Pastga tortib yangilash (pull-to-refresh) oʻchirilgan: chizish paytida sahifa yangilanmasin */
+html, body { overscroll-behavior-y: contain; }
+#k-chizma { touch-action: pan-x pan-y pinch-zoom; }

@@ -34,6 +34,7 @@ async function yukla() {
     if (!narxlarniQoy(await shifrliNarx() || ol("narxlar"))) return;
     const oxirgi = ol("oxirgi_zakaz");
     if (oxirgi) zakazniOch(oxirgi, true);
+    if (zakaz) qoralamaniTikla();
   } catch (e) {
     holat("Xato");
     xato("Dastur yuklanmadi: " + e.message + ". Birinchi marta ochishda internet kerak.");

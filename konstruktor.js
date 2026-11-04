@@ -417,13 +417,32 @@ function konstruktorniYop(saqlansin) {
     saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   }
   tahrir = null;
+  try { localStorage.removeItem("qoralama"); } catch (e) {}
   $("sozlama-oyna").hidden = true;
   $("konstruktor").hidden = true;
   $("asosiy").hidden = false;
   hisobla();
 }
 
+// Chala chizma har oʻzgarishda saqlanadi: sahifa yangilansa yoki ilova yopilsa, joyidan davom etadi
+function qoralamaniTikla() {
+  let q = null;
+  try { q = JSON.parse(ol("qoralama")); } catch (e) { q = null; }
+  if (!q || !q.tahrir || !zakaz) return false;
+  tahrirIndeks = q.indeks < zakaz.konstruksiyalar.length ? q.indeks : -1;
+  tahrir = q.tahrir;
+  orqaga = q.orqaga || []; oldinga = [];
+  tanlangan = geometriya(tahrir).barglar[0].p;
+  asbob = null;
+  $("asosiy").hidden = true;
+  $("konstruktor").hidden = false;
+  yangila();
+  xabar("Chala chizma tiklandi");
+  return true;
+}
+
 function yangila() {
+  saqla("qoralama", JSON.stringify({ tahrir, indeks: tahrirIndeks, orqaga: orqaga.slice(-20) }));
   $("k-nom").textContent = `${tahrir.nom || ""} · ${yx(Number(tahrir.L))} × ${yx(Number(tahrir.H))}${(tahrir.soni ?? 1) > 1 ? " · " + tahrir.soni + " dona" : ""}`;
   asboblarniChiz();
   $("k-chizma").innerHTML = chizmaSVG(tahrir, { tanlangan: asbob ? null : tanlangan });
