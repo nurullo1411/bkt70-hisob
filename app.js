@@ -31,12 +31,32 @@ async function yukla() {
     }
     py.runPython("import sys; sys.path.insert(0, '/home/pyodide'); import json, tannarx, hisob");
     $("versiya").dataset.hisob = versiya.trim() || "nusxa";
-    if (!narxlarniQoy(ol("narxlar"))) return;
+    if (!narxlarniQoy(await shifrliNarx() || ol("narxlar"))) return;
     const oxirgi = ol("oxirgi_zakaz");
     if (oxirgi) zakazniOch(oxirgi, true);
   } catch (e) {
     holat("Xato");
     xato("Dastur yuklanmadi: " + e.message + ". Birinchi marta ochishda internet kerak.");
+  }
+}
+
+// Shifrlangan narxlar (narxlar.enc) saytda turadi. Kalit faqat havoladagi #k= da keladi,
+// serverga yuborilmaydi va telefonda saqlanadi. Har ochilishda yangi narx olinadi; internet boʻlmasa null.
+async function shifrliNarx() {
+  const m = location.hash.match(/k=([A-Za-z0-9_-]+)/);
+  if (m) { saqla("narx_kalit", m[1]); history.replaceState(null, "", location.pathname); }
+  const kalitMatn = ol("narx_kalit");
+  if (!kalitMatn) return null;
+  try {
+    const b64 = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), (c) => c.charCodeAt(0));
+    const javob = await fetch("narxlar.enc", { cache: "no-cache" });
+    if (!javob.ok) return null;
+    const baytlar = b64((await javob.text()).trim());
+    const kalit = await crypto.subtle.importKey("raw", b64(kalitMatn), "AES-GCM", false, ["decrypt"]);
+    const ochiq = await crypto.subtle.decrypt({ name: "AES-GCM", iv: baytlar.slice(0, 12) }, kalit, baytlar.slice(12));
+    return new TextDecoder().decode(ochiq);
+  } catch (e) {
+    return null;
   }
 }
 
