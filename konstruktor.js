@@ -501,25 +501,108 @@ function tanlov(nom, qiymat, variantlar) {
   return `<select data-m="${nom}">${variantlar.map(([v, y]) => `<option value="${esc(JSON.stringify(v))}"${JSON.stringify(v) === JSON.stringify(qiymat) ? " selected" : ""}>${esc(y)}</option>`).join("")}</select>`;
 }
 
+// Romchi uslubidagi sozlama oynasi: seriya, oyna, rama, rang — katta tugma va namunalar bilan.
+// Tanlov shu konstruksiyaga yoziladi; zakazning umumiy qiymatiga teng boʻlsa, alohida yozilmaydi.
+const RANG_TURKUMLARI = [
+  ["Oq", "Oq", [["oq", "Oq", "#ffffff"]]],
+  ["Svetnoy (kraska)", "Kraska", [["306g", "306g", "#2c2d30"]]],
+  ["Laminatsiya", "Laminatsiya", [["grey", "Grey", "#6b7178"], ["z/d", "Z/D", "#b8742f"], ["d/m", "D/M", "#6e4a33"], ["sh/d", "Sh/D", "#4a3328"], ["alux", "Alux", "#4b4d50"]]],
+  ["Anod", "Anod", [["anod", "Anod", "#c3c7cc"]]],
+];
+const RAMALAR = [["F702", "Kosa (Sredniy)", "F702 · r = 3,8"], ["F703", "Kosa Shirokaya", "F703 · r = 5,8"]];
+
+function oynaRangi(nom) {
+  const n = nom.toLowerCase();
+  if (n.includes("qora")) return "#34383d";
+  if (n.includes("koʻzgu") || n.includes("kozgu")) return "#a9b4bd";
+  if (n.includes("yod")) return "#e59a3a";
+  return "#5bd3f7";
+}
+
+function joriy(k) {
+  const u = zakaz.umumiy, t = k.tanlov || {}, ut = u.tanlov || {};
+  return {
+    rama: k.rama ?? u.rama, qal: Number(k.oyna_qalinligi ?? u.oyna_qalinligi ?? 24),
+    rang: t.rang ?? ut.rang, rangNomi: t.rang_nomi ?? ut.rang_nomi, oyna: t.oyna_turi ?? ut.oyna_turi,
+  };
+}
+
+// Qiymatni konstruksiyaga yozadi; umumiyga teng boʻlsa olib tashlaydi
+function ornat(joy, kalit, qiymat) {
+  const k = tahrir, u = zakaz.umumiy;
+  if (joy === "s") {
+    if (qiymat === u[kalit]) delete k[kalit]; else k[kalit] = qiymat;
+  } else {
+    k.tanlov = { ...(k.tanlov || {}) };
+    if (qiymat == null || qiymat === (u.tanlov || {})[kalit]) delete k.tanlov[kalit]; else k.tanlov[kalit] = qiymat;
+    if (!Object.keys(k.tanlov).length) delete k.tanlov;
+  }
+}
+
 function sozlamaOynasi() {
   const k = tahrir;
   const lap = k.tur === "lapshali";
+  const j = joriy(k);
+  const faol = (shart) => (shart ? " faol" : "");
+  const turkum = RANG_TURKUMLARI.find((r) => r[0] === j.rang) || RANG_TURKUMLARI[2];
+  const alohida = k.rama != null || k.oyna_qalinligi != null || (k.tanlov && Object.keys(k.tanlov).length);
+  const gul = (o) => (o.toLowerCase().includes("gul") ? ";background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)" : "");
   $("k-maydon").innerHTML = `
+    <div class="sz-seg"><button class="faol">Termo 70 (BKT 70)</button><button disabled>Alumin</button><button disabled>Plast</button></div>
+
+    <div class="sz-bolim">Oyna</div>
+    <div class="sz-seg">${[[24, "24 mm (ikki qavat)"], [32, "32 mm"]].map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
+    <div class="sz-oynalar">${oynaTurlari().map((o) => `<button data-sz="t:oyna_turi" data-v="${esc(JSON.stringify(o))}" class="sz-oyna${faol(j.oyna === o)}"><span class="namuna" style="background:${oynaRangi(o)}${gul(o)}"></span>${esc(o)}</button>`).join("")}</div>
+
+    <div class="sz-bolim">Rama profili</div>
+    <div class="sz-ramalar">${RAMALAR.map(([v, y, iz]) => `<button data-sz="s:rama" data-v="${esc(JSON.stringify(v))}" class="sz-rama${faol(j.rama === v)}"><svg viewBox="0 0 40 40" class="ik"><path d="M6 34V6h28" fill="none" stroke="currentColor" stroke-width="${v === "F703" ? 6 : 3.5}"/></svg><b>${y}</b><span>${iz}</span></button>`).join("")}</div>
+
+    <div class="sz-bolim">Rang</div>
+    <div class="sz-seg">${RANG_TURKUMLARI.map(([v, y]) => `<button data-sz="t:rang" data-v="${esc(JSON.stringify(v))}" class="${faol(j.rang === v)}">${y}</button>`).join("")}</div>
+    <div class="sz-ranglar">${turkum[2].map(([v, y, c]) => `<button data-sz="t:rang_nomi" data-v="${esc(JSON.stringify(v))}" class="sz-rang${faol((j.rangNomi ?? turkum[2][0][0]) === v)}"><span class="namuna" style="background:${c}"></span>${y}</button>`).join("")}</div>
+
+    <div class="sz-bolim">Konstruksiya</div>
     <div class="panjara">
       <label>Nomi<input data-m="nom" value="${esc(k.nom)}"></label>
       <label>Soni<input data-m="soni" type="number" inputmode="numeric" min="1" step="1" value="${esc(k.soni ?? 1)}"></label>
-      <label>L (eni), sm<input data-m="L" type="number" inputmode="decimal" step="0.1" value="${esc(k.L)}"></label>
-      <label>H (boʻyi), sm<input data-m="H" type="number" inputmode="decimal" step="0.1" value="${esc(k.H)}"></label>
-      <label>Rama${tanlov("rama", k.rama ?? null, [[null, "umumiy (" + (zakaz.umumiy.rama || "") + ")"], ["F702", "F702"], ["F703", "F703"]])}</label>
-      <label>Steklopaket${tanlov("oyna_turi", (k.tanlov || {}).oyna_turi ?? null, [[null, "umumiy (" + (zakaz.umumiy.tanlov.oyna_turi || "") + ")"], ...oynaTurlari().map((x) => [x, x])])}</label>
     </div>
     <label class="belgi"><input type="checkbox" data-m="lapsha" ${lap ? "checked" : ""}> Yon oynalar alohida ramada, lapsha bilan (tashqariga eshik)</label>
     ${lap ? `<div class="panjara">
       <label>Chap oyna eni, sm<input data-m="chap" type="number" inputmode="decimal" step="0.1" value="${esc(k.chap ?? "")}" placeholder="yoʻq"></label>
       <label>Oʻng oyna eni, sm<input data-m="ong" type="number" inputmode="decimal" step="0.1" value="${esc(k.ong ?? "")}" placeholder="yoʻq"></label>
-    </div>` : ""}`;
+    </div>` : ""}
+    <p class="xira sz-izoh">${alohida ? "Bu konstruksiyada zakazdan farqli tanlov bor." : "Hamma tanlov zakazning umumiy tanlovi bilan bir xil."}</p>
+    <button data-sz-asosiy class="tugma keng"${alohida ? "" : " disabled"}>Shu tanlovni butun zakaz uchun asosiy qilish</button>`;
   $("sozlama-oyna").hidden = false;
 }
+
+$("k-maydon").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b || b.disabled) return;
+  if (b.dataset.szAsosiy != null) {
+    // Shu konstruksiya tanlovini umumiyga koʻchiramiz, boshqalardagi bir xil qiymatlarni tozalaymiz
+    const k = tahrir, u = zakaz.umumiy;
+    for (const kalit of ["rama", "oyna_qalinligi"]) if (k[kalit] != null) { u[kalit] = k[kalit]; delete k[kalit]; }
+    if (k.tanlov) { u.tanlov = { ...u.tanlov, ...k.tanlov }; delete k.tanlov; }
+    for (const boshqa of zakaz.konstruksiyalar) {
+      for (const kalit of ["rama", "oyna_qalinligi"]) if (boshqa[kalit] === u[kalit]) delete boshqa[kalit];
+      if (boshqa.tanlov) {
+        for (const [a, v] of Object.entries(boshqa.tanlov)) if (u.tanlov[a] === v) delete boshqa.tanlov[a];
+        if (!Object.keys(boshqa.tanlov).length) delete boshqa.tanlov;
+      }
+    }
+    saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+  } else if (b.dataset.sz) {
+    saqlaTarix();
+    const [joy, kalit] = b.dataset.sz.split(":");
+    const v = JSON.parse(b.dataset.v);
+    ornat(joy, kalit, v);
+    // rang turkumi almashsa, rang nomi shu turkumning birinchisi boʻladi
+    if (kalit === "rang") ornat("t", "rang_nomi", RANG_TURKUMLARI.find((r) => r[0] === v)[2][0][0]);
+  } else return;
+  sozlamaOynasi();
+  yangila();
+});
 
 function maydonOzgardi(e) {
   const el = e.target.closest("[data-m]");
@@ -531,14 +614,6 @@ function maydonOzgardi(e) {
   else if (m === "L" || m === "H" || m === "chap" || m === "ong") {
     const x = sonOl(el.value);
     if (x == null || x <= 0) { if (m === "chap" || m === "ong") delete k[m]; else return; } else k[m] = x;
-  } else if (m === "rama") {
-    const v = JSON.parse(el.value);
-    if (v == null) delete k.rama; else k.rama = v;
-  } else if (m === "oyna_turi") {
-    const v = JSON.parse(el.value);
-    k.tanlov = { ...(k.tanlov || {}) };
-    if (v == null) delete k.tanlov.oyna_turi; else k.tanlov.oyna_turi = v;
-    if (!Object.keys(k.tanlov).length) delete k.tanlov;
   } else if (m === "lapsha") {
     if (el.checked) { k.tur = "lapshali"; k.chap = k.chap ?? 50; k.ong = k.ong ?? 50; }
     else { delete k.tur; delete k.chap; delete k.ong; }
