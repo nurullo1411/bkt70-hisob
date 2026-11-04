@@ -26,7 +26,7 @@ self.addEventListener("fetch", (e) => {
     return;
   }
   if (url.origin === location.origin) {
-    e.respondWith(fetch(e.request).then((javob) => {
+    e.respondWith(fetch(e.request, { cache: "no-cache" }).then((javob) => {
       if (javob.ok) caches.open(KESH).then((c) => c.put(e.request, javob.clone()));
       return javob;
     }).catch(() => caches.match(e.request, { ignoreSearch: true })));
