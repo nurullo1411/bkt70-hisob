@@ -91,32 +91,67 @@ function zakazniOch(matn, jim) {
   hisobla();
 }
 
+// Python hisobi: {ok: natija} yoki {xato: matn}
+function pyTannarx(z) {
+  py.globals.set("_zakaz", JSON.stringify(z));
+  py.globals.set("_kurs", Number($("kurs").value) || 12000);
+  try {
+    return JSON.parse(py.runPython(`
+try:
+    _natija = json.dumps({"ok": tannarx.tannarx(json.loads(_zakaz), kurs=_kurs)}, ensure_ascii=False)
+except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
+    _natija = json.dumps({"xato": str(_e)}, ensure_ascii=False)
+_natija`));
+  } catch (e) {
+    return { xato: "Kutilmagan xato: " + e.message.split("\n").slice(-2).join(" ") };
+  }
+}
+
 function hisobla() {
   if (!py || !zakaz) return;
   xato("");
-  const kurs = Number($("kurs").value);
-  py.globals.set("_zakaz", JSON.stringify(zakaz));
-  py.globals.set("_kurs", kurs);
-  try {
-    const javob = py.runPython(`
-try:
-    _natija = json.dumps({"ok": tannarx.tannarx(json.loads(_zakaz), kurs=_kurs)}, ensure_ascii=False)
-except hisob.HisobXato as _e:
-    _natija = json.dumps({"xato": str(_e)}, ensure_ascii=False)
-_natija`);
-    const d = JSON.parse(javob);
-    if (d.xato) { xato(d.xato); $("natija").hidden = true; return; }
-    natija = d.ok;
-    chiz();
-  } catch (e) {
-    xato("Hisobda kutilmagan xato: " + e.message.split("\n").slice(-2).join(" "));
+  zakaz.konstruksiyalar = zakaz.konstruksiyalar || [];
+  zakaz.umumiy = zakaz.umumiy || { tanlov: {} };
+  $("zakaz-ish").hidden = false;
+  sozlamaniChiz();
+  natija = null;
+  if (zakaz.konstruksiyalar.length) {
+    const d = pyTannarx(zakaz);
+    if (d.xato) xato(d.xato); else natija = d.ok;
   }
+  $("natija").hidden = !natija;
+  if (natija) chiz();
+  royxatniChiz();
+}
+
+function royxatniChiz() {
+  const n = natija;
+  $("zakaz-nomi").textContent = (zakaz.nom ? zakaz.nom + " · " : "") + zakaz.konstruksiyalar.length + " ta konstruksiya";
+  // Konstruksiyalar: soni 0 boʻlganlari ham koʻrinadi, qaytarish uchun
+  const hisoblangan = Object.fromEntries((n ? n.konstruksiyalar : []).map((k) => [k.nom, k]));
+  $("konstruksiyalar").innerHTML = zakaz.konstruksiyalar.map((k, i) => {
+    const nom = k.nom || "K" + (i + 1);
+    const h = hisoblangan[nom];
+    const soni = k.soni ?? 1;
+    return `<div class="konstr${soni === 0 ? " nol" : ""}">
+      <div class="konstr-ichi">
+        <button class="eskiz" data-tahrir="${i}" aria-label="Tahrirlash">${chizmaSVG(k, { kichik: true })}</button>
+        <div class="konstr-matn">
+          <div class="konstr-bosh"><b>${esc(nom)}</b><span>${esc(k.L)} × ${esc(k.H)}</span></div>
+          <div class="konstr-past">
+            <div class="soni"><button data-i="${i}" data-d="-1" aria-label="Kamaytirish">−</button><span>${soni}</span><button data-i="${i}" data-d="1" aria-label="Koʻpaytirish">+</button></div>
+            <div style="text-align:right">${h ? `<div class="xira">1 dona ${usd(h.bir_dona_usd)}</div><b>${usd(h.jami_usd)}</b>` : `<span class="xira">${soni === 0 ? "hisobga kirmaydi" : "—"}</span>`}</div>
+          </div>
+        </div>
+      </div>
+      ${h && h.izoh ? `<div class="ogoh xira">${esc(h.izoh)}</div>` : ""}
+      <div class="kichik-tugmalar"><button data-tahrir="${i}">Tahrirlash</button><button data-nusxa="${i}">Nusxa</button><button data-ochir="${i}">Oʻchirish</button></div>
+    </div>`;
+  }).join("") || '<p class="xira">Konstruksiya yoʻq. Pastdagi tugma bilan qoʻshing.</p>';
 }
 
 function chiz() {
   const n = natija;
-  $("natija").hidden = false;
-  $("zakaz-nomi").textContent = (zakaz.nom ? zakaz.nom + " · " : "") + (zakaz.konstruksiyalar || []).length + " ta konstruksiya";
   $("j-mat").textContent = usd(n.materiallar_usd);
   $("j-str").textContent = usd(n.straxovka_usd);
   $("j-usd").textContent = usd(n.jami_usd);
@@ -126,22 +161,6 @@ function chiz() {
   else izoh.push('<span class="yaxshi">Hamma narx bor</span>');
   for (const o of n.ogohlantirish) izoh.push(`<span class="ogoh">${esc(o)}</span>`);
   $("j-holat").innerHTML = izoh.join("<br>");
-
-  // Konstruksiyalar: soni 0 boʻlganlari ham koʻrinadi, qaytarish uchun
-  const hisoblangan = Object.fromEntries(n.konstruksiyalar.map((k) => [k.nom, k]));
-  $("konstruksiyalar").innerHTML = zakaz.konstruksiyalar.map((k, i) => {
-    const nom = k.nom || "K" + (i + 1);
-    const h = hisoblangan[nom];
-    const soni = k.soni ?? 1;
-    return `<div class="konstr${soni === 0 ? " nol" : ""}">
-      <div class="konstr-bosh"><b>${esc(nom)}</b><span>${esc(k.L)} × ${esc(k.H)}</span></div>
-      <div class="konstr-past">
-        <div class="soni"><button data-i="${i}" data-d="-1" aria-label="Kamaytirish">−</button><span>${soni}</span><button data-i="${i}" data-d="1" aria-label="Koʻpaytirish">+</button></div>
-        <div style="text-align:right">${h ? `<div class="xira">1 dona ${usd(h.bir_dona_usd)}</div><b>${usd(h.jami_usd)}</b>` : '<span class="xira">hisobga kirmaydi</span>'}</div>
-      </div>
-      ${h && h.izoh ? `<div class="ogoh xira">${esc(h.izoh)}</div>` : ""}
-    </div>`;
-  }).join("");
 
   let html = "", bolim = "";
   for (const m of n.materiallar) {
@@ -202,12 +221,41 @@ $("matn-hisobla").addEventListener("click", () => zakazniOch($("matn").value));
 $("namuna").addEventListener("click", async () => zakazniOch(await (await fetch("namuna_z002.json")).text()));
 $("kurs").addEventListener("change", () => { saqla("kurs", $("kurs").value); hisobla(); });
 $("konstruksiyalar").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-i]");
+  const b = e.target.closest("button");
   if (!b) return;
-  const k = zakaz.konstruksiyalar[Number(b.dataset.i)];
-  k.soni = Math.max(0, (k.soni ?? 1) + Number(b.dataset.d));
+  const d = b.dataset;
+  if (d.tahrir != null) { konstruktorniOch(Number(d.tahrir)); return; }
+  if (d.nusxa != null) {
+    const k = nusxa(zakaz.konstruksiyalar[Number(d.nusxa)]);
+    const nomlar = zakaz.konstruksiyalar.map((x) => x.nom);
+    let n = 2;
+    while (nomlar.includes(`${k.nom} (${n})`)) n++;
+    k.nom = `${k.nom} (${n})`;
+    zakaz.konstruksiyalar.splice(Number(d.nusxa) + 1, 0, k);
+  } else if (d.ochir != null) {
+    if (!b.classList.contains("tasdiq")) { b.classList.add("tasdiq"); b.textContent = "Rostdan oʻchirilsinmi?"; return; }
+    zakaz.konstruksiyalar.splice(Number(d.ochir), 1);
+  } else if (d.i != null) {
+    const k = zakaz.konstruksiyalar[Number(d.i)];
+    k.soni = Math.max(0, (k.soni ?? 1) + Number(d.d));
+  } else return;
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   hisobla();
+});
+$("k-qosh").addEventListener("click", () => konstruktorniOch(-1));
+$("yangi").addEventListener("click", () => {
+  const b = $("yangi");
+  if (zakaz && zakaz.konstruksiyalar && zakaz.konstruksiyalar.length && !b.classList.contains("tasdiq")) {
+    b.classList.add("tasdiq"); b.textContent = "Joriy zakaz oʻchadi. Davom?";
+    setTimeout(() => { b.classList.remove("tasdiq"); b.textContent = "Yangi zakaz"; }, 4000);
+    return;
+  }
+  b.classList.remove("tasdiq"); b.textContent = "Yangi zakaz";
+  if (!ol("narxlar")) { xato("Avval narxlar faylini yuklang."); return; }
+  zakaz = yangiZakaz();
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+  hisobla();
+  konstruktorniOch(-1);
 });
 $("ulash").addEventListener("click", async () => {
   const matn = matnNatija();

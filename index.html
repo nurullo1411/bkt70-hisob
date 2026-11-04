@@ -16,17 +16,18 @@
   <span id="holat" class="holat">Yuklanmoqda…</span>
 </header>
 
-<main>
+<main id="asosiy">
   <section id="narx-quti" class="karta" hidden>
     <h2>Narxlar fayli</h2>
-    <p class="xira">Narxlar ilovada saqlanmaydi. <b>narxlar.json</b> faylini bir marta yuklang, u shu telefonda qoladi.</p>
+    <p class="xira">Narxlar hali yuklanmagan. Kalitli havolani oching yoki <b>narxlar.json</b> faylini yuklang.</p>
     <label class="tugma asosiy">Narxlarni yuklash<input id="narx-fayl" type="file" accept=".json,application/json" hidden></label>
   </section>
 
   <section class="karta">
     <h2>Zakaz</h2>
     <div class="tugmalar">
-      <label class="tugma asosiy">Fayl ochish<input id="fayl" type="file" accept=".json,application/json" hidden></label>
+      <button id="yangi" class="tugma asosiy">Yangi zakaz</button>
+      <label class="tugma">Fayl ochish<input id="fayl" type="file" accept=".json,application/json" hidden></label>
       <button id="matn-tugma" class="tugma">Matn qoʻyish</button>
       <button id="namuna" class="tugma">Namuna</button>
     </div>
@@ -44,6 +45,19 @@
 
   <p id="xato" class="xato" hidden></p>
 
+  <section id="zakaz-ish" hidden>
+    <section class="karta">
+      <h2>Konstruksiyalar</h2>
+      <div id="konstruksiyalar"></div>
+      <button id="k-qosh" class="tugma asosiy keng">+ Konstruksiya qoʻshish</button>
+    </section>
+
+    <details class="karta">
+      <summary>Umumiy tanlovlar (rama, rang, oyna, furnitura)</summary>
+      <div id="sozlama"></div>
+    </details>
+  </section>
+
   <section id="natija" hidden>
     <section class="karta jami">
       <div class="jami-qator"><span>Materiallar</span><b id="j-mat"></b></div>
@@ -51,11 +65,6 @@
       <div class="jami-qator katta"><span>JAMI TANNARX</span><b id="j-usd"></b></div>
       <div class="jami-qator"><span></span><b id="j-som"></b></div>
       <p id="j-holat"></p>
-    </section>
-
-    <section class="karta">
-      <h2>Konstruksiyalar</h2>
-      <div id="konstruksiyalar"></div>
     </section>
 
     <details class="karta">
@@ -81,11 +90,26 @@
       </div>
     </section>
   </section>
+  <footer class="xira" id="versiya"></footer>
 </main>
 
-<footer class="xira" id="versiya"></footer>
+<main id="konstruktor" hidden>
+  <section class="karta">
+    <div class="tugmalar">
+      <button id="k-bekor" class="tugma">← Bekor</button>
+      <button id="k-saqla" class="tugma asosiy">Saqlash</button>
+    </div>
+  </section>
+  <section class="karta" id="k-maydon"></section>
+  <section class="karta">
+    <div id="k-chizma"></div>
+    <div id="k-holat" class="xira"></div>
+  </section>
+  <section class="karta" id="k-panel"></section>
+</main>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script src="app.js"></script>
+<script src="konstruktor.js"></script>
 </body>
 </html>

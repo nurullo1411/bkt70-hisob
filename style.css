@@ -52,3 +52,42 @@ td.son, th.son { text-align: right; white-space: nowrap; }
 .bolim { margin: 12px 0 4px; font-weight: 600; color: var(--xira); font-size: 13px; text-transform: uppercase; }
 .bolim:first-child { margin-top: 0; }
 footer { text-align: center; padding: 0 16px 24px; }
+
+/* Konstruktor */
+:root { --rama: #e6e9ee; --rama-chiziq: #4a5560; --oyna: #cfe6f7; --oyna-chiziq: #6f9fc2; --tanl: #e65100; }
+@media (prefers-color-scheme: dark) {
+  :root { --rama: #3a4049; --rama-chiziq: #aab4bf; --oyna: #24435c; --oyna-chiziq: #5d8fb8; --tanl: #ff9f5a; }
+}
+.chizma { width: 100%; height: auto; max-height: 60vh; display: block; touch-action: manipulation; }
+.chizma .ra { fill: var(--rama); stroke: var(--rama-chiziq); stroke-width: .4; }
+.chizma .tb { fill: var(--rama); stroke: var(--rama-chiziq); stroke-width: .35; }
+.chizma .oy { fill: var(--oyna); stroke: var(--oyna-chiziq); stroke-width: .3; }
+.chizma .ch { stroke: var(--rama-chiziq); stroke-width: .35; }
+.chizma .uz { stroke-dasharray: 2 1.5; }
+.chizma .ru { fill: var(--rama-chiziq); }
+.chizma .xt { fill: none; stroke: red; }
+.chizma .yoz { fill: var(--matn); font-family: system-ui, sans-serif; }
+.chizma .fon { paint-order: stroke; stroke: var(--karta); stroke-width: .8; }
+.chizma .bos { fill: transparent; stroke: none; cursor: pointer; }
+.chizma .bos.tanl { fill: rgba(230, 81, 0, .12); stroke: var(--tanl); stroke-width: 1.2; }
+.chizma.kichik .ra, .chizma.kichik .tb { stroke-width: .8; }
+.panjara { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+.panjara label, #k-maydon label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--xira); }
+select { width: 100%; font: inherit; color: var(--matn); background: var(--fon); border: 1px solid var(--chiziq); border-radius: 10px; padding: 9px 8px; min-height: 42px; }
+#k-maydon label.belgi { flex-direction: row; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--matn); }
+.belgi input { width: 22px; height: 22px; }
+.sarlavha { margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--xira); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { flex: 1 1 0; min-height: 42px; min-width: 64px; border-radius: 10px; border: 1px solid var(--chiziq);
+              background: var(--fon); color: var(--matn); font: inherit; font-size: 14px; }
+.seg button.faol { background: var(--asosiy); color: var(--asosiy-matn); border-color: var(--asosiy); }
+#k-panel .qator input { max-width: none; flex: 1; }
+#k-holat { margin-top: 8px; font-size: 14px; }
+.keng { width: 100%; margin-top: 10px; }
+.konstr-ichi { display: flex; gap: 10px; align-items: center; }
+.eskiz { flex: 0 0 64px; height: 64px; padding: 2px; border: 1px solid var(--chiziq); border-radius: 8px; background: var(--fon); }
+.eskiz svg { width: 100%; height: 100%; }
+.konstr-matn { flex: 1; min-width: 0; }
+.kichik-tugmalar { display: flex; gap: 6px; margin-top: 8px; }
+.kichik-tugmalar button { flex: 1; min-height: 34px; border-radius: 8px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font: inherit; font-size: 13px; }
+.kichik-tugmalar button.tasdiq, .tugma.tasdiq { border-color: var(--xato); color: var(--xato); }
