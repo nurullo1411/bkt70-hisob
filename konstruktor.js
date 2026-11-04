@@ -564,6 +564,7 @@ $("k-bolimlar").addEventListener("click", (e) => {
 $("k-asboblar").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
+  if (surildi) { surildi = false; return; }  // surib tashlangandan keyingi "click" hisoblanmaydi
   if (b.dataset.ochilish != null) eshikOchilish = eshikOchilish === "ichkariga" ? "tashqariga" : "ichkariga";
   else asbob = asbob === b.dataset.asbob ? null : b.dataset.asbob;
   yangila();
@@ -632,3 +633,85 @@ $("sozlama").addEventListener("change", (e) => {
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   hisobla();
 });
+
+// ---------- surib chizish (Romchi kabi): asbobni bosib turib boʻlakka olib borish ----------
+// Barmoq ostidagi boʻlak yashil boʻladi, impost asbobida uning tushadigan joyi chiziq bilan koʻrinadi.
+let surish = null, surildi = false;
+
+function nishonniTozala() {
+  document.querySelectorAll("#k-chizma .nishon").forEach((el) => el.classList.remove("nishon"));
+  document.querySelectorAll("#k-chizma .korinish").forEach((el) => el.remove());
+}
+
+function nishonniKorsat(p, id) {
+  nishonniTozala();
+  if (p == null) return;
+  const rect = document.querySelector(`#k-chizma [data-p="${p}"]`);
+  if (!rect) return;
+  rect.classList.add("nishon");
+  const o = geometriya(tahrir).barglar.find((x) => x.p === p);
+  if (!o) return;
+  const svg = document.querySelector("#k-chizma svg");
+  const chiz = (x1, y1, x2, y2) => {
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    Object.entries({ x1, y1, x2, y2 }).forEach(([k, v]) => l.setAttribute(k, v));
+    l.setAttribute("class", "korinish");
+    svg.appendChild(l);
+  };
+  const n = id === "tik3" || id === "yotiq3" ? 3 : 2;
+  for (let j = 1; j < n; j++) {
+    if (id === "tik" || id === "tik3" || id === "shtulp") chiz(o.x + (o.w * j) / n, o.y, o.x + (o.w * j) / n, o.y + o.h);
+    if (id === "yotiq" || id === "yotiq3") chiz(o.x, o.y + (o.h * j) / n, o.x + o.w, o.y + (o.h * j) / n);
+  }
+}
+
+function barmoqOstidagiBolak(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const r = el && el.closest && el.closest("#k-chizma [data-p]");
+  return r ? r.dataset.p : null;
+}
+
+$("k-asboblar").addEventListener("pointerdown", (e) => {
+  const b = e.target.closest("button[data-asbob]");
+  if (!b || !tahrir) return;
+  surish = { id: b.dataset.asbob, x0: e.clientX, y0: e.clientY, kochdi: false, soya: null, p: null, tugma: b };
+});
+
+document.addEventListener("pointermove", (e) => {
+  if (!surish) return;
+  if (!surish.kochdi) {
+    if (Math.hypot(e.clientX - surish.x0, e.clientY - surish.y0) < 8) return;
+    surish.kochdi = true;
+    const soya = document.createElement("div");
+    soya.className = "surish-soya";
+    soya.innerHTML = surish.tugma.innerHTML;
+    document.body.appendChild(soya);
+    surish.soya = soya;
+    try { surish.tugma.releasePointerCapture(e.pointerId); } catch (_) {}
+  }
+  e.preventDefault();
+  surish.soya.style.transform = `translate(${e.clientX - 28}px, ${e.clientY - 72}px)`;
+  // soya barmoq ustida (tepada) turadi, boʻlak barmoq uchidan aniqlanadi
+  const p = barmoqOstidagiBolak(e.clientX, e.clientY);
+  if (p !== surish.p) { surish.p = p; nishonniKorsat(p, surish.id); }
+}, { passive: false });
+
+function surishniTugat(qollansin) {
+  if (!surish) return;
+  const s_ = surish;
+  surish = null;
+  if (s_.soya) s_.soya.remove();
+  nishonniTozala();
+  if (!s_.kochdi) return;
+  surildi = true;
+  setTimeout(() => { surildi = false; }, 400);
+  if (qollansin && s_.p != null) {
+    const avvalgi = asbob;
+    asbob = s_.id;
+    asbobniQolla(s_.p);
+    asbob = avvalgi;
+    yangila();
+  }
+}
+document.addEventListener("pointerup", () => surishniTugat(true));
+document.addEventListener("pointercancel", () => surishniTugat(false));
