@@ -640,7 +640,22 @@ Rom tabaqalari orasida doim impost.
 Soni yozilmagan boʻlsa 1. nom: hujjatdagi raqam yoki "Rom 1", "Eshik 1".
 Rasm yonboshlab olingan boʻlsa, raqamlar va yozuvlar yoʻnalishiga qarab konstruksiyani toʻgʻri holatda oʻqi: L gorizontal (eni), H vertikal (boʻyi) oʻlcham. Eshik doim boʻyi enidan katta.
 Agar usta "Nima chizilgan" deb Eshik yoki Vitraj tanlagan boʻlsa, T/Z yozilmagan boʻlsa ham ochiladigan qism eshik; ochilishi bilinmasa "ichkariga" yoz va savollar ga qoʻsh.
-Oʻqib boʻlmagan oʻlchamni taxmin qilma: eng ehtimolini yoz va savollar ga qoʻsh.`;
+Oʻqib boʻlmagan oʻlchamni taxmin qilma: eng ehtimolini yoz va savollar ga qoʻsh.
+
+ROMCHI PDF ("BUYURTMA MA'LUMOTI", har konstruksiya raqamlangan kartochka: chizma + Brend, Seriya, Rangi, Oynasi, ... Soni):
+- Oʻlchamlar mm da: chap tomondagi umumiy boʻy = H, pastdagi eng uzun = L, ichkaridagi kichik raqamlar boʻlak oʻlchamlari (impost oʻrtasigacha). 10 ga boʻl.
+- Chizmada ham ochilish chiziqlarining uchi ruchka tomonida, petlya belgilari (kichik toʻrtburchaklar) qarama-qarshi tomonda. F1, F2 — gluxoy; C1, C2 — ochiladigan.
+- Chizma ostidagi TASHQARI/ICHKARI sxemasi: chiziq TASHQARI tomonga chiqsa tashqariga, ICHKARI tomonga tushsa ichkariga ochiladi.
+- "Eshik ochilishi: ... T" yoki "Balkon Oʻrta T" — tashqariga ochiladigan eshik; "Z" yoki "Balkon Qanot Z" — ichkariga ochiladigan eshik. "Oyna ochilishi: Qanot Z" — rom tabaqasi (eshik emas).
+- Yon uchburchak bilan birga uchi TEPADA boʻlgan chiziqlar (Romchi shunday chizadi) — dvaynoy: {"tur":"tabaqa","dvaynoy":true,...}.
+- "Soni: N dona" — soni. nom: kartochka raqami bilan, masalan "1 Eshik", "2 Rom".
+ProfStroy / ProfOkna PDF ("Коммерческое предложение", "№ 1 ..." jadval):
+- "Размеры 810 x 2350 мм" — L x H (mm, 10 ga boʻl), "Количество" — soni. Chizma boʻlsa undagi oʻlchamlardan boʻlinishni ol.
+- "дверная T створка" yoki "наружу" — tashqariga; "дверная Z", "внутрь", "вовнутрь" — ichkariga ochiladigan eshik. "поворотное вправо" — petlya oʻngda ("ong"), "влево" — chapda. "поворотно-откидное" — dvaynoy, "откидное" — fortochka.
+- Chizmasi boʻlmasa ham jadvaldan konstruksiyani tuz; boʻlinishi bilinmasa bitta boʻlak qilib, savollar ga yoz.
+Ikkala PDF uchun ham:
+- Seriya yoki Система TERMO 70 / BKT 70 boʻlmasa (masalan TRIO, ENGELBERG, Aldoks, PVX), konstruksiyani baribir oʻqi, savollar ga "N: seriya X, Termo 70 da hisoblandi" deb yoz.
+- Narx, rang, ruchka, podokonnik — oʻqima (dastur oʻzi hisoblaydi). Faqat oyna turi roʻyxatdagilardan biriga aniq mos kelsa, konstruksiyaga "tanlov": {"oyna_turi": "..."} qoʻsh. Roʻyxat: OYNA_ROYXATI.`;
 
 function aiKalit() { return ol("ai_kalit"); }
 async function aiKalitniOl() {
@@ -671,8 +686,12 @@ async function rasmCanvas(f, maks) {
   x.drawImage(img, -w / 2, -h / 2, w, h);
   return c;
 }
+function pdfmi(f) { return f.type === "application/pdf" || /\.pdf$/i.test(f.name || ""); }
+function oynaTurlari() {
+  try { return Object.keys(JSON.parse(ol("narxlar")).steklopaket_som || {}); } catch (e) { return []; }
+}
 async function aiKorinish() {
-  if (!aiFayl || aiFayl.type === "application/pdf") { $("ai-korinish").hidden = true; return; }
+  if (!aiFayl || pdfmi(aiFayl)) { $("ai-korinish").hidden = true; return; }
   const c = await rasmCanvas(aiFayl, 600);
   $("ai-korinish").hidden = false;
   $("ai-rasm").src = c.toDataURL("image/jpeg", 0.8);
@@ -680,7 +699,7 @@ async function aiKorinish() {
 
 async function rasmTayyorla(f) {
   // Katta rasm kichraytiriladi (API chegarasi va tezlik uchun)
-  if (f.type === "application/pdf") {
+  if (pdfmi(f)) {
     const b = new Uint8Array(await f.arrayBuffer());
     let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
     return { type: "document", source: { type: "base64", media_type: "application/pdf", data: btoa(s) } };
@@ -705,7 +724,7 @@ async function aiOqi(fayl, izoh) {
   const javob = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": kalit, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: AI_MODEL, max_tokens: 8000, system: AI_TIZIM, output_config: { effort: "medium" }, messages: [{ role: "user", content: mazmun }] }),
+    body: JSON.stringify({ model: AI_MODEL, max_tokens: 8000, system: AI_TIZIM.replace("OYNA_ROYXATI", oynaTurlari().join(", ") || "—"), output_config: { effort: "medium" }, messages: [{ role: "user", content: mazmun }] }),
   });
   const d = await javob.json().catch(() => ({}));
   if (!javob.ok) {
@@ -749,7 +768,7 @@ document.querySelectorAll("[data-rasm]").forEach((inp) => inp.addEventListener("
   aiFayl = f; aiRejim = inp.dataset.rasm; aiBurchak = 0;
   aiKorinish().catch(() => { $("ai-korinish").hidden = true; });
   const s = aiSarf();
-  $("ai-sarlavha").textContent = "Rasmdan oʻqish";
+  $("ai-sarlavha").textContent = pdfmi(f) ? "PDF dan oʻqish" : "Rasmdan oʻqish";
   $("ai-matn").innerHTML = `<p><b>${esc(f.name)}</b></p><p class="xira">Shu oy: ${s.soni} ta, ${s.dollar.toFixed(2)} $ (chegara ${AI_OYLIK_CHEGARA} $)</p>`;
   $("ai-kalit-quti").hidden = !!(await aiKalitniOl());
   $("ai-izoh-quti").hidden = false;
@@ -785,6 +804,11 @@ $("ai-boshla").addEventListener("click", async () => {
     let nom = String(k.nom || "K" + (zakaz.konstruksiyalar.length + 1));
     while (nomlar.has(nom)) nom += "+";
     k.nom = nom;
+    if (k.tanlov && typeof k.tanlov === "object") {
+      const t = k.tanlov.oyna_turi;
+      k.tanlov = oynaTurlari().includes(t) ? { oyna_turi: t } : undefined;
+      if (!k.tanlov) delete k.tanlov;
+    } else delete k.tanlov;
     const x = konstrTekshir(k);
     if (x) { xatolar.push(`${nom}: ${x}`); continue; }
     nomlar.add(nom);

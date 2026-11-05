@@ -186,13 +186,14 @@ html, body { overscroll-behavior-y: contain; }
 .surish-soya small { display: none; }
 
 /* Zakaz sahifasi (Romchi kabi) */
-.xulosa { position: sticky; top: 0; z-index: 3; display: flex; gap: 8px; align-items: center; margin: 0 0 12px;
+.xulosa { position: sticky; top: 0; z-index: 3; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px;
           padding: 8px 10px; border-radius: 14px; background: var(--karta); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
 .xulosa > div { display: flex; flex-direction: column; align-items: center; padding: 0 10px; }
 .xulosa > div + div { border-left: 1px solid var(--chiziq); }
 .xulosa b { font-size: 17px; color: var(--asosiy); }
 .xulosa span { font-size: 11px; color: var(--xira); text-transform: uppercase; }
-.xulosa .tugma { margin-left: auto; }
+.xulosa > div + .tugma { margin-left: auto; }
+.xulosa .tugma { padding-left: 10px; padding-right: 10px; white-space: nowrap; }
 .teglar { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
 .teglar span { font-size: 11px; padding: 2px 7px; border-radius: 8px; background: rgba(91, 141, 239, .14); color: var(--matn); }
 .eslatma { width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--chiziq);
