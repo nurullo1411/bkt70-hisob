@@ -33,9 +33,18 @@ def _narx(kalit, narxlar, kurs):
     return narxlar["narx"].get(artikul)
 
 
-def tannarx(zakaz, narxlar=None, kurs=None):
-    """Zakazni hisoblaydi. soni = 0 boʻlgan konstruksiya hisobga kirmaydi."""
-    from raskroy import STRAXOVKA
+def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None):
+    """Zakazni hisoblaydi. soni = 0 boʻlgan konstruksiya hisobga kirmaydi.
+
+    otxod_usuli: raskroy.OTXOD_USULLARI kaliti (standart "chegara"); sklad: sklad varagʻi qatorlari (sklad usullari uchun).
+    """
+    from raskroy import OTXOD_USULLARI, STANDART_USUL, STRAXOVKA
+
+    otxod_usuli = otxod_usuli or STANDART_USUL
+    ogoh_usul = []
+    if otxod_usuli.startswith("sklad") and not sklad:
+        ogoh_usul.append("Sklad yuklanmagan: otxod chegara usulida hisoblandi")
+        otxod_usuli = STANDART_USUL
 
     narxlar = narxlar or narxlarni_oqi()
     kurs = float(kurs or narxlar.get("kurs") or 0)
@@ -45,7 +54,7 @@ def tannarx(zakaz, narxlar=None, kurs=None):
     faol = [k for k in hammasi if k.get("soni", 1) != 0]
     if not faol:
         raise HisobXato("Hisoblanadigan konstruksiya yoʻq (hammasining soni 0)")
-    konstruksiyalar, oynalar, miqdorlar, otxod = hisobla_zakaz({**zakaz, "konstruksiyalar": faol})
+    konstruksiyalar, oynalar, miqdorlar, otxod = hisobla_zakaz({**zakaz, "konstruksiyalar": faol}, otxod_usuli, sklad)
     n = len(konstruksiyalar)
 
     materiallar, bir_dona, narx_yoq = [], [0.0] * n, []
@@ -83,8 +92,12 @@ def tannarx(zakaz, narxlar=None, kurs=None):
         "kurs": kurs,
         "jami_som": round(mat * (1 + STRAXOVKA) * kurs),
         "narx_yoq": narx_yoq,
-        "ogohlantirish": [f"{k['nom']}: {k['izoh']}" for k in konstruksiyalar if k["izoh"]] + [
-            f"{o['profil']}: otxod chegarasi yoʻq" for o in otxod if o["chegara_yoq"]],
+        "otxod_usuli": otxod_usuli,
+        "otxod_usuli_nomi": OTXOD_USULLARI[otxod_usuli],
+        "ogohlantirish": ogoh_usul + [f"{k['nom']}: {k['izoh']}" for k in konstruksiyalar if k["izoh"]] + [
+            f"{o['profil']}: otxod chegarasi yoʻq" for o in otxod if o["chegara_yoq"]] + [
+            f"{o['profil']}: rangi belgilanmagan konstruksiya, sklad ishlatilmadi"
+            for o in otxod if otxod_usuli.startswith("sklad") and not o.get("sklad_rang")],
     }
 
 

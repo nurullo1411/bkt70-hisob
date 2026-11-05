@@ -63,7 +63,9 @@ def _narx_formulasi(kalit, q):
     return "=" + NARX_VLOOKUP.format(kalit=f"$B{q}", boluvchi="")
 
 
-def hisobla_zakaz(zakaz):
+def hisobla_zakaz(zakaz, otxod_usuli="chegara", sklad=None):
+    from raskroy import _konstruksiya_rangi  # raskroy zakaz ni import qiladi: bu yerda, aylanma importsiz
+
     umumiy = zakaz.get("umumiy", {})
     royxat = zakaz.get("konstruksiyalar") or []
     if not royxat:
@@ -85,6 +87,7 @@ def hisobla_zakaz(zakaz):
         except (HisobXato, KeyError) as e:
             raise HisobXato(f"{nom}: {e}") from e
         n = h["n"]
+        sklad_rangi = _konstruksiya_rangi(umumiy.get("tanlov") or {}, element)[0]
         izoh = [f"Qoida yoʻq: {x}" for x in n["qoida_yoq"]] + n["ogohlantirishlar"]
         konstruksiyalar.append({"nom": nom, "L": k["L"], "H": k["H"], "soni": soni, "izoh": "; ".join(izoh)})
         # Varaqda miqdor 1 dona uchun yoziladi, soni (D ustuni) bilan formula koʻpaytiradi
@@ -96,27 +99,45 @@ def hisobla_zakaz(zakaz):
             miqdorlar.setdefault(kalit, [0.0] * len(royxat))
             miqdorlar[kalit][i] += round(float(t["miqdor"]), 6)
         for p in n["profillar"]:
-            guruh = detallar.setdefault((p["profil"], k["tanlov"]["rang"]), {"kerak": Counter(), "ulush": [0] * len(royxat)})
+            kalit = (p["profil"], k["tanlov"]["rang"])
+            if otxod_usuli.startswith("sklad"):  # sklad rangi boʻyicha: grey va z/d bir hivichdan kesilmaydi
+                kalit += (sklad_rangi,)
+            guruh = detallar.setdefault(kalit, {"kerak": Counter(), "ulush": [0] * len(royxat)})
             uzun = int(round(float(p["uzunlik"]) * 100))
             guruh["kerak"][uzun] += p["soni"] * soni
             guruh["ulush"][i] += uzun * p["soni"] * soni
-    otxod = _otxod_qatorlari(detallar, miqdorlar, [k["soni"] for k in konstruksiyalar])
+    otxod = _otxod_qatorlari(detallar, miqdorlar, [k["soni"] for k in konstruksiyalar], otxod_usuli, sklad)
     return konstruksiyalar, oynalar, miqdorlar, otxod
 
 
-def _otxod_qatorlari(detallar, miqdorlar, sonlar):
-    """Raskroy (skladsiz) boʻyicha otxod: har profilga 'Profil otxod' qatori.
+def _otxod_qatorlari(detallar, miqdorlar, sonlar, usul="chegara", sklad=None):
+    """Raskroy boʻyicha otxod: har profilga 'Profil otxod' qatori (usul: raskroy.OTXOD_USULLARI).
+
+    metrlik — otxod 0; chegara / butun — skladsiz raskroy; sklad_metr / sklad_tekin — sklad qoldigʻi
+    avval (detallar kaliti 3-elementi sklad rangi, None boʻlsa sklad ishlatilmaydi). sklad_tekin da
+    ortiqcha manfiy boʻlishi mumkin: skladdan olingan detal metrlik narxdan ayriladi.
 
     Ortiqcha metr konstruksiyalarga shu profildagi ulushiga qarab boʻlinadi va 1 donaga
     keltiriladi (varaqda soni bilan koʻpaytiriladi). Soni varaqda oʻzgartirilsa otxod
     qayta raskroy qilinmaydi, shu ulush bilan oʻzgaradi.
     Straxovka bu yerda emas, butun tannarxga varaqda qoʻshiladi.
     """
-    from raskroy import otxod_hisobi
+    from raskroy import OTXOD_USULLARI, otxod_hisobi, sklad_bolaklari, sklad_otxod_hisobi
 
+    if usul not in OTXOD_USULLARI:
+        raise HisobXato(f"Otxod usuli notoʻgʻri: {usul}")
     natija = []
-    for (profil, rang), g in detallar.items():
-        o = otxod_hisobi(profil, g["kerak"])
+    for kalit, g in detallar.items():
+        profil, rang = kalit[0], kalit[1]
+        sklad_rang = kalit[2] if len(kalit) > 2 else None
+        if usul.startswith("sklad"):
+            bolak = sklad_bolaklari(sklad or [], profil, sklad_rang)[0] if sklad_rang else []
+            o = sklad_otxod_hisobi(profil, g["kerak"], bolak, usul)
+        elif usul == "metrlik":
+            o = {"hivich": None, "ishlatilgan": sum(d * n for d, n in g["kerak"].items()), "chegara_yoq": False}
+            o["sarf"] = o["ishlatilgan"]
+        else:
+            o = otxod_hisobi(profil, g["kerak"], usul)
         ishlatilgan = o["ishlatilgan"] / 10000
         jami = o["sarf"] / 10000
         ortiqcha = jami - ishlatilgan
@@ -126,6 +147,7 @@ def _otxod_qatorlari(detallar, miqdorlar, sonlar):
         natija.append({
             "profil": profil, "rang": rang, "hivich": o["hivich"], "ishlatilgan_m": round(ishlatilgan, 3),
             "sarf_m": round(o["sarf"] / 10000, 3), "jami_m": round(jami, 3), "chegara_yoq": o["chegara_yoq"],
+            "sklad_rang": sklad_rang, "sklad_bolak": o.get("sklad_bolak", 0), "sklad_m": round(o.get("sklad_m", 0), 3),
         })
     return natija
 

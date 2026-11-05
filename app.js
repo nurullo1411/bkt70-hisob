@@ -223,14 +223,30 @@ function arxivniChiz() {
     </div>`).join("") || '<p class="xira">Bu boʻlimda zakaz yoʻq.</p>';
 }
 
+// Profil otxodi usuli har seriya uchun alohida, telefonda saqlanadi (foydalanuvchi, 2026-11-05). Hozir faqat Termo 70.
+const SERIYA = "Termo 70";
+function otxodUsuli(seriya = SERIYA) {
+  try { return (JSON.parse(ol("otxod_usuli") || "{}"))[seriya] || "chegara"; } catch (e) { return "chegara"; }
+}
+function otxodUsuliniSaqla(usul, seriya = SERIYA) {
+  let o = {};
+  try { o = JSON.parse(ol("otxod_usuli") || "{}"); } catch (e) { o = {}; }
+  o[seriya] = usul;
+  saqla("otxod_usuli", JSON.stringify(o));
+}
+
 // Python hisobi: {ok: natija} yoki {xato: matn}
 function pyTannarx(z) {
+  const usul = otxodUsuli();
+  const sk = usul.startsWith("sklad") ? skladSaqlangan() : null;
   py.globals.set("_zakaz", JSON.stringify(z));
   py.globals.set("_kurs", Number($("kurs").value) || 12000);
+  py.globals.set("_ou", usul);
+  py.globals.set("_osk", sk ? JSON.stringify(sk.qatorlar) : "null");
   try {
     return JSON.parse(py.runPython(`
 try:
-    _natija = json.dumps({"ok": tannarx.tannarx(json.loads(_zakaz), kurs=_kurs)}, ensure_ascii=False)
+    _natija = json.dumps({"ok": tannarx.tannarx(json.loads(_zakaz), kurs=_kurs, otxod_usuli=_ou, sklad=json.loads(_osk))}, ensure_ascii=False)
 except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
     _natija = json.dumps({"xato": str(_e)}, ensure_ascii=False)
 _natija`));
@@ -323,6 +339,7 @@ function hisobKitobniChiz() {
   document.querySelectorAll("[data-valyuta]").forEach((b) => b.classList.toggle("faol", b.dataset.valyuta === v));
   $("j-mat").textContent = pul(n.materiallar_usd - otxod);
   $("j-otx").textContent = pul(otxod);
+  $("otxod-usul").value = n.otxod_usuli;
   $("j-str").textContent = pul(n.straxovka_usd);
   $("j-tan").textContent = pul(n.jami_usd);
   $("j-tan2").textContent = v === "usd" ? som(n.jami_som) : usd(n.jami_usd);
@@ -431,8 +448,14 @@ function chiz() {
     n.oynalar.map((o) => `<tr><td>${esc(o.nom)}<br><span class="xira">${esc(o.joy)}${o.tur ? " · " + esc(o.tur) : ""}</span></td><td class="son">${son(o.en, 2)} × ${son(o.boy, 2)}</td><td class="son">${o.soni * nomlar[o.i].soni}</td></tr>`).join("") + "</table>";
 
   $("otxod").innerHTML = "<table><tr><th>Profil</th><th class='son'>Hivich</th><th class='son'>Ishlatilgan</th><th class='son'>Otxod</th></tr>" +
-    n.otxod.map((o) => `<tr><td>${esc(o.profil)}</td><td class="son">${o.hivich}</td><td class="son">${son(o.ishlatilgan_m, 2)} m</td><td class="son">${son(o.jami_m - o.ishlatilgan_m, 2)} m</td></tr>`).join("") +
-    "</table><p class='xira'>Yangi 650 sm hivichdan, skladsiz. Chegaradan kichik qoldiq otxod.</p>";
+    n.otxod.map((o) => `<tr><td>${esc(o.profil)}${o.sklad_bolak ? `<br><span class="xira">skladdan ${o.sklad_bolak} boʻlak, ${son(o.sklad_m, 2)} m</span>` : ""}</td><td class="son">${o.hivich ?? "—"}</td><td class="son">${son(o.ishlatilgan_m, 2)} m</td><td class="son">${son(o.jami_m - o.ishlatilgan_m, 2)} m</td></tr>`).join("") +
+    `</table><p class='xira'>Usul: ${esc(n.otxod_usuli_nomi)} (${SERIYA}). ${{
+      chegara: "Yangi 650 sm hivichdan, skladsiz. Chegaradan kichik qoldiq otxod.",
+      metrlik: "Faqat detal metri, otxod qoʻshilmaydi.",
+      butun: "Eng kam hivichli raskroy, har hivich toʻliq narxda.",
+      sklad_metr: "Avval sklad qoldigʻi (detal metri narxida), keyin yangi hivich chegara boʻyicha.",
+      sklad_tekin: "Avval sklad qoldigʻi (tekin), keyin yangi hivich chegara boʻyicha. Otxod manfiy boʻlishi mumkin.",
+    }[n.otxod_usuli] || ""}</p>`;
 }
 
 function matnNatija() {
@@ -588,6 +611,7 @@ $("arxiv").addEventListener("click", (e) => {
 $("pdf").addEventListener("click", () => {
   $("pdf-baj").value = ol("bajaruvchi") || "";
   $("pdf-baj-tel").value = ol("bajaruvchi_tel") || "";
+  $("pdf-usul").checked = ol("pdf_usul") === "1";
   $("pdf-oyna").hidden = false;
 });
 $("pdf-yop").addEventListener("click", () => { $("pdf-oyna").hidden = true; });
@@ -595,7 +619,8 @@ $("pdf-ber").addEventListener("click", () => {
   saqla("bajaruvchi", $("pdf-baj").value.trim());
   saqla("bajaruvchi_tel", $("pdf-baj-tel").value.trim());
   $("pdf-oyna").hidden = true;
-  $("chop").innerHTML = pdfHtml({ narx: $("pdf-narx").checked, olcham: $("pdf-olcham").checked, mat: $("pdf-mat").checked });
+  saqla("pdf_usul", $("pdf-usul").checked ? "1" : "");
+  $("chop").innerHTML = pdfHtml({ narx: $("pdf-narx").checked, olcham: $("pdf-olcham").checked, mat: $("pdf-mat").checked, usul: $("pdf-usul").checked });
   const eski = document.title;
   document.title = `${zakaz.raqam ? "№" + zakaz.raqam + " " : ""}${(zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "zakaz"}`;
   setTimeout(() => { window.print(); document.title = eski; }, 100);
@@ -637,11 +662,21 @@ function pdfHtml(o) {
     s += `<div class="p-k p-mat"><b>Kerakli materiallar</b><table class="p-jad">` +
       n.materiallar.filter((x) => x.bolim !== "Profil otxod").map((x) => `<tr><td>${esc(x.artikul)}${x.bolim === "Oyna" ? ` (${esc(x.izoh)} mm)` : ""}</td><td>${son(x.jami)} ${esc(x.birlik)}</td></tr>`).join("") + "</table></div>";
   }
-  s += `<div class="p-oxir">Umumiy yuzasi: <b>${son(jamiM2, 2)} m²</b>${m.izoh ? `<br>Izoh: ${esc(m.izoh)}` : ""}</div>`;
+  s += `<div class="p-oxir">Umumiy yuzasi: <b>${son(jamiM2, 2)} m²</b>${o.usul ? `<br>Profil hisobi: ${esc(n.otxod_usuli_nomi)}` : ""}${m.izoh ? `<br>Izoh: ${esc(m.izoh)}` : ""}</div>`;
   return s;
 }
 
 $("kesish-quti").addEventListener("toggle", () => { if ($("kesish-quti").open) kesishniChiz(); });
+$("otxod-usul").addEventListener("change", async () => {
+  const usul = $("otxod-usul").value;
+  otxodUsuliniSaqla(usul);
+  if (usul.startsWith("sklad") && !skladSaqlangan()) {
+    holat("Sklad yuklanmoqda…");
+    try { await skladYukla(); } catch (e) { xato(e.message); }
+  }
+  hisobla();
+  holat(`Otxod: ${$("otxod-usul").selectedOptions[0].textContent}`);
+});
 
 // ---------- sklad bilan kesish rejasi (Dodorom_sklad → Apps Script, faqat oʻqiladi) ----------
 // Har profilga alohida PDF: ishchi adashmasin (raskroy.py dagidek).
@@ -743,6 +778,7 @@ $("sklad-ol").addEventListener("click", async () => {
   $("sklad-ol").disabled = false;
   skladRanglariniChiz();
   skladRejaniHisobla();
+  if (otxodUsuli().startsWith("sklad")) { const ochiq = $("kesish-quti").open; hisobla(); if (ochiq) $("kesish-quti").open = true; }
 });
 $("sklad-rang").addEventListener("change", () => { skladRanglariniChiz(); skladRejaniHisobla(); });
 $("sklad-rang2").addEventListener("change", skladRejaniHisobla);

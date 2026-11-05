@@ -83,6 +83,14 @@
       <div class="hk-bosh"><h2>Hisob-kitob</h2>
         <div class="seg valyuta"><button data-valyuta="som">soʻm</button><button data-valyuta="usd">USD</button></div></div>
       <div class="jami-qator"><span>Materiallar</span><b id="j-mat"></b></div>
+      <div class="hk-maydon"><label>Profil otxodi usuli (Termo 70)
+        <select id="otxod-usul">
+          <option value="chegara">Chegara boʻyicha (standart)</option>
+          <option value="metrlik">Metrlik (otxodsiz)</option>
+          <option value="butun">Butun hivich</option>
+          <option value="sklad_metr">Sklad bilan: sklad boʻlagi detal metrida</option>
+          <option value="sklad_tekin">Sklad bilan: sklad boʻlagi tekin</option>
+        </select></label></div>
       <div class="jami-qator"><span>Profil otxodi</span><b id="j-otx"></b></div>
       <div class="jami-qator"><span>Straxovka 3%</span><b id="j-str"></b></div>
       <div class="jami-qator katta"><span>TANNARX</span><b id="j-tan"></b></div>
@@ -163,6 +171,7 @@
     <label class="almash"><span>Narxlar koʻrsatilsinmi?</span><input type="checkbox" id="pdf-narx" checked></label>
     <label class="almash"><span>Oʻlchamlar koʻrsatilsinmi?</span><input type="checkbox" id="pdf-olcham" checked></label>
     <label class="almash"><span>Kerakli materiallar roʻyxati</span><input type="checkbox" id="pdf-mat"></label>
+    <label class="almash"><span>Profil hisob usuli koʻrsatilsinmi?</span><input type="checkbox" id="pdf-usul"></label>
     <div class="panjara">
       <label>Bajaruvchi<input id="pdf-baj" autocomplete="off" placeholder="Ismingiz"></label>
       <label>Telefon<input id="pdf-baj-tel" type="tel" inputmode="tel" autocomplete="off" placeholder="+998"></label>

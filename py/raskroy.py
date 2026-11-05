@@ -216,32 +216,52 @@ STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foyd
 
 _OTXOD_KESH = {}
 
+# Narxda profil otxodini hisoblash usuli (foydalanuvchi, 2026-11-05). Har seriya uchun alohida tanlanadi.
+OTXOD_USULLARI = {
+    "chegara": "Chegara boʻyicha otxod",          # standart: chegaradan kichik qoldiq otxod
+    "metrlik": "Metrlik (otxodsiz)",
+    "butun": "Butun hivich",                       # eng kam hivich, har biri toʻliq narxda
+    "sklad_metr": "Sklad bilan: sklad boʻlagi detal metrida",
+    "sklad_tekin": "Sklad bilan: sklad boʻlagi tekin",
+}
+STANDART_USUL = "chegara"
 
-def otxod_hisobi(profil, kerak):
-    """Skladsiz raskroy: sarflangan uzunlik = hivichlar − ishlatsa boʻladigan qoldiqlar (sm_b).
 
+def otxod_hisobi(profil, kerak, usul="chegara"):
+    """Skladsiz raskroy: sarflangan uzunlik (sm_b).
+
+    usul "chegara": hivichlar − ishlatsa boʻladigan (chegaradan katta) qoldiqlar;
+    usul "butun": eng kam hivichli variant, hivich soni × hivich uzunligi.
     Natija eslab qolinadi: narx va kesish chizmasi bir xil detallar uchun qayta hisoblamaydi.
     """
-    kalit = (profil, tuple(sorted((d, n) for d, n in kerak.items() if n > 0)))
+    kalit = (profil, usul, tuple(sorted((d, n) for d, n in kerak.items() if n > 0)))
     if kalit not in _OTXOD_KESH:
         if len(_OTXOD_KESH) > 300:
             _OTXOD_KESH.clear()
-        _OTXOD_KESH[kalit] = _otxod_hisobi(profil, kerak)
+        _OTXOD_KESH[kalit] = _otxod_hisobi(profil, kerak, usul)
     return deepcopy(_OTXOD_KESH[kalit])
 
 
-def _otxod_hisobi(profil, kerak):
+def _yangi_sarf(profil, v):
+    """Yangi hivichlar sarfi chegara qoidasi bilan (sm_b)."""
+    L = HIVICH * 100
+    chegara = OTXOD_CHEGARA.get(profil)
+    chegara_b = L if chegara is None else _b(chegara)
+    return sum(L - q if q >= chegara_b else L for q in (_qoldiq(L, t, profil) for t in v))
+
+
+def _otxod_hisobi(profil, kerak, usul="chegara"):
     qolgan = Counter({d: n for d, n in kerak.items() if n > 0})
     if max(qolgan) > HIVICH * 100:
         raise HisobXato(f"{profil}: {_k(max(qolgan))} sm detal hivichdan uzun")
     chegara = OTXOD_CHEGARA.get(profil)
-    chegara_b = HIVICH * 100 if chegara is None else _b(chegara)
     L = HIVICH * 100
 
     def sarf(v):
-        return sum(L - q if q >= chegara_b else L for q in (_qoldiq(L, t, profil) for t in v))
+        return len(v) * L if usul == "butun" else _yangi_sarf(profil, v)
 
-    eng = min(_yangi_variantlar(qolgan, profil), key=lambda v: (sarf(v), len(v)))
+    tartib = (lambda v: (len(v), _yangi_sarf(profil, v))) if usul == "butun" else (lambda v: (sarf(v), len(v)))
+    eng = min(_yangi_variantlar(qolgan, profil), key=tartib)
     return {
         "profil": profil,
         "hivich": len(eng),
@@ -250,6 +270,35 @@ def _otxod_hisobi(profil, kerak):
         "qoldiqlar": sorted(_qoldiq(L, t, profil) for t in eng),
         "chegara_yoq": chegara is None,
         "variant": eng,
+    }
+
+
+def sklad_otxod_hisobi(profil, kerak, sklad_bolak, usul):
+    """Sklad bilan narx: sklad boʻlaklari avval (profil_rejasi), yangi hivichlar chegara qoidasida.
+
+    usul "sklad_metr": skladdan olingan detal faqat oʻz metri; "sklad_tekin": sklad qismi 0.
+    """
+    r = profil_rejasi(profil, kerak, sklad_bolak)
+    L = HIVICH * 100
+    sarf, sklad_detal, yangi = 0, 0, []
+    for k in r["kartalar"]:
+        detal = sum(d * n for d, n in k["t"].items()) * k["soni"]
+        if k["manba"] == "SKLAD":
+            sklad_detal += detal
+            if usul == "sklad_metr":
+                sarf += detal
+        else:
+            yangi.extend([k["t"]] * k["soni"])
+    sarf += _yangi_sarf(profil, yangi)
+    return {
+        "profil": profil,
+        "hivich": r["yangi_soni"],
+        "sklad_bolak": sum(k["soni"] for k in r["kartalar"] if k["manba"] == "SKLAD"),
+        "sklad_m": sklad_detal / 10000,
+        "ishlatilgan": sum(d * n for d, n in kerak.items() if n > 0),
+        "sarf": sarf,
+        "qoldiqlar": sorted(_qoldiq(L, t, profil) for t in yangi),
+        "chegara_yoq": OTXOD_CHEGARA.get(profil) is None,
     }
 
 
