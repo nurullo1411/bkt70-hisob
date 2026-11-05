@@ -637,7 +637,7 @@ USTANING CHIZISH QOIDALARI (shularga qat'iy amal qil):
 - Faqat "V" (uchi pastda, yon uchburchak yoʻq) — fortochka pastdan tepaga ochiladi, petlya tepada: {"tur":"tabaqa","fortochka":true,"petlya_tomoni":"tepa"}.
 - Yon uchburchak (">" yoki "<") VA "V" (uchi pastda) birga — dvaynoy (povorot-otkidnoy) rom: {"tur":"tabaqa","dvaynoy":true,"petlya_tomoni":...} (yon uchburchak boʻyicha).
 - Chiziqsiz boʻlak — gluxoy (G harfi ham boʻlishi mumkin).
-- T harfi — TASHQARIGA ochiladigan ESHIK, Z harfi — ICHKARIGA ochiladigan ESHIK. T yoki Z belgisi bor boʻlak doim eshik: {"tur":"eshik","ochilish":"tashqariga"|"ichkariga"}. Ikki tabaqali eshikda ikki uchburchak uchlari oʻrtada uchrashadi.
+- T harfi — TASHQARIGA ochiladigan ESHIK, Z harfi — ICHKARIGA ochiladigan ESHIK. T yoki Z belgisi bor boʻlak doim eshik: {"tur":"eshik","ochilish":"tashqariga"|"ichkariga"}. Ikki tabaqali eshikda ikki uchburchak uchlari oʻrtada uchrashadi ("> <"); T yoki Z qaysi tabaqaga yozilgan boʻlsa, oʻsha asosiy (aktiv, ruchkali) tabaqa: "aktiv": "chap" yoki "ong".
 - T ham Z ham yoʻq ochiladigan boʻlak — eshik EMAS: rom tabaqasi yoki fortochka.
 - Chizma odatda ichkaridan koʻrinishda; tashqariga (T) ochiladigan eshik tashqaridan koʻrinishda chiziladi. Chap/oʻngni chizmada koʻringanidek yoz.
 Rom tabaqalari orasida doim impost.
