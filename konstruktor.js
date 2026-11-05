@@ -159,18 +159,19 @@ function chizmaSVG(k, opts = {}) {
     let q = rect(x + i, y + i, w - 2 * i, h - 2 * i, "tb") + rect(x + i + t * 0.8, y + i + t * 0.8, w - 2 * i - 1.6 * t, h - 2 * i - 1.6 * t, "oy");
     const x1 = x + i + t * 0.8, y1 = y + i + t * 0.8, x2 = x + w - i - t * 0.8, y2 = y + h - i - t * 0.8;
     if (fortochka) {
-      // uchburchak uchi petlya tomonida; chit-chit (yoki ruchka) qarama-qarshi tomonda
+      // uchburchak uchi ruchka (chit-chit) tomonida, petlya qarama-qarshi tomonda (foydalanuvchi, 2026-11-05)
       if (petlya === "tepa") {
-        q += chiziq(x1, y2, (x1 + x2) / 2, y1) + chiziq(x2, y2, (x1 + x2) / 2, y1);
+        q += chiziq(x1, y1, (x1 + x2) / 2, y2) + chiziq(x2, y1, (x1 + x2) / 2, y2);
         return q + rect(x + w / 2 - t * 0.9, y + h - i - t * 0.55, t * 1.8, t * 0.3, "ru");
       }
-      q += chiziq(x1, y1, (x1 + x2) / 2, y2) + chiziq(x2, y1, (x1 + x2) / 2, y2);
+      q += chiziq(x1, y2, (x1 + x2) / 2, y1) + chiziq(x2, y2, (x1 + x2) / 2, y1);
       return q + rect(x + w / 2 - t * 0.9, y + i + t * 0.25, t * 1.8, t * 0.3, "ru");
     }
-    // uchburchak uchi petlya tomonida
-    if (petlya === "ong") q += chiziq(x1, y1, x2, (y1 + y2) / 2) + chiziq(x1, y2, x2, (y1 + y2) / 2);
-    else q += chiziq(x2, y1, x1, (y1 + y2) / 2) + chiziq(x2, y2, x1, (y1 + y2) / 2);
-    if (dvaynoy) q += chiziq(x1, y1, (x1 + x2) / 2, y2, "ch uz") + chiziq(x2, y1, (x1 + x2) / 2, y2, "ch uz");
+    // uchburchak uchi ruchka tomonida, petlya qarama-qarshi tomonda (foydalanuvchi, 2026-11-05)
+    if (petlya === "ong") q += chiziq(x2, y1, x1, (y1 + y2) / 2) + chiziq(x2, y2, x1, (y1 + y2) / 2);
+    else q += chiziq(x1, y1, x2, (y1 + y2) / 2) + chiziq(x1, y2, x2, (y1 + y2) / 2);
+    // dvaynoy: otkidnoy qismi pastki petlyada, uchi tepada
+    if (dvaynoy) q += chiziq(x1, y2, (x1 + x2) / 2, y1, "ch uz") + chiziq(x2, y2, (x1 + x2) / 2, y1, "ch uz");
     if (ruchkaBor !== false) {
       const rx = petlya === "ong" ? x + i + t * 0.25 : x + w - i - t * 0.55;
       q += rect(rx, y + h / 2 - t * 0.9, t * 0.3, t * 1.8, "ru");

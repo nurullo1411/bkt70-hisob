@@ -630,10 +630,18 @@ BOLAK turlari:
   vertikal = tik impostlar, boʻlaklar chapdan oʻngga; gorizontal = yotiq impost, tepadan pastga.
   olchamlar: har boʻlak oʻlchami tashqi chetdan impost oʻrtasigacha (sm), soni bolaklar soniga teng; kamida bittasi null (qolgan joyni oladi). Oʻlcham yozilmagan teng boʻlaklar uchun hammasini null qilma: birinchisini L (yoki H) / boʻlaklar soni qilib yoz, qolganlari null.
   Ichma-ich mumkin. Eshik tepasidagi framuga: gorizontal bolinish, [framuga_boyi, null], [{"tur":"gluxoy"}, {"tur":"eshik",...}].
-Ochilish belgisi (uchburchak/chiziqlar) boʻlsa tabaqa, yoʻq boʻlsa gluxoy. Rom tabaqalari orasida doim impost.
+USTANING CHIZISH QOIDALARI (shularga qat'iy amal qil):
+- Uchburchak (ikki chiziq) — ochiladigan qism. Uchburchak UCHI RUCHKA tomonida, petlya esa qarama-qarshi tomonda. Masalan uchi oʻngda boʻlsa ruchka oʻngda, "petlya_tomoni": "chap".
+- Uchi tepada, ikki chiziq pastki burchaklardan chiqqan uchburchak (yon uchburchak yoʻq) — fortochka, petlya pastda: {"tur":"tabaqa","fortochka":true}. Uchi pastda boʻlsa "petlya_tomoni":"tepa".
+- Yon uchburchak va pastdan tepaga uchburchak birga (konvert) — dvaynoy (povorot-otkidnoy): "dvaynoy": true.
+- Chiziqsiz boʻlak — gluxoy (G harfi ham boʻlishi mumkin).
+- T harfi — TASHQARIGA ochiladigan ESHIK, Z harfi — ICHKARIGA ochiladigan ESHIK. T yoki Z belgisi bor boʻlak doim eshik: {"tur":"eshik","ochilish":"tashqariga"|"ichkariga"}. Ikki tabaqali eshikda ikki uchburchak uchlari oʻrtada uchrashadi.
+- T ham Z ham yoʻq ochiladigan boʻlak — eshik EMAS: rom tabaqasi yoki fortochka.
+- Chizma odatda ichkaridan koʻrinishda; tashqariga (T) ochiladigan eshik tashqaridan koʻrinishda chiziladi. Chap/oʻngni chizmada koʻringanidek yoz.
+Rom tabaqalari orasida doim impost.
 Soni yozilmagan boʻlsa 1. nom: hujjatdagi raqam yoki "Rom 1", "Eshik 1".
 Rasm yonboshlab olingan boʻlsa, raqamlar va yozuvlar yoʻnalishiga qarab konstruksiyani toʻgʻri holatda oʻqi: L gorizontal (eni), H vertikal (boʻyi) oʻlcham. Eshik doim boʻyi enidan katta.
-Eshik belgilari: boʻyi taxminan 190 sm dan baland, pastda ostona/pol chizigʻi, ruchka yoki zamok belgisi, "eshik"/"dver" yozuvi. Shunday boʻlsa ochiladigan qismi tur "eshik", ochilish yoʻnalishi aniq boʻlmasa "ichkariga" yoz va savollar ga qoʻsh.
+Agar usta "Nima chizilgan" deb Eshik yoki Vitraj tanlagan boʻlsa, T/Z yozilmagan boʻlsa ham ochiladigan qism eshik; ochilishi bilinmasa "ichkariga" yoz va savollar ga qoʻsh.
 Oʻqib boʻlmagan oʻlchamni taxmin qilma: eng ehtimolini yoz va savollar ga qoʻsh.`;
 
 function aiKalit() { return ol("ai_kalit"); }
