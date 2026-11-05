@@ -12,11 +12,14 @@
 </head>
 <body>
 <header>
-  <h1>BKT 70 hisob</h1>
+  <button id="orqaga" class="orqaga" aria-label="Orqaga" hidden>←</button>
+  <h1 id="sarlavha">BKT 70 hisob</h1>
   <span id="holat" class="holat">Yuklanmoqda…</span>
 </header>
 
 <main id="asosiy">
+ <p id="xato" class="xato" hidden></p>
+ <div id="e-bosh" class="ekran">
   <section id="narx-quti" class="karta" hidden>
     <h2>Narxlar fayli</h2>
     <p class="xira">Narxlar hali yuklanmagan. Kalitli havolani oching yoki <b>narxlar.json</b> faylini yuklang.</p>
@@ -40,16 +43,18 @@
       <input id="kurs" type="number" inputmode="decimal" min="1" step="1">
       <span>soʻm</span>
     </div>
-    <p id="zakaz-nomi" class="xira"></p>
   </section>
 
-  <section class="karta" id="arxiv-quti">
-    <h2>Zakazlarim</h2>
-    <div id="arxiv-tablar" class="arxiv-tablar"></div>
-    <div id="arxiv"></div>
-  </section>
+  <button id="davom" class="davom karta" hidden></button>
+  <div id="arxiv-tablar" class="bolimlar"></div>
+ </div>
 
-  <p id="xato" class="xato" hidden></p>
+ <div id="e-royxat" class="ekran" hidden>
+  <div id="arxiv"></div>
+ </div>
+
+ <div id="e-zakaz" class="ekran" hidden>
+  <p id="zakaz-nomi" class="xira"></p>
 
   <section id="zakaz-ish" hidden>
     <div class="xulosa">
@@ -130,6 +135,7 @@
       </div>
     </section>
   </section>
+ </div>
   <footer class="xira" id="versiya"></footer>
 </main>
 

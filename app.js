@@ -94,7 +94,40 @@ function zakazniOch(matn, jim) {
   belgila(zakaz);
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   hisobla();
+  if (!jim) ekran("zakaz");
 }
+
+// ---------- ekranlar: bosh sahifa → boʻlim roʻyxati → zakaz (telefonning ← tugmasi ham ishlaydi) ----------
+let joriyEkran = "bosh";
+function ekran(nom, push = true) {
+  for (const e of ["bosh", "royxat", "zakaz"]) $("e-" + e).hidden = e !== nom;
+  if (push && nom !== joriyEkran) history.pushState({ ekran: nom }, "");
+  joriyEkran = nom;
+  $("orqaga").hidden = nom === "bosh";
+  const bolim = HOLATLAR.find((h) => h[0] === arxivTab);
+  $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : "Buyurtma maʼlumotlari";
+  if (nom !== "zakaz") arxivniChiz();
+  window.scrollTo(0, 0);
+}
+let ichkiOrqaga = false, chiqishTasdiq = false;
+window.addEventListener("popstate", (e) => {
+  if (ichkiOrqaga) { ichkiOrqaga = false; return; }
+  if (!$("konstruktor").hidden) {
+    // Konstruktorda ← : chizma oʻzgargan boʻlsa ikkinchi bosishda chiqadi
+    if (orqaga.length && !chiqishTasdiq) {
+      history.pushState({ ekran: "konstruktor" }, "");
+      chiqishTasdiq = true;
+      setTimeout(() => { chiqishTasdiq = false; }, 3000);
+      xabar("Saqlamasdan chiqish uchun yana bir marta ← bosing");
+      return;
+    }
+    chiqishTasdiq = false;
+    konstruktorniYop(false, true);
+    return;
+  }
+  ekran((e.state && e.state.ekran) || "bosh", false);
+});
+history.replaceState({ ekran: "bosh" }, "");
 
 // ---------- zakazlar arxivi (Romchi "Buyurtmalar"): telefonda saqlanadi ----------
 const HOLATLAR = [["yangi", "Yangi"], ["jarayonda", "Ish jarayonida"], ["qarzdor", "Qarzdor"], ["tugatilgan", "Tugatilgan"]];
@@ -122,11 +155,16 @@ let arxivTab = "yangi";
 function arxivniChiz() {
   const a = arxivOl();
   const narxi = (z) => Number(z.narx_som) || 0;
-  $("arxiv-quti").hidden = !a.length;
+  const BELGI = { yangi: ["⬇", "#e3f2fd", "#1e88e5"], jarayonda: ["🛠", "#fff8e1", "#f9a825"], qarzdor: ["⏰", "#ffebee", "#e53935"], tugatilgan: ["✔", "#e8f5e9", "#43a047"] };
   $("arxiv-tablar").innerHTML = HOLATLAR.map(([k, y]) => {
     const t = a.filter((z) => (z.holat || "yangi") === k);
-    return `<button data-tab="${k}" class="${arxivTab === k ? "faol" : ""}"><b>${y}</b><span>${t.length} ta${t.length ? " · " + som(t.reduce((s, z) => s + narxi(z), 0)) : ""}</span></button>`;
+    const [b, fon, rang] = BELGI[k];
+    return `<button data-tab="${k}" class="bolim-k"><span class="bolim-belgi" style="background:${fon};color:${rang}">${b}</span>
+      <span class="bolim-matn"><b>${y}</b><span>${t.length} ta${t.length ? " · " + som(t.reduce((s, z) => s + narxi(z), 0)) : ""}</span></span><span class="bolim-oq">›</span></button>`;
   }).join("");
+  const dv = $("davom");
+  dv.hidden = !(zakaz && zakaz.konstruksiyalar && zakaz.konstruksiyalar.length);
+  if (!dv.hidden) dv.innerHTML = `<span class="xira">Oxirgi ochilgan</span><b>№${esc(zakaz.raqam ?? "")} · ${esc((zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "")}</b><span class="bolim-oq">›</span>`;
   const t = a.filter((z) => (z.holat || "yangi") === arxivTab);
   $("arxiv").innerHTML = t.map((z) => `<div class="arxiv-k${zakaz && zakaz.id === z.id ? " joriy" : ""}">
       <div class="arxiv-eskiz">${z.konstruksiyalar[0] ? chizmaSVG(z.konstruksiyalar[0], { kichik: true }) : ""}</div>
@@ -443,6 +481,7 @@ $("yangi").addEventListener("click", () => {
   belgila(zakaz);
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   hisobla();
+  ekran("zakaz");
   konstruktorniOch(-1);
 });
 $("ulash").addEventListener("click", async () => {
@@ -462,7 +501,7 @@ $("holatlar").addEventListener("click", (e) => {
 });
 $("arxiv-tablar").addEventListener("click", (e) => {
   const b = e.target.closest("[data-tab]");
-  if (b) { arxivTab = b.dataset.tab; arxivniChiz(); }
+  if (b) { arxivTab = b.dataset.tab; ekran("royxat"); }
 });
 $("arxiv").addEventListener("click", (e) => {
   const b = e.target.closest("button");
@@ -470,12 +509,12 @@ $("arxiv").addEventListener("click", (e) => {
   const a = arxivOl(), d = b.dataset;
   if (d.och) {
     const z = a.find((x) => x.id === d.och);
-    if (z) { zakazniOch(JSON.stringify(z)); window.scrollTo({ top: $("zakaz-ish").offsetTop - 10, behavior: "smooth" }); }
+    if (z) zakazniOch(JSON.stringify(z));
   } else if (d.dub) {
     const z = JSON.parse(JSON.stringify(a.find((x) => x.id === d.dub)));
     for (const k of ["id", "raqam", "sana", "holat", "hisob_kitob", "narx_som"]) delete z[k];
+    arxivTab = "yangi";
     zakazniOch(JSON.stringify(z));
-    arxivTab = "yangi"; arxivniChiz();
   } else if (d.arxOchir) {
     if (!b.classList.contains("tasdiq")) { b.classList.add("tasdiq"); b.textContent = "Rostdanmi?"; return; }
     arxivYoz(a.filter((x) => x.id !== d.arxOchir));
@@ -551,6 +590,9 @@ $("kesish-pdf").addEventListener("click", () => {
   document.title = "Kesish " + (zakaz.raqam ? "№" + zakaz.raqam : zakaz.nom || "");
   setTimeout(() => { window.print(); document.title = eski; }, 100);
 });
+
+$("orqaga").addEventListener("click", () => history.back());
+$("davom").addEventListener("click", () => { if (zakaz) ekran("zakaz"); });
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 window.addEventListener("DOMContentLoaded", arxivniChiz);

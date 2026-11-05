@@ -422,11 +422,14 @@ function konstruktorniOch(i) {
   orqaga = []; oldinga = [];
   $("asosiy").hidden = true;
   $("konstruktor").hidden = false;
+  history.pushState({ ekran: "konstruktor" }, "");
   window.scrollTo(0, 0);
   yangila();
 }
 
-function konstruktorniYop(saqlansin) {
+function konstruktorniYop(saqlansin, tarixdan) {
+  // Tugma bilan yopilsa konstruktorning tarix yozuvini olib tashlaymiz (popstate e'tiborsiz qoldiriladi)
+  if (!tarixdan && history.state && history.state.ekran === "konstruktor") { ichkiOrqaga = true; history.back(); }
   if (saqlansin) {
     const nomlar = zakaz.konstruksiyalar.filter((_, j) => j !== tahrirIndeks).map((k) => k.nom);
     let nom = (tahrir.nom || "").trim() || "K" + (zakaz.konstruksiyalar.length + 1);
@@ -442,6 +445,7 @@ function konstruktorniYop(saqlansin) {
   $("konstruktor").hidden = true;
   $("asosiy").hidden = false;
   hisobla();
+  if (zakaz) ekran("zakaz", joriyEkran !== "zakaz");
 }
 
 // Chala chizma har oʻzgarishda saqlanadi: sahifa yangilansa yoki ilova yopilsa, joyidan davom etadi
@@ -454,8 +458,10 @@ function qoralamaniTikla() {
   orqaga = q.orqaga || []; oldinga = [];
   tanlangan = geometriya(tahrir).barglar[0].p;
   asbob = null;
+  ekran("zakaz");
   $("asosiy").hidden = true;
   $("konstruktor").hidden = false;
+  history.pushState({ ekran: "konstruktor" }, "");
   yangila();
   xabar("Chala chizma tiklandi");
   return true;
