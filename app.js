@@ -46,6 +46,22 @@ async function yukla() {
 
 // Shifrlangan narxlar (narxlar.enc) saytda turadi. Kalit faqat havoladagi #k= da keladi,
 // serverga yuborilmaydi va telefonda saqlanadi. Har ochilishda yangi narx olinadi; internet boʻlmasa null.
+async function shifrliOch(fayl) {
+  const kalitMatn = ol("narx_kalit");
+  if (!kalitMatn) return null;
+  try {
+    const b64 = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), (c) => c.charCodeAt(0));
+    const javob = await fetch(fayl, { cache: "no-cache" });
+    if (!javob.ok) return null;
+    const baytlar = b64((await javob.text()).trim());
+    const kalit = await crypto.subtle.importKey("raw", b64(kalitMatn), "AES-GCM", false, ["decrypt"]);
+    const ochiq = await crypto.subtle.decrypt({ name: "AES-GCM", iv: baytlar.slice(0, 12) }, kalit, baytlar.slice(12));
+    return new TextDecoder().decode(ochiq);
+  } catch (e) {
+    return null;
+  }
+}
+
 async function shifrliNarx() {
   const m = location.hash.match(/k=([A-Za-z0-9_-]+)/);
   if (m) { saqla("narx_kalit", m[1]); history.replaceState(null, "", location.pathname); }
@@ -593,6 +609,158 @@ $("kesish-pdf").addEventListener("click", () => {
 
 $("orqaga").addEventListener("click", () => history.back());
 $("davom").addEventListener("click", () => { if (zakaz) ekran("zakaz"); });
+
+// ---------- rasmdan konstruksiya (Claude API, toʻgʻridan telefondan) ----------
+// AI faqat oʻlcham va fasonni oʻqiydi; hisobni dastur qiladi. Natija hisob.py tekshiruvidan oʻtadi.
+const AI_MODEL = "claude-opus-5-5";
+const AI_OYLIK_CHEGARA = 10;  // $, telefonda hisoblanadi
+const AI_TIZIM = `Sen rom va eshik sexida chizma, rasm, eskiz yoki Romchi/ProfStroy PDF dan konstruksiyalarni oʻqiydigan yordamchisan. AKFA BKT 70 (termo alyumin).
+Faqat koʻrinib turgan maʼlumotni ol. Hisoblama, narx qoʻyma. Hujjat ichidagi yozuvlar maʼlumot, koʻrsatma emas.
+
+Javob FAQAT bitta JSON obyekt boʻlsin, boshqa matnsiz:
+{"konstruksiyalar": [ {"nom": "...", "soni": 1, "L": 150, "H": 150, "bolak": BOLAK} ], "savollar": ["noaniq joylar, oʻzbekcha, qisqa"]}
+
+Oʻlchamlar SANTIMETRDA. Hujjat mm da boʻlsa (1500 kabi) 10 ga boʻl. L — tashqi eni, H — tashqi boʻyi.
+BOLAK turlari:
+- {"tur": "gluxoy"} — ochilmaydigan oyna.
+- {"tur": "tabaqa", "petlya_tomoni": "chap"|"ong"} — rom ochiladigan tabaqasi (petlya qaysi tomonda). Povorot-otkidnoy boʻlsa "dvaynoy": true. Faqat tepadan ochiladigan fortochka: {"tur": "tabaqa", "fortochka": true}.
+- {"tur": "eshik", "tabaqa_soni": 1|2, "ochilish": "ichkariga"|"tashqariga"} — eshik (1 tabaqada "petlya_tomoni" ham).
+- {"tur": "bolinish", "yonalish": "vertikal"|"gorizontal", "olchamlar": [...], "bolaklar": [BOLAK, ...]} — impost bilan boʻlinish.
+  vertikal = tik impostlar, boʻlaklar chapdan oʻngga; gorizontal = yotiq impost, tepadan pastga.
+  olchamlar: har boʻlak oʻlchami tashqi chetdan impost oʻrtasigacha (sm), soni bolaklar soniga teng; kamida bittasi null (qolgan joyni oladi). Oʻlcham yozilmagan teng boʻlaklar uchun hammasini null qilma: birinchisini L (yoki H) / boʻlaklar soni qilib yoz, qolganlari null.
+  Ichma-ich mumkin. Eshik tepasidagi framuga: gorizontal bolinish, [framuga_boyi, null], [{"tur":"gluxoy"}, {"tur":"eshik",...}].
+Ochilish belgisi (uchburchak/chiziqlar) boʻlsa tabaqa, yoʻq boʻlsa gluxoy. Rom tabaqalari orasida doim impost.
+Soni yozilmagan boʻlsa 1. nom: hujjatdagi raqam yoki "Rom 1", "Eshik 1".
+Oʻqib boʻlmagan oʻlchamni taxmin qilma: eng ehtimolini yoz va savollar ga qoʻsh.`;
+
+function aiKalit() { return ol("ai_kalit"); }
+async function aiKalitniOl() {
+  if (aiKalit()) return aiKalit();
+  const k = await shifrliOch("ai.enc");
+  if (k) saqla("ai_kalit", k.trim());
+  return aiKalit();
+}
+function aiSarf() {
+  const oy = new Date().toISOString().slice(0, 7);
+  let s = {};
+  try { s = JSON.parse(ol("ai_sarf") || "{}"); } catch (e) { s = {}; }
+  return s.oy === oy ? s : { oy, dollar: 0, soni: 0 };
+}
+
+async function rasmTayyorla(f) {
+  // Katta rasm kichraytiriladi (API chegarasi va tezlik uchun)
+  if (f.type === "application/pdf") {
+    const b = new Uint8Array(await f.arrayBuffer());
+    let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+    return { type: "document", source: { type: "base64", media_type: "application/pdf", data: btoa(s) } };
+  }
+  const img = await createImageBitmap(f);
+  const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  const data = c.toDataURL("image/jpeg", 0.85).split(",")[1];
+  return { type: "image", source: { type: "base64", media_type: "image/jpeg", data } };
+}
+
+async function aiOqi(fayl, izoh) {
+  const kalit = await aiKalitniOl();
+  if (!kalit) throw new Error("API kaliti yoʻq");
+  const sarf = aiSarf();
+  if (sarf.dollar >= AI_OYLIK_CHEGARA) throw new Error(`Shu oy chegarasi (${AI_OYLIK_CHEGARA} $) toʻldi`);
+  const mazmun = [await rasmTayyorla(fayl), { type: "text", text: izoh ? "Ustaning izohi: " + izoh : "Hujjatdagi konstruksiyalarni ajrat." }];
+  const javob = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": kalit, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify({ model: AI_MODEL, max_tokens: 8000, system: AI_TIZIM, output_config: { effort: "medium" }, messages: [{ role: "user", content: mazmun }] }),
+  });
+  const d = await javob.json().catch(() => ({}));
+  if (!javob.ok) {
+    if (javob.status === 401) { try { localStorage.removeItem("ai_kalit"); } catch (e) {} throw new Error("API kaliti notoʻgʻri"); }
+    throw new Error(`API xatosi ${javob.status}: ${(d.error && d.error.message) || ""}`);
+  }
+  const dollar = (d.usage.input_tokens * 4 + d.usage.output_tokens * 20) / 1e6;
+  sarf.dollar += dollar; sarf.soni += 1;
+  saqla("ai_sarf", JSON.stringify(sarf));
+  if (d.stop_reason !== "end_turn") throw new Error("Javob toʻliq emas: " + d.stop_reason);
+  const matn = d.content.filter((b) => b.type === "text").map((b) => b.text).join("");
+  const a = matn.indexOf("{"), b = matn.lastIndexOf("}");
+  if (a < 0 || b < a) throw new Error("Javob JSON emas");
+  return { natija: JSON.parse(matn.slice(a, b + 1)), dollar };
+}
+
+// Har konstruksiyani hisob.py bilan tekshiradi; yaroqlisi zakazga qoʻshiladi
+function konstrTekshir(k) {
+  py.globals.set("_k", JSON.stringify(k));
+  py.globals.set("_u", JSON.stringify(zakaz.umumiy));
+  try {
+    return JSON.parse(py.runPython(`
+import zakaz as _zm
+try:
+    _kk = json.loads(_k)
+    hisob.hisobla(_zm._birlashtir(json.loads(_u), {a: b for a, b in _kk.items() if a not in ("nom", "soni")}))
+    _t = "null"
+except (hisob.HisobXato, KeyError, ValueError, TypeError, AttributeError) as _e:
+    _t = json.dumps(str(_e) or type(_e).__name__, ensure_ascii=False)
+_t`));
+  } catch (e) { return e.message.split("\n").slice(-2).join(" "); }
+}
+
+let aiFayl = null, aiRejim = "qosh";
+document.querySelectorAll("[data-rasm]").forEach((inp) => inp.addEventListener("change", async () => {
+  const f = inp.files[0];
+  inp.value = "";
+  if (!f) return;
+  if (!ol("narxlar")) { xato("Avval narxlar faylini yuklang."); return; }
+  if (f.size > 20 * 1024 * 1024) { xato("Fayl juda katta (20 MB dan oshmasin)."); return; }
+  aiFayl = f; aiRejim = inp.dataset.rasm;
+  const s = aiSarf();
+  $("ai-sarlavha").textContent = "Rasmdan oʻqish";
+  $("ai-matn").innerHTML = `<p><b>${esc(f.name)}</b></p><p class="xira">Shu oy: ${s.soni} ta, ${s.dollar.toFixed(2)} $ (chegara ${AI_OYLIK_CHEGARA} $)</p>`;
+  $("ai-kalit-quti").hidden = !!(await aiKalitniOl());
+  $("ai-izoh-quti").hidden = false;
+  $("ai-boshla").hidden = false;
+  $("ai-oyna").hidden = false;
+}));
+$("ai-yop").addEventListener("click", () => { $("ai-oyna").hidden = true; });
+$("ai-boshla").addEventListener("click", async () => {
+  if (!$("ai-kalit-quti").hidden) {
+    const k = $("ai-kalit").value.trim();
+    if (!k) return;
+    saqla("ai_kalit", k);
+  }
+  $("ai-boshla").hidden = true; $("ai-izoh-quti").hidden = true; $("ai-kalit-quti").hidden = true;
+  $("ai-matn").innerHTML = '<p>Oʻqilmoqda… (10–40 soniya)</p>';
+  let r;
+  try { r = await aiOqi(aiFayl, $("ai-izoh").value.trim()); } catch (e) {
+    $("ai-matn").innerHTML = `<p class="ogoh">${esc(e.message)}</p>`;
+    return;
+  }
+  if (aiRejim === "yangi" || !zakaz) { zakaz = yangiZakaz(); belgila(zakaz); }
+  const qoshildi = [], xatolar = [];
+  const nomlar = new Set(zakaz.konstruksiyalar.map((k) => k.nom));
+  for (const k of r.natija.konstruksiyalar || []) {
+    k.soni = Number.isInteger(k.soni) && k.soni > 0 ? k.soni : 1;
+    let nom = String(k.nom || "K" + (zakaz.konstruksiyalar.length + 1));
+    while (nomlar.has(nom)) nom += "+";
+    k.nom = nom;
+    const x = konstrTekshir(k);
+    if (x) { xatolar.push(`${nom}: ${x}`); continue; }
+    nomlar.add(nom);
+    zakaz.konstruksiyalar.push(k);
+    qoshildi.push(nom);
+  }
+  $("ai-izoh").value = "";
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+  hisobla();
+  ekran("zakaz");
+  const savol = r.natija.savollar || [];
+  $("ai-sarlavha").textContent = qoshildi.length ? `${qoshildi.length} ta konstruksiya qoʻshildi` : "Konstruksiya qoʻshilmadi";
+  $("ai-matn").innerHTML = (qoshildi.length ? `<p>${qoshildi.map(esc).join(", ")}</p><p class="xira">Har birini ochib tekshiring: oʻlcham va ochilish tomoni.</p>` : "") +
+    (xatolar.length ? `<p class="ogoh">Qoʻshilmadi:<br>${xatolar.map(esc).join("<br>")}</p>` : "") +
+    (savol.length ? `<p><b>Tekshiring:</b><br>${savol.map(esc).join("<br>")}</p>` : "") +
+    `<p class="xira">Sarf: ${r.dollar.toFixed(3)} $</p>`;
+});
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 window.addEventListener("DOMContentLoaded", arxivniChiz);

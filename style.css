@@ -274,7 +274,7 @@ html, body { overscroll-behavior-y: contain; }
 /* Ekranlar (Romchi kabi): bosh sahifada boʻlimlar */
 header .orqaga { border: 0; background: none; color: inherit; font-size: 22px; padding: 0 10px 0 0; cursor: pointer; }
 header h1 { flex: 1; }
-.bolimlar { display: flex; flex-direction: column; gap: 10px; }
+.bosh-bolimlar { display: flex; flex-direction: column; gap: 10px; }
 .bolim-k, .davom { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; border-radius: 16px; border: 1px solid var(--chiziq);
   background: var(--karta); color: var(--matn); font: inherit; text-align: left; box-shadow: 0 1px 4px rgba(0,0,0,.06); cursor: pointer; }
 .davom { flex-wrap: wrap; gap: 4px 10px; margin-bottom: 12px; }
