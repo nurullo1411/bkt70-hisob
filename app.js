@@ -632,8 +632,10 @@ BOLAK turlari:
   Ichma-ich mumkin. Eshik tepasidagi framuga: gorizontal bolinish, [framuga_boyi, null], [{"tur":"gluxoy"}, {"tur":"eshik",...}].
 USTANING CHIZISH QOIDALARI (shularga qat'iy amal qil):
 - Uchburchak (ikki chiziq) — ochiladigan qism. Uchburchak UCHI RUCHKA tomonida, petlya esa qarama-qarshi tomonda. Masalan uchi oʻngda boʻlsa ruchka oʻngda, "petlya_tomoni": "chap".
-- Uchi tepada, ikki chiziq pastki burchaklardan chiqqan uchburchak (yon uchburchak yoʻq) — fortochka, petlya pastda: {"tur":"tabaqa","fortochka":true}. Uchi pastda boʻlsa "petlya_tomoni":"tepa".
-- Yon uchburchak va pastdan tepaga uchburchak birga (konvert) — dvaynoy (povorot-otkidnoy): "dvaynoy": true.
+- Chap/oʻng nomi petlya tomoni boʻyicha: ">" (uchi oʻngda) = chap ("petlya_tomoni":"chap"), "<" (uchi chapda) = oʻng ("petlya_tomoni":"ong").
+- Faqat "Λ" (uchi tepada, yon uchburchak yoʻq) — fortochka tepadan pastga ochiladi, petlya pastda: {"tur":"tabaqa","fortochka":true}.
+- Faqat "V" (uchi pastda, yon uchburchak yoʻq) — fortochka pastdan tepaga ochiladi, petlya tepada: {"tur":"tabaqa","fortochka":true,"petlya_tomoni":"tepa"}.
+- Yon uchburchak (">" yoki "<") VA "V" (uchi pastda) birga — dvaynoy (povorot-otkidnoy) rom: {"tur":"tabaqa","dvaynoy":true,"petlya_tomoni":...} (yon uchburchak boʻyicha).
 - Chiziqsiz boʻlak — gluxoy (G harfi ham boʻlishi mumkin).
 - T harfi — TASHQARIGA ochiladigan ESHIK, Z harfi — ICHKARIGA ochiladigan ESHIK. T yoki Z belgisi bor boʻlak doim eshik: {"tur":"eshik","ochilish":"tashqariga"|"ichkariga"}. Ikki tabaqali eshikda ikki uchburchak uchlari oʻrtada uchrashadi.
 - T ham Z ham yoʻq ochiladigan boʻlak — eshik EMAS: rom tabaqasi yoki fortochka.

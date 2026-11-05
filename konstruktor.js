@@ -170,8 +170,8 @@ function chizmaSVG(k, opts = {}) {
     // uchburchak uchi ruchka tomonida, petlya qarama-qarshi tomonda (foydalanuvchi, 2026-11-05)
     if (petlya === "ong") q += chiziq(x2, y1, x1, (y1 + y2) / 2) + chiziq(x2, y2, x1, (y1 + y2) / 2);
     else q += chiziq(x1, y1, x2, (y1 + y2) / 2) + chiziq(x1, y2, x2, (y1 + y2) / 2);
-    // dvaynoy: otkidnoy qismi pastki petlyada, uchi tepada
-    if (dvaynoy) q += chiziq(x1, y2, (x1 + x2) / 2, y1, "ch uz") + chiziq(x2, y2, (x1 + x2) / 2, y1, "ch uz");
+    // dvaynoy: yon uchburchak + uchi pastdagi uchburchak (foydalanuvchi namunasi, 2026-11-05)
+    if (dvaynoy) q += chiziq(x1, y1, (x1 + x2) / 2, y2, "ch uz") + chiziq(x2, y1, (x1 + x2) / 2, y2, "ch uz");
     if (ruchkaBor !== false) {
       const rx = petlya === "ong" ? x + i + t * 0.25 : x + w - i - t * 0.55;
       q += rect(rx, y + h / 2 - t * 0.9, t * 0.3, t * 1.8, "ru");
