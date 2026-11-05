@@ -28,7 +28,9 @@ NOJNITSA_CHEGARA = D(65)  # tabaqa eni 65 sm gacha — sredniy, kattasi — dlin
 # Fortochka (foydalanuvchi, 2026-11-05; ProfOkna "откидная створка")
 CHIT_CHIT = "(A1501.5) Chit-Chit"
 OGRANICHITEL = {"kichik": "(A1115.2) Ogranichitel", "katta": "(A1115.1) Ogranichitel"}  # boʻyi 60 sm gacha / kattasi (ProfOkna)
-FORTOCHKA_ZATSEP = "Termo Zatsep (4207)"  # A4207.1, ruchkali fortochkada 2 ta
+# Termo zatsepi hamma joyda A4207.1 (foydalanuvchi, 2026-11-05; avval A3520.32 edi)
+ZATSEP = "Termo Zatsep (4207)"
+FORTOCHKA_ZATSEP = ZATSEP  # ruchkali fortochkada 2 ta
 FORTOCHKA_PETLYA_EN = D(100)  # eni 1 m dan katta — 3 petlya, aks holda 2
 DVAYNOY_PRIJIM = "Dvaynoy uchun Prijiim (zatsepi bilan)"
 DVAYNOY_PRIJIM_BOY = D(120)
@@ -148,7 +150,7 @@ def _rom_furnitura(s, tanlov, r):
     soni = len(boylar)
     r.qosh("Furnitura", tanlov.get("rom_ruchka", ROM_RUCHKA), soni, "dona")
     r.qosh("Furnitura", ROM_KONNEKTOR, soni, "dona")
-    r.qosh("Furnitura", "A3520.32", sum(3 if 150 < b <= 210 else 2 for b in boylar), "dona")
+    r.qosh("Furnitura", ZATSEP, sum(3 if 150 < b <= 210 else 2 for b in boylar), "dona")
     r.qosh("Furnitura", ROM_PETLYA, sum(3 if b >= 90 else 2 for b in boylar), "dona")
     if any(b <= TIJ_AYIRMA for b in boylar):
         raise HisobXato(f"Rom tabaqasi juda past, poliamid tij sigʻmaydi: {min(boylar)} sm")
@@ -197,7 +199,7 @@ def _dvaynoy_furnitura(s, r):
     if prijim:
         r.qosh("Furnitura", DVAYNOY_PRIJIM, prijim, "dona")
     # Prijim qoʻshilsa, rolik-zatsep komplektidan yana bittasi (foydalanuvchi, 2026-11-02)
-    r.qosh("Furnitura", "A3520.32", len(tabaqalar) * 3 + prijim, "dona")
+    r.qosh("Furnitura", ZATSEP, len(tabaqalar) * 3 + prijim, "dona")
     tij = D(0)
     for en, boy in tabaqalar:
         if en <= TIJ_AYIRMA:
@@ -217,7 +219,7 @@ def _furnitura(s, tanlov, r):
     r.qosh("Furnitura", _kerak(tanlov, "zamok", "Zamok"), soni, "dona")
     if not tanlov.get("yangi_akfa_zamok"):
         r.qosh("Furnitura", "Serdtsevina 101 mm (DWG)", soni, "dona")
-        r.qosh("Furnitura", "A3520.32", soni * 2, "dona")
+        r.qosh("Furnitura", ZATSEP, soni * 2, "dona")
     petlya = tanlov.get("petlya", ASOSIY_PETLYA)
     petlya_soni = sum(4 if b > PETLYA_CHEGARA else 3 for b in s["tabaqa_boylari"])
     r.qosh("Furnitura", petlya, petlya_soni, "dona")
