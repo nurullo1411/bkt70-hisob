@@ -633,6 +633,7 @@ BOLAK turlari:
 Ochilish belgisi (uchburchak/chiziqlar) boʻlsa tabaqa, yoʻq boʻlsa gluxoy. Rom tabaqalari orasida doim impost.
 Soni yozilmagan boʻlsa 1. nom: hujjatdagi raqam yoki "Rom 1", "Eshik 1".
 Rasm yonboshlab olingan boʻlsa, raqamlar va yozuvlar yoʻnalishiga qarab konstruksiyani toʻgʻri holatda oʻqi: L gorizontal (eni), H vertikal (boʻyi) oʻlcham. Eshik doim boʻyi enidan katta.
+Eshik belgilari: boʻyi taxminan 190 sm dan baland, pastda ostona/pol chizigʻi, ruchka yoki zamok belgisi, "eshik"/"dver" yozuvi. Shunday boʻlsa ochiladigan qismi tur "eshik", ochilish yoʻnalishi aniq boʻlmasa "ichkariga" yoz va savollar ga qoʻsh.
 Oʻqib boʻlmagan oʻlchamni taxmin qilma: eng ehtimolini yoz va savollar ga qoʻsh.`;
 
 function aiKalit() { return ol("ai_kalit"); }
@@ -688,7 +689,13 @@ async function aiOqi(fayl, izoh) {
   if (!kalit) throw new Error("API kaliti yoʻq");
   const sarf = aiSarf();
   if (sarf.dollar >= AI_OYLIK_CHEGARA) throw new Error(`Shu oy chegarasi (${AI_OYLIK_CHEGARA} $) toʻldi`);
-  const mazmun = [await rasmTayyorla(fayl), { type: "text", text: izoh ? "Ustaning izohi: " + izoh : "Hujjatdagi konstruksiyalarni ajrat." }];
+  const tur = $("ai-tur").querySelector(".faol").dataset.v;
+  const qism = [];
+  if (tur === "Eshik") qism.push("Bu ESHIK (rom emas). Ochiladigan qismi eshik boʻlagi boʻlsin: tur \"eshik\". Tepasida alohida oyna boʻlsa — framuga (gorizontal bolinish).");
+  else if (tur === "Vitraj") qism.push("Bu VITRAJ: eshik va uning yonida (yoki tepasida) gluxoy oynalar. Ochiladigan qism tur \"eshik\", qolgani gluxoy.");
+  else if (tur === "Rom") qism.push("Bu ROM (deraza): ochiladigan qismlar tur \"tabaqa\", eshik yoʻq.");
+  if (izoh) qism.push("Ustaning izohi: " + izoh);
+  const mazmun = [await rasmTayyorla(fayl), { type: "text", text: qism.join("\n") || "Hujjatdagi konstruksiyalarni ajrat." }];
   const javob = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": kalit, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
@@ -740,10 +747,16 @@ document.querySelectorAll("[data-rasm]").forEach((inp) => inp.addEventListener("
   $("ai-matn").innerHTML = `<p><b>${esc(f.name)}</b></p><p class="xira">Shu oy: ${s.soni} ta, ${s.dollar.toFixed(2)} $ (chegara ${AI_OYLIK_CHEGARA} $)</p>`;
   $("ai-kalit-quti").hidden = !!(await aiKalitniOl());
   $("ai-izoh-quti").hidden = false;
+  $("ai-tur-quti").hidden = false;
   $("ai-boshla").hidden = false;
   $("ai-oyna").hidden = false;
 }));
 $("ai-bur").addEventListener("click", () => { aiBurchak = (aiBurchak + 90) % 360; aiKorinish(); });
+$("ai-tur").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  $("ai-tur").querySelectorAll("button").forEach((x) => x.classList.toggle("faol", x === b));
+});
 $("ai-yop").addEventListener("click", () => { $("ai-oyna").hidden = true; });
 $("ai-boshla").addEventListener("click", async () => {
   if (!$("ai-kalit-quti").hidden) {
@@ -751,7 +764,7 @@ $("ai-boshla").addEventListener("click", async () => {
     if (!k) return;
     saqla("ai_kalit", k);
   }
-  $("ai-boshla").hidden = true; $("ai-izoh-quti").hidden = true; $("ai-korinish").hidden = true; $("ai-kalit-quti").hidden = true;
+  $("ai-boshla").hidden = true; $("ai-izoh-quti").hidden = true; $("ai-tur-quti").hidden = true; $("ai-korinish").hidden = true; $("ai-kalit-quti").hidden = true;
   $("ai-matn").innerHTML = '<p>Oʻqilmoqda… (10–40 soniya)</p>';
   let r;
   try { r = await aiOqi(aiFayl, $("ai-izoh").value.trim()); } catch (e) {
