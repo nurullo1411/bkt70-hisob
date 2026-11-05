@@ -159,7 +159,11 @@ function chizmaSVG(k, opts = {}) {
     let q = rect(x + i, y + i, w - 2 * i, h - 2 * i, "tb") + rect(x + i + t * 0.8, y + i + t * 0.8, w - 2 * i - 1.6 * t, h - 2 * i - 1.6 * t, "oy");
     const x1 = x + i + t * 0.8, y1 = y + i + t * 0.8, x2 = x + w - i - t * 0.8, y2 = y + h - i - t * 0.8;
     if (fortochka) {
-      // pastdan petlyali: uchburchak uchi pastda, chit-chit (yoki ruchka) tepada
+      // uchburchak uchi petlya tomonida; chit-chit (yoki ruchka) qarama-qarshi tomonda
+      if (petlya === "tepa") {
+        q += chiziq(x1, y2, (x1 + x2) / 2, y1) + chiziq(x2, y2, (x1 + x2) / 2, y1);
+        return q + rect(x + w / 2 - t * 0.9, y + h - i - t * 0.55, t * 1.8, t * 0.3, "ru");
+      }
       q += chiziq(x1, y1, (x1 + x2) / 2, y2) + chiziq(x2, y1, (x1 + x2) / 2, y2);
       return q + rect(x + w / 2 - t * 0.9, y + i + t * 0.25, t * 1.8, t * 0.3, "ru");
     }
@@ -183,7 +187,7 @@ function chizmaSVG(k, opts = {}) {
     const x = o.x + t * 0.5, y = o.y + t * 0.5, w = o.w - t, h = o.h - t;
     const b = o.b;
     if (b.tur === "gluxoy") s += rect(x + t * 0.3, y + t * 0.3, w - t * 0.6, h - t * 0.6, "oy");
-    else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", b.dvaynoy, true, b.fortochka);
+    else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka);
     else if (b.tur === "eshik") {
       if (b.tabaqa_soni === 2) {
         const aktiv = b.aktiv || "ong";
@@ -261,7 +265,8 @@ const ASBOBLAR = {
     ["tab_ong", "Tabaqa, petlya oʻngda", ik(ramaIk() + '<path d="M6 5l12 7-12 7"/>')],
     ["dv_chap", "Dvaynoy, petlya chapda", ik(ramaIk() + '<path d="M18 5L6 12l12 7"/><path d="M6 5l6 14 6-14" class="uz"/>')],
     ["dv_ong", "Dvaynoy, petlya oʻngda", ik(ramaIk() + '<path d="M6 5l12 7-12 7"/><path d="M6 5l6 14 6-14" class="uz"/>')],
-    ["fortochka", "Fortochka (pastdan petlyali)", ik(ramaIk() + '<path d="M5 5l7 14 7-14"/><path d="M10 4h4"/>')],
+    ["fortochka", "Fortochka, petlya pastda", ik(ramaIk() + '<path d="M5 5l7 14 7-14"/><path d="M10 4h4"/>')],
+    ["fortochka_tepa", "Fortochka, petlya tepada", ik(ramaIk() + '<path d="M5 19l7-14 7 14"/><path d="M10 20h4"/>')],
     ["gluxoy", "Gluxoy", ik(ramaIk())],
   ],
   eshik: [
@@ -281,7 +286,7 @@ const BOLIMLAR = [
 // Tugma ostidagi qisqa nom (belgining oʻzi tushunarsiz boʻlmasin)
 const QISQA = {
   tik: "Tik", yotiq: "Yotiq", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", shtulp: "Shtulp", ochir: "Oʻchirish",
-  tab_chap: "Chap", tab_ong: "Oʻng", dv_chap: "Dvaynoy chap", dv_ong: "Dvaynoy oʻng", fortochka: "Fortochka", gluxoy: "Gluxoy",
+  tab_chap: "Chap", tab_ong: "Oʻng", dv_chap: "Dvaynoy chap", dv_ong: "Dvaynoy oʻng", fortochka: "Fortochka ↓", fortochka_tepa: "Fortochka ↑", gluxoy: "Gluxoy",
   esh1_chap: "1 tab. chap", esh1_ong: "1 tab. oʻng", esh2_ong: "2 tab. ruchka oʻng", esh2_chap: "2 tab. ruchka chap",
 };
 
@@ -314,6 +319,7 @@ function asbobniQolla(p) {
     case "dv_chap": almashtir(p, tabaqa("chap", true)); break;
     case "dv_ong": almashtir(p, tabaqa("ong", true)); break;
     case "fortochka": almashtir(p, { tur: "tabaqa", fortochka: true }); break;
+    case "fortochka_tepa": almashtir(p, { tur: "tabaqa", fortochka: true, petlya_tomoni: "tepa" }); break;
     case "gluxoy": almashtir(p, { tur: "gluxoy" }); break;
     case "esh1_chap": case "esh1_ong":
       almashtir(p, { tur: "eshik", tabaqa_soni: 1, ochilish: eshikOchilish, petlya_tomoni: asbob.endsWith("chap") ? "chap" : "ong" }); break;
@@ -478,7 +484,8 @@ function panelniChiz() {
     const turi = b.fortochka ? "fortochka" : b.dvaynoy ? "dvaynoy" : "oddiy";
     p += `<div class="sarlavha">Turi</div>${tugmalar("turi", turi, [["oddiy", "Oddiy"], ["dvaynoy", "Dvaynoy"], ["fortochka", "Fortochka"]])}`;
     p += b.fortochka
-      ? `<div class="sarlavha">Yopilishi</div>${tugmalar("ruchka", !!b.ruchka, [[false, "Chit-chit"], [true, "Ruchka"]])}`
+      ? `<div class="sarlavha">Petlya</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "past", [["past", "Pastda"], ["tepa", "Tepada"]])}
+         <div class="sarlavha">Yopilishi</div>${tugmalar("ruchka", !!b.ruchka, [[false, "Chit-chit"], [true, "Ruchka"]])}`
       : `<div class="sarlavha">Petlya tomoni</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "chap", [["chap", "Chap"], ["ong", "Oʻng"]])}`;
   } else if (b.tur === "eshik") {
     p += `<div class="sarlavha">Ochilishi</div>${tugmalar("ochilish", b.ochilish, [["ichkariga", "Ichkariga"], ["tashqariga", "Tashqariga"]])}
@@ -677,7 +684,7 @@ $("k-panel").addEventListener("click", (e) => {
   saqlaTarix();
   const v = JSON.parse(el.dataset.v);
   if (el.dataset.amal === "turi") {
-    delete b.dvaynoy; delete b.fortochka; delete b.ruchka;
+    delete b.dvaynoy; delete b.fortochka; delete b.ruchka; delete b.petlya_tomoni;
     if (v === "dvaynoy") b.dvaynoy = true;
     if (v === "fortochka") b.fortochka = true;
   } else if (el.dataset.amal === "ruchka") { if (v) b.ruchka = true; else delete b.ruchka; }
