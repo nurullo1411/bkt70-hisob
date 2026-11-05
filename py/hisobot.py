@@ -19,7 +19,12 @@ ROM_KONNEKTOR = "(A6401.1) Ruchka Konnektor"
 ROM_PETLYA = "(A9211.3) 2SK TERMO Petlya (Tr)"
 ROM_TIJ = "(A2010.2) Poliamid Tij (Qora)"
 TIJ_AYIRMA = D(25)  # tij = tabaqa boʻyi − 25 sm (ProfOkna, A6004 li loyihalar)
-DVAYNOY_KOMPLEKT = "Dvaynoy 1 komplekt"
+# Dvaynoy (povorot-otkidnoy) dona boʻyicha (foydalanuvchi, 2026-11-05); komplekt ishlatilmaydi
+DVAYNOY_RUCHKA = "(A6011.10) Ruchka COMFORT Okon Dv. Otk"
+DVAYNOY_MEXANIZM = "(A3420F.1) Dv. Otk 160kg"
+NOJNITSA_SREDNIY = "(A3400.21) Nojnitsa Sredniy"
+NOJNITSA_DLINNIY = "(A3400.22) Nojnitsa Dlinniy"
+NOJNITSA_CHEGARA = D(65)  # tabaqa eni 65 sm gacha — sredniy, kattasi — dlinniy (ProfOkna, tasdiqlangan)
 DVAYNOY_PRIJIM = "Dvaynoy uchun Prijiim (zatsepi bilan)"
 DVAYNOY_PRIJIM_BOY = D(120)
 # Burchak soedineli, katalog "Установка угловых соединителей": har burchakka bittadan
@@ -146,11 +151,18 @@ def _rom_furnitura(s, tanlov, r):
 
 
 def _dvaynoy_furnitura(s, r):
-    """ProfOkna "Akfa TERMO 70 поворотно-откидная створка", narx diller komplekti boʻyicha."""
+    """ProfOkna "Akfa TERMO 70 поворотно-откидная створка", dona boʻyicha. Tij formulasi ProfOknadan, tasdiqlanmagan."""
     tabaqalar = [(D(e), D(b)) for e, b in s.get("dvaynoylar", [])]
     if not tabaqalar:
         return
-    r.qosh("Furnitura", DVAYNOY_KOMPLEKT, len(tabaqalar), "komp")
+    soni = len(tabaqalar)
+    r.qosh("Furnitura", DVAYNOY_RUCHKA, soni, "dona")
+    r.qosh("Furnitura", DVAYNOY_MEXANIZM, soni, "dona")
+    sredniy = sum(1 for en, _ in tabaqalar if en <= NOJNITSA_CHEGARA)
+    if sredniy:
+        r.qosh("Furnitura", NOJNITSA_SREDNIY, sredniy, "dona")
+    if soni - sredniy:
+        r.qosh("Furnitura", NOJNITSA_DLINNIY, soni - sredniy, "dona")
     prijim = sum(1 for _, b in tabaqalar if b >= DVAYNOY_PRIJIM_BOY)
     if prijim:
         r.qosh("Furnitura", DVAYNOY_PRIJIM, prijim, "dona")
