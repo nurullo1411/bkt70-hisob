@@ -285,3 +285,6 @@ header h1 { flex: 1; }
 .bolim-matn span { font-size: 13px; color: var(--xira); }
 .bolim-oq { font-size: 24px; color: var(--xira); }
 #e-royxat .arxiv-k { background: var(--karta); border: 1px solid var(--chiziq); border-radius: 14px; padding: 10px; margin-bottom: 10px; }
+
+.ai-korinish { text-align: center; margin-bottom: 8px; }
+.ai-korinish img { max-width: 100%; max-height: 40vh; border-radius: 10px; border: 1px solid var(--chiziq); display: block; margin: 0 auto 8px; }

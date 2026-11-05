@@ -632,6 +632,7 @@ BOLAK turlari:
   Ichma-ich mumkin. Eshik tepasidagi framuga: gorizontal bolinish, [framuga_boyi, null], [{"tur":"gluxoy"}, {"tur":"eshik",...}].
 Ochilish belgisi (uchburchak/chiziqlar) boʻlsa tabaqa, yoʻq boʻlsa gluxoy. Rom tabaqalari orasida doim impost.
 Soni yozilmagan boʻlsa 1. nom: hujjatdagi raqam yoki "Rom 1", "Eshik 1".
+Rasm yonboshlab olingan boʻlsa, raqamlar va yozuvlar yoʻnalishiga qarab konstruksiyani toʻgʻri holatda oʻqi: L gorizontal (eni), H vertikal (boʻyi) oʻlcham. Eshik doim boʻyi enidan katta.
 Oʻqib boʻlmagan oʻlchamni taxmin qilma: eng ehtimolini yoz va savollar ga qoʻsh.`;
 
 function aiKalit() { return ol("ai_kalit"); }
@@ -648,6 +649,28 @@ function aiSarf() {
   return s.oy === oy ? s : { oy, dollar: 0, soni: 0 };
 }
 
+let aiBurchak = 0;  // foydalanuvchi burgan burchak (0, 90, 180, 270)
+async function rasmCanvas(f, maks) {
+  // EXIF boʻyicha toʻgʻrilanadi, keyin foydalanuvchi burgan burchakka buriladi
+  const img = await createImageBitmap(f, { imageOrientation: "from-image" });
+  const k = Math.min(1, maks / Math.max(img.width, img.height));
+  const w = Math.round(img.width * k), h = Math.round(img.height * k);
+  const yon = aiBurchak % 180 !== 0;
+  const c = document.createElement("canvas");
+  c.width = yon ? h : w; c.height = yon ? w : h;
+  const x = c.getContext("2d");
+  x.translate(c.width / 2, c.height / 2);
+  x.rotate(aiBurchak * Math.PI / 180);
+  x.drawImage(img, -w / 2, -h / 2, w, h);
+  return c;
+}
+async function aiKorinish() {
+  if (!aiFayl || aiFayl.type === "application/pdf") { $("ai-korinish").hidden = true; return; }
+  const c = await rasmCanvas(aiFayl, 600);
+  $("ai-korinish").hidden = false;
+  $("ai-rasm").src = c.toDataURL("image/jpeg", 0.8);
+}
+
 async function rasmTayyorla(f) {
   // Katta rasm kichraytiriladi (API chegarasi va tezlik uchun)
   if (f.type === "application/pdf") {
@@ -655,11 +678,7 @@ async function rasmTayyorla(f) {
     let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
     return { type: "document", source: { type: "base64", media_type: "application/pdf", data: btoa(s) } };
   }
-  const img = await createImageBitmap(f);
-  const k = Math.min(1, 1600 / Math.max(img.width, img.height));
-  const c = document.createElement("canvas");
-  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  const c = await rasmCanvas(f, 1600);
   const data = c.toDataURL("image/jpeg", 0.85).split(",")[1];
   return { type: "image", source: { type: "base64", media_type: "image/jpeg", data } };
 }
@@ -714,7 +733,8 @@ document.querySelectorAll("[data-rasm]").forEach((inp) => inp.addEventListener("
   if (!f) return;
   if (!ol("narxlar")) { xato("Avval narxlar faylini yuklang."); return; }
   if (f.size > 20 * 1024 * 1024) { xato("Fayl juda katta (20 MB dan oshmasin)."); return; }
-  aiFayl = f; aiRejim = inp.dataset.rasm;
+  aiFayl = f; aiRejim = inp.dataset.rasm; aiBurchak = 0;
+  aiKorinish().catch(() => { $("ai-korinish").hidden = true; });
   const s = aiSarf();
   $("ai-sarlavha").textContent = "Rasmdan oʻqish";
   $("ai-matn").innerHTML = `<p><b>${esc(f.name)}</b></p><p class="xira">Shu oy: ${s.soni} ta, ${s.dollar.toFixed(2)} $ (chegara ${AI_OYLIK_CHEGARA} $)</p>`;
@@ -723,6 +743,7 @@ document.querySelectorAll("[data-rasm]").forEach((inp) => inp.addEventListener("
   $("ai-boshla").hidden = false;
   $("ai-oyna").hidden = false;
 }));
+$("ai-bur").addEventListener("click", () => { aiBurchak = (aiBurchak + 90) % 360; aiKorinish(); });
 $("ai-yop").addEventListener("click", () => { $("ai-oyna").hidden = true; });
 $("ai-boshla").addEventListener("click", async () => {
   if (!$("ai-kalit-quti").hidden) {
@@ -730,7 +751,7 @@ $("ai-boshla").addEventListener("click", async () => {
     if (!k) return;
     saqla("ai_kalit", k);
   }
-  $("ai-boshla").hidden = true; $("ai-izoh-quti").hidden = true; $("ai-kalit-quti").hidden = true;
+  $("ai-boshla").hidden = true; $("ai-izoh-quti").hidden = true; $("ai-korinish").hidden = true; $("ai-kalit-quti").hidden = true;
   $("ai-matn").innerHTML = '<p>Oʻqilmoqda… (10–40 soniya)</p>';
   let r;
   try { r = await aiOqi(aiFayl, $("ai-izoh").value.trim()); } catch (e) {
