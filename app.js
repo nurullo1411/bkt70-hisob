@@ -605,30 +605,42 @@ async function skladYukla() {
   saqla("sklad", JSON.stringify(j));
   return j;
 }
-function skladRangiStandart() {
-  const t = (zakaz && zakaz.umumiy && zakaz.umumiy.tanlov) || {};
-  if (t.rang_nomi) return t.rang_nomi;
-  return { "Oq": "oq", "Svetnoy (kraska)": "306g" }[t.rang] || "";
-}
+// Rang konstruksiyaning oʻzidan (⚙ da belgilangan), har rang alohida reja
+let skladGuruhlar = [];
+const skladTurkumi = (r) => ({ oq: "Oq", "306g": "Svetnoy (kraska)" }[String(r).trim().toLowerCase()] || "Laminatsiya");
 function skladRanglariniChiz() {
   const sk = skladSaqlangan();
-  const tanlangan = $("sklad-rang").value || skladRangiStandart();
+  const eski = $("sklad-rang").value;
+  py.globals.set("_zakaz", JSON.stringify(zakaz));
+  try { skladGuruhlar = JSON.parse(py.runPython(`import raskroy
+json.dumps(raskroy.rang_guruhlari(json.loads(_zakaz)))`)); } catch (e) { skladGuruhlar = []; }
+  $("sklad-rang").innerHTML = skladGuruhlar.map((g, i) => `<option value="${i}"${String(i) === eski ? " selected" : ""}>${
+    esc(g.rang || g.turkum + ", rangi belgilanmagan")} · ${g.konstruksiyalar.length} ta</option>`).join("");
   let ranglar = [];
   if (sk) {
     py.globals.set("_sq", JSON.stringify(sk.qatorlar));
-    ranglar = JSON.parse(py.runPython(`import raskroy
-json.dumps(raskroy.sklad_ranglari(json.loads(_sq)))`));
+    ranglar = JSON.parse(py.runPython(`json.dumps(raskroy.sklad_ranglari(json.loads(_sq)))`));
   }
-  if (tanlangan && !ranglar.includes(tanlangan)) ranglar.unshift(tanlangan);
-  $("sklad-rang").innerHTML = (tanlangan ? "" : '<option value="">— tanlang —</option>') +
-    ranglar.map((r) => `<option${r === tanlangan ? " selected" : ""}>${esc(r)}</option>`).join("");
-  $("sklad-holat").textContent = sk ? `Sklad: ${new Date(sk.vaqt).toLocaleString("uz")} holati, ${sk.qatorlar.length} qator` : "Sklad hali yuklanmagan";
+  const g = skladGuruhlar[Number($("sklad-rang").value)];
+  const kerak = g && !g.rang;
+  $("sklad-rang2-quti").hidden = !kerak;
+  if (kerak) {
+    const eski2 = $("sklad-rang2").value;
+    const mos = ranglar.filter((r) => skladTurkumi(r) === g.turkum);
+    $("sklad-rang2").innerHTML = '<option value="">— tanlang —</option>' +
+      mos.map((r) => `<option${r === eski2 ? " selected" : ""}>${esc(r)}</option>`).join("");
+  }
+  $("sklad-holat").textContent = (sk ? `Sklad: ${new Date(sk.vaqt).toLocaleString("uz")} holati, ${sk.qatorlar.length} qator` : "Sklad hali yuklanmagan") +
+    (kerak ? ` · ${g.konstruksiyalar.join(", ")}: rangi belgilanmagan, skladdagi rangni tanlang yoki ⚙ da belgilang` : "");
 }
 function skladRejaniHisobla() {
   const sk = skladSaqlangan();
-  const rang = $("sklad-rang").value;
   if (!sk || !zakaz) return;
+  const g = skladGuruhlar[Number($("sklad-rang").value)];
+  if (!g) { $("sklad-reja").innerHTML = '<p class="ogoh">Zakazda konstruksiya yoʻq</p>'; return; }
+  const rang = g.rang || $("sklad-rang2").value;
   if (!rang) { $("sklad-reja").innerHTML = '<p class="ogoh">Sklad rangini tanlang</p>'; return; }
+  py.globals.set("_sg", JSON.stringify(g));
   py.globals.set("_zakaz", JSON.stringify(zakaz));
   py.globals.set("_sq", JSON.stringify(sk.qatorlar));
   py.globals.set("_sr", rang);
@@ -637,7 +649,7 @@ function skladRejaniHisobla() {
     d = JSON.parse(py.runPython(`
 import raskroy
 try:
-    _sk = json.dumps({"ok": raskroy.sklad_rejasi(json.loads(_zakaz), json.loads(_sq), _sr)}, ensure_ascii=False)
+    _sk = json.dumps({"ok": raskroy.sklad_rejasi(json.loads(_zakaz), json.loads(_sq), _sr, json.loads(_sg))}, ensure_ascii=False)
 except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
     _sk = json.dumps({"xato": str(_e)}, ensure_ascii=False)
 _sk`));
@@ -682,19 +694,20 @@ $("sklad-ol").addEventListener("click", async () => {
   skladRanglariniChiz();
   skladRejaniHisobla();
 });
-$("sklad-rang").addEventListener("change", skladRejaniHisobla);
+$("sklad-rang").addEventListener("change", () => { skladRanglariniChiz(); skladRejaniHisobla(); });
+$("sklad-rang2").addEventListener("change", skladRejaniHisobla);
 $("sklad-reja").addEventListener("click", (e) => {
   const b = e.target.closest("[data-sr-pdf]");
   if (!b || !skladReja) return;
   const p = skladReja.rejalar[Number(b.dataset.srPdf)];
   $("chop").innerHTML = skladPdfHtml(skladReja, p);
   const eski = document.title;
-  document.title = `${zakaz.raqam ? "Z-" + zakaz.raqam + "_" : ""}${p.profil}_${p.fayl.replace("_" + p.profil, "")}`;
+  const rangQism = skladGuruhlar.length > 1 ? "_" + skladReja.rang.replace(/[^\w-]+/g, "") : "";
+  document.title = `${zakaz.raqam ? "Z-" + zakaz.raqam + "_" : ""}${p.profil}_${p.fayl.replace("_" + p.profil, "")}${rangQism}`;
   setTimeout(() => { window.print(); document.title = eski; }, 100);
 });
 $("kesish-quti").addEventListener("toggle", () => {
   if (!$("kesish-quti").open) return;
-  $("sklad-rang").value = "";
   skladRanglariniChiz();
   skladRejaniHisobla();
 });

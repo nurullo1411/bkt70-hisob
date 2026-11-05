@@ -357,9 +357,44 @@ def sklad_ranglari(qatorlar):
     return ranglar
 
 
-def sklad_rejasi(zakaz, sklad_qatorlari, rang):
-    """Ilova uchun: sklad bilan toʻliq reja, JSON ga tayyor (oʻlchamlar sm da)."""
-    faol = {**zakaz, "konstruksiyalar": [k for k in zakaz.get("konstruksiyalar") or [] if k.get("soni", 1) != 0]}
+TURKUM_RANG = {"Oq": "oq", "Svetnoy (kraska)": "306g"}  # bitta rangli turkumlar
+
+
+def _konstruksiya_rangi(umumiy_tanlov, k):
+    """(sklad rangi yoki None, turkum). Rang turkumga mos kelmasa (eski umumiy rang qolgan) — turkumdan."""
+    t = {**umumiy_tanlov, **(k.get("tanlov") or {})}
+    turkum = t.get("rang") or "Laminatsiya"
+    r = t.get("rang_nomi")
+    if not r or rang_turkumi(r) != turkum:
+        r = TURKUM_RANG.get(turkum)
+    return r, turkum
+
+
+def rang_guruhlari(zakaz):
+    """Faol konstruksiyalar sklad rangi boʻyicha: [{rang, turkum, konstruksiyalar: [nom]}]. rang None — belgilanmagan."""
+    u = (zakaz.get("umumiy") or {}).get("tanlov") or {}
+    guruh = {}
+    for i, k in enumerate(zakaz.get("konstruksiyalar") or []):
+        if k.get("soni", 1) == 0:
+            continue
+        r, turkum = _konstruksiya_rangi(u, k)
+        guruh.setdefault((r, turkum), []).append(k.get("nom") or f"K{i + 1}")
+    return [{"rang": r, "turkum": t, "konstruksiyalar": n} for (r, t), n in guruh.items()]
+
+
+def sklad_rejasi(zakaz, sklad_qatorlari, rang, guruh=None):
+    """Ilova uchun: sklad bilan toʻliq reja, JSON ga tayyor (oʻlchamlar sm da).
+
+    guruh ({"rang", "turkum"}, rang_guruhlari dan) berilsa, faqat shu rangdagi konstruksiyalar olinadi.
+    """
+    faol = [k for k in zakaz.get("konstruksiyalar") or [] if k.get("soni", 1) != 0]
+    umumiy = zakaz.get("umumiy") or {}
+    if guruh is not None:
+        kalit = (guruh.get("rang"), guruh.get("turkum"))
+        faol = [k for k in faol if _konstruksiya_rangi(umumiy.get("tanlov") or {}, k) == kalit]
+        # turkum tekshiruvi shu guruh boʻyicha (konstruksiyaning oʻz turkumi umumiydan farq qilishi mumkin)
+        umumiy = {**umumiy, "tanlov": {**(umumiy.get("tanlov") or {}), "rang": kalit[1]}}
+    faol = {**zakaz, "umumiy": umumiy, "konstruksiyalar": faol}
     reja = toliq_reja(faol, sklad_qatorlari, rang)
     rejalar = []
     for r in reja["rejalar"]:
