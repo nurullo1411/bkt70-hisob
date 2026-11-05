@@ -183,7 +183,7 @@ def _fortochka_furnitura(s, tanlov, r):
 
 
 def _dvaynoy_furnitura(s, r):
-    """ProfOkna "Akfa TERMO 70 поворотно-откидная створка", dona boʻyicha. Tij formulasi ProfOknadan, tasdiqlanmagan."""
+    """ProfOkna "Akfa TERMO 70 поворотно-откидная створка", dona boʻyicha. Tij formulasi ProfOknadan, foydalanuvchi tasdiqlagan (2026-11-05)."""
     tabaqalar = [(D(e), D(b)) for e, b in s.get("dvaynoylar", [])]
     if not tabaqalar:
         return
