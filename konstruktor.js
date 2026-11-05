@@ -262,25 +262,25 @@ const ASBOBLAR = {
     ["ochir", "Boʻlakni oʻchirish", ik(ramaIk() + '<path d="M8 8l8 8M16 8l-8 8" class="x"/>')],
   ],
   tabaqa: [
-    ["tab_chap", "Tabaqa, petlya chapda", ik(ramaIk() + '<path d="M18 5L6 12l12 7"/>')],
-    ["tab_ong", "Tabaqa, petlya oʻngda", ik(ramaIk() + '<path d="M6 5l12 7-12 7"/>')],
-    ["dv_chap", "Dvaynoy, petlya chapda", ik(ramaIk() + '<path d="M18 5L6 12l12 7"/><path d="M6 5l6 14 6-14" class="uz"/>')],
-    ["dv_ong", "Dvaynoy, petlya oʻngda", ik(ramaIk() + '<path d="M6 5l12 7-12 7"/><path d="M6 5l6 14 6-14" class="uz"/>')],
-    ["fortochka", "Fortochka, petlya pastda", ik(ramaIk() + '<path d="M5 5l7 14 7-14"/><path d="M10 4h4"/>')],
-    ["fortochka_tepa", "Fortochka, petlya tepada", ik(ramaIk() + '<path d="M5 19l7-14 7 14"/><path d="M10 20h4"/>')],
+    ["tab_chap", "Tabaqa, petlya chapda", ik(ramaIk() + '<path d="M6 5l12 7-12 7"/>')],
+    ["tab_ong", "Tabaqa, petlya oʻngda", ik(ramaIk() + '<path d="M18 5L6 12l12 7"/>')],
+    ["dv_chap", "Dvaynoy, petlya chapda", ik(ramaIk() + '<path d="M6 5l12 7-12 7"/><path d="M6 5l6 14 6-14" class="uz"/>')],
+    ["dv_ong", "Dvaynoy, petlya oʻngda", ik(ramaIk() + '<path d="M18 5L6 12l12 7"/><path d="M6 5l6 14 6-14" class="uz"/>')],
+    ["fortochka", "Fortochka, petlya pastda", ik(ramaIk() + '<path d="M5 19l7-14 7 14"/><path d="M10 4h4"/>')],
+    ["fortochka_tepa", "Fortochka, petlya tepada", ik(ramaIk() + '<path d="M5 5l7 14 7-14"/><path d="M10 20h4"/>')],
     ["gluxoy", "Gluxoy", ik(ramaIk())],
   ],
   eshik: [
-    ["esh1_chap", "1 tabaqa, petlya chapda", ik(ramaIk(6, 12) + '<path d="M16 5L8 12l8 7"/>')],
-    ["esh1_ong", "1 tabaqa, petlya oʻngda", ik(ramaIk(6, 12) + '<path d="M8 5l8 7-8 7"/>')],
-    ["esh2_ong", "2 tabaqa, ruchka oʻngda", ik(ramaIk(3, 18) + '<line x1="12" y1="3" x2="12" y2="21"/><path d="M11 5L5 12l6 7M13 5l6 7-6 7"/><circle cx="14" cy="12" r="1"/>')],
-    ["esh2_chap", "2 tabaqa, ruchka chapda", ik(ramaIk(3, 18) + '<line x1="12" y1="3" x2="12" y2="21"/><path d="M11 5L5 12l6 7M13 5l6 7-6 7"/><circle cx="10" cy="12" r="1"/>')],
+    ["esh1_chap", "1 tabaqa, petlya chapda", ik(ramaIk(6, 12) + '<path d="M8 5l8 7-8 7"/>')],
+    ["esh1_ong", "1 tabaqa, petlya oʻngda", ik(ramaIk(6, 12) + '<path d="M16 5L8 12l8 7"/>')],
+    ["esh2_ong", "2 tabaqa, ruchka oʻngda", ik(ramaIk(3, 18) + '<line x1="12" y1="3" x2="12" y2="21"/><path d="M5 5l6 7-6 7M19 5l-6 7 6 7"/><circle cx="14" cy="12" r="1"/>')],
+    ["esh2_chap", "2 tabaqa, ruchka chapda", ik(ramaIk(3, 18) + '<line x1="12" y1="3" x2="12" y2="21"/><path d="M5 5l6 7-6 7M19 5l-6 7 6 7"/><circle cx="10" cy="12" r="1"/>')],
     ["gluxoy", "Gluxoy", ik(ramaIk())],
   ],
 };
 const BOLIMLAR = [
   ["impost", "Impost", ik('<line x1="12" y1="3" x2="12" y2="21" class="q"/>')],
-  ["tabaqa", "Tabaqa", ik(ramaIk() + '<path d="M18 5L6 12l12 7"/>')],
+  ["tabaqa", "Tabaqa", ik(ramaIk() + '<path d="M6 5l12 7-12 7"/>')],
   ["eshik", "Eshik", ik(ramaIk(6, 12) + '<circle cx="15" cy="12" r="1"/>')],
 ];
 
