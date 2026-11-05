@@ -8,6 +8,7 @@ Oʻlchamlar sm da. Sklad jadvaliga bu dastur yozmaydi.
 import json
 import sys
 from collections import Counter
+from copy import deepcopy
 from math import ceil
 from pathlib import Path
 
@@ -104,6 +105,9 @@ def _sigim(L, profil):
     return L - _b(o) if o else L
 
 
+TOLIQ_CHEGARA = 200000
+
+
 def _eng_toliq(qolgan, profil, L):
     """Boʻlakni eng toʻliq toʻldiradigan toʻplam: {uzunlik: soni}."""
     sigim = _sigim(L, profil)
@@ -115,7 +119,7 @@ def _eng_toliq(qolgan, profil, L):
         if yuk > eng["yuk"]:
             eng["yuk"], eng["t"] = yuk, dict(tanlov)
         tugun[0] += 1
-        if i == len(turlar) or tugun[0] > 200000 or eng["yuk"] == sigim:
+        if i == len(turlar) or tugun[0] > TOLIQ_CHEGARA or eng["yuk"] == sigim:
             return
         d, v, n = turlar[i]
         for s in range(min(n, (sigim - yuk) // v), -1, -1):
@@ -145,7 +149,12 @@ def _ffd(qolgan, profil, L):
     return [b["t"] for b in bins]
 
 
-def _aniq(qolgan, profil, L, k, chegara=300000):
+# Qidiruv chegarasi: javob bor boʻlsa odatda darhol topiladi, chegara faqat "imkonsiz" holatni cheklaydi.
+# 300 000 da katta zakaz telefonda bir necha soniya qotardi; 336 ta tasodifiy zakazda 10 000 bilan natija bir xil (2026-11-05).
+ANIQ_CHEGARA = 10000
+
+
+def _aniq(qolgan, profil, L, k, chegara=ANIQ_CHEGARA):
     """Detallarni aynan k ta hivichga joylab koʻradi; topilmasa None."""
     sigim = _sigim(L, profil)
     detal = sorted(qolgan.elements(), reverse=True)
@@ -205,8 +214,23 @@ OTXOD_CHEGARA = {
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
 
 
+_OTXOD_KESH = {}
+
+
 def otxod_hisobi(profil, kerak):
-    """Skladsiz raskroy: sarflangan uzunlik = hivichlar − ishlatsa boʻladigan qoldiqlar (sm_b)."""
+    """Skladsiz raskroy: sarflangan uzunlik = hivichlar − ishlatsa boʻladigan qoldiqlar (sm_b).
+
+    Natija eslab qolinadi: narx va kesish chizmasi bir xil detallar uchun qayta hisoblamaydi.
+    """
+    kalit = (profil, tuple(sorted((d, n) for d, n in kerak.items() if n > 0)))
+    if kalit not in _OTXOD_KESH:
+        if len(_OTXOD_KESH) > 300:
+            _OTXOD_KESH.clear()
+        _OTXOD_KESH[kalit] = _otxod_hisobi(profil, kerak)
+    return deepcopy(_OTXOD_KESH[kalit])
+
+
+def _otxod_hisobi(profil, kerak):
     qolgan = Counter({d: n for d, n in kerak.items() if n > 0})
     if max(qolgan) > HIVICH * 100:
         raise HisobXato(f"{profil}: {_k(max(qolgan))} sm detal hivichdan uzun")

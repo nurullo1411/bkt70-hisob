@@ -207,7 +207,21 @@ _natija`));
   }
 }
 
+// Ekran avval chiziladi, hisob keyin: "Saqlash" bosilganda ilova qotib turmasin
+let hisobNavbat = 0;
+function hisoblaKeyin() {
+  const n = ++hisobNavbat;
+  const eski = $("holat").textContent;
+  holat("Hisoblanmoqda…");
+  requestAnimationFrame(() => setTimeout(() => {
+    if (n !== hisobNavbat) return;
+    hisobla();
+    if ($("holat").textContent === "Hisoblanmoqda…") holat(eski);
+  }, 0));
+}
+
 function hisobla() {
+  hisobNavbat++;
   if (!py || !zakaz) return;
   xato("");
   zakaz.konstruksiyalar = zakaz.konstruksiyalar || [];

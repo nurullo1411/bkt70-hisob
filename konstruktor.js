@@ -445,8 +445,8 @@ function konstruktorniYop(saqlansin, tarixdan) {
   $("sozlama-oyna").hidden = true;
   $("konstruktor").hidden = true;
   $("asosiy").hidden = false;
-  hisobla();
   if (zakaz) ekran("zakaz", joriyEkran !== "zakaz");
+  hisoblaKeyin();
 }
 
 // Chala chizma har oʻzgarishda saqlanadi: sahifa yangilansa yoki ilova yopilsa, joyidan davom etadi
