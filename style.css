@@ -251,3 +251,22 @@ html, body { overscroll-behavior-y: contain; }
   .p-rasm svg { width: 100%; max-height: 80mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .p-oxir { margin-top: 8px; padding: 8px; background: #e3f2fd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Xarajat va kesish chizmasi */
+.xarajat { margin-top: 8px; padding: 8px; border-radius: 10px; background: var(--fon); font-size: 13px; }
+.xarajat table { width: 100%; }
+.k-leg { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 6px 0 10px; font-size: 13px; }
+.kl { display: inline-flex; align-items: center; gap: 5px; }
+.kl i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.kp { padding: 10px 0; border-top: 1px solid var(--chiziq); break-inside: avoid; }
+.kp-bosh { display: flex; justify-content: space-between; gap: 8px; }
+.kp-stat { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; margin: 4px 0; }
+.kp-kesim { font-size: 12px; margin-bottom: 6px; }
+.kb-qator { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.kb-n { width: 26px; font-size: 11px; color: var(--xira); flex: 0 0 auto; }
+.kb { flex: 1; display: flex; height: 24px; border-radius: 5px; overflow: hidden; border: 1px solid var(--chiziq); }
+.kb > div { min-width: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #111;
+            border-right: 1px solid rgba(255,255,255,.8); white-space: nowrap; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.kb > .kb-q { background: repeating-linear-gradient(45deg, #fff3c4 0 4px, #ffe082 4px 8px); color: #7a5c00; }
+.kb > .kb-q.otx { background: repeating-linear-gradient(45deg, #eee 0 4px, #ccc 4px 8px); color: #555; }
+@media print { .kp-bosh, .kp-stat { color: #000; } }

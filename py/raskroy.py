@@ -225,7 +225,42 @@ def otxod_hisobi(profil, kerak):
         "sarf": sarf(eng),
         "qoldiqlar": sorted(_qoldiq(L, t, profil) for t in eng),
         "chegara_yoq": chegara is None,
+        "variant": eng,
     }
+
+
+def kesish_chizmasi(zakaz):
+    """Skladsiz kesish chizmasi (ilova uchun): narxdagi otxod bilan bir xil variant.
+
+    Har profilga hivichlar, ulardagi boʻlaklar (sm) va boʻlak qaysi konstruksiyaniki (indeks).
+    """
+    faol = [k for k in zakaz.get("konstruksiyalar") or [] if k.get("soni", 1) != 0]
+    royxat, jami = detallarni_yig({**zakaz, "konstruksiyalar": faol})
+    L = HIVICH * 100
+    profillar = []
+    for p in sorted(jami, key=lambda x: TARTIB.index(x) if x in TARTIB else 99):
+        egalari = {}
+        for i, k in enumerate(royxat):
+            for d in k["detallar"]:
+                if d["profil"] == p:
+                    egalari.setdefault(_b(d["uzunlik"]), []).extend([i] * (d["soni"] * k["soni"]))
+        o = otxod_hisobi(p, jami[p])
+        hivichlar = []
+        for t in o["variant"]:
+            bolaklar = []
+            for d in sorted(t, reverse=True):
+                for _ in range(t[d]):
+                    bolaklar.append({"uzunlik": d / 100, "k": egalari[d].pop()})
+            hivichlar.append({"bolaklar": bolaklar, "qoldiq": round(_qoldiq(L, t, p) / 100, 2)})
+        hivichlar.sort(key=lambda h: h["qoldiq"])
+        profillar.append({
+            "profil": p, "nom": toliq_nom(p), "kesim": _kesim_matni(p), "hivich_sm": HIVICH,
+            "hivichlar": hivichlar, "kesimlar": sum(jami[p].values()),
+            "samaradorlik": round(o["ishlatilgan"] / (len(hivichlar) * L) * 100, 1),
+            "qoldiq_sm": round(sum(h["qoldiq"] for h in hivichlar), 2),
+            "otxod_chegara": OTXOD_CHEGARA.get(p),
+        })
+    return {"konstruksiyalar": [{"nom": k["nom"], "soni": k["soni"]} for k in royxat], "profillar": profillar}
 
 
 def _qoldiq(L, t, profil):

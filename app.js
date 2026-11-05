@@ -168,6 +168,8 @@ function hisobla() {
   $("natija").hidden = !natija;
   if (natija) chiz();
   royxatniChiz();
+  kesishEskirgan = true;
+  if (natija && $("kesish-quti").open) kesishniChiz();
 }
 
 const yuza = (k) => (Number(k.L) || 0) * (Number(k.H) || 0) / 10000;
@@ -203,7 +205,8 @@ function royxatniChiz() {
       </div>
       ${h && h.izoh ? `<div class="ogoh xira">${esc(h.izoh)}</div>` : ""}
       <input class="eslatma" data-eslatma="${i}" value="${esc(k.eslatma || "")}" placeholder="Izoh qoʻshish (masalan: 2-qavat, oshxona)" autocomplete="off">
-      <div class="kichik-tugmalar"><button data-tahrir="${i}">Tahrirlash</button><button data-nusxa="${i}">Nusxa</button><button data-ochir="${i}">Oʻchirish</button></div>
+      ${h && xarajatOchiq.has(nom) ? xarajatHtml(nom) : ""}
+      <div class="kichik-tugmalar">${h ? `<button data-xarajat="${esc(nom)}">${xarajatOchiq.has(nom) ? "Yopish" : "Xarajat"}</button>` : ""}<button data-tahrir="${i}">Tahrirlash</button><button data-nusxa="${i}">Nusxa</button><button data-ochir="${i}">Oʻchirish</button></div>
     </div>`;
   }).join("") || '<p class="xira">Konstruksiya yoʻq. Pastdagi tugma bilan qoʻshing.</p>';
 }
@@ -243,6 +246,62 @@ function hisobKitobniChiz() {
 function mijozniChiz() {
   const m = zakaz.mijoz || {};
   document.querySelectorAll("[data-mijoz]").forEach((el) => { if (document.activeElement !== el) el.value = m[el.dataset.mijoz] || ""; });
+}
+
+// ---------- konstruksiya xarajati (Romchi "Xarajatni koʻrish"): 1 dona uchun ----------
+const xarajatOchiq = new Set();
+function xarajatHtml(nom) {
+  const n = natija, j = n.konstruksiyalar.findIndex((k) => k.nom === nom);
+  if (j < 0) return "";
+  const bolimlar = {};
+  let profillar = "";
+  for (const m of n.materiallar) {
+    const miq = m.bir_dona[j] || 0;
+    if (!miq) continue;
+    const summa = m.narx == null ? 0 : miq * m.narx;
+    bolimlar[m.bolim] = (bolimlar[m.bolim] || 0) + summa;
+    if (m.bolim === "Profil") profillar += `<tr><td>${esc(m.artikul)}</td><td class="son">${son(miq, 2)} m</td><td class="son">${pul(summa)}</td></tr>`;
+  }
+  const str = Object.values(bolimlar).reduce((a, b) => a + b, 0) * 0.03;
+  return `<div class="xarajat"><div class="xira">1 dona uchun</div><table>
+    ${Object.entries(bolimlar).map(([b, s]) => `<tr><td>${esc(b)}</td><td></td><td class="son">${pul(s)}</td></tr>`).join("")}
+    <tr><td>Straxovka 3%</td><td></td><td class="son">${pul(str)}</td></tr>
+    <tr><td><b>Jami</b></td><td></td><td class="son"><b>${pul(n.konstruksiyalar[j].bir_dona_usd)}</b></td></tr></table>
+    ${profillar ? `<div class="bolim">Profillar</div><table>${profillar}</table>` : ""}</div>`;
+}
+
+// ---------- kesish chizmasi (Romchi "Kesishlar chizmasi"), skladsiz, narxdagi otxod bilan bir xil ----------
+const KRANG = ["#64b5f6", "#81c784", "#ffb74d", "#e57373", "#ba68c8", "#4db6ac", "#f06292", "#a1887f", "#90a4ae", "#dce775"];
+let kesishEskirgan = true, kesishNatija = null;
+function kesishOl() {
+  py.globals.set("_zakaz", JSON.stringify(zakaz));
+  try {
+    return JSON.parse(py.runPython(`
+import raskroy
+try:
+    _kn = json.dumps({"ok": raskroy.kesish_chizmasi(json.loads(_zakaz))}, ensure_ascii=False)
+except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
+    _kn = json.dumps({"xato": str(_e)}, ensure_ascii=False)
+_kn`));
+  } catch (e) { return { xato: e.message.split("\n").slice(-2).join(" ") }; }
+}
+function kesishHtml(r) {
+  const leg = r.konstruksiyalar.map((k, i) => `<span class="kl"><i style="background:${KRANG[i % KRANG.length]}"></i>${i + 1}. ${esc(k.nom)} × ${k.soni}</span>`).join("");
+  return `<div class="k-leg">${leg}</div>` + r.profillar.map((p) => `<div class="kp">
+    <div class="kp-bosh"><b>${esc(p.nom)}</b><span>${p.hivich_sm} sm × ${p.hivichlar.length} dona</span></div>
+    <div class="kp-stat"><span>Samaradorlik <b>${son(p.samaradorlik, 1)}%</b></span><span>Kesimlar <b>${p.kesimlar}</b></span><span>Qoldiq <b>${son(p.qoldiq_sm, 1)} sm</b></span></div>
+    <div class="xira kp-kesim">${esc(p.kesim)}${p.otxod_chegara ? ` · ${p.otxod_chegara} sm dan kichik qoldiq otxod` : ""}</div>
+    ${p.hivichlar.map((h, i) => `<div class="kb-qator"><span class="kb-n">#${i + 1}</span><div class="kb">${h.bolaklar.map((b) =>
+      `<div style="flex:${b.uzunlik} 0 0;background:${KRANG[b.k % KRANG.length]}">${son(b.uzunlik, 1)}</div>`).join("")}${h.qoldiq > 0 ?
+      `<div class="kb-q${p.otxod_chegara && h.qoldiq < p.otxod_chegara ? " otx" : ""}" style="flex:${h.qoldiq} 0 0">${son(h.qoldiq, 1)}</div>` : ""}</div></div>`).join("")}
+  </div>`).join("");
+}
+function kesishniChiz() {
+  if (!py || !zakaz || !kesishEskirgan) return;
+  const d = kesishOl();
+  kesishEskirgan = false;
+  kesishNatija = d.ok || null;
+  $("kesish").innerHTML = d.xato ? `<p class="ogoh">${esc(d.xato)}</p>` : kesishHtml(d.ok);
 }
 
 function chiz() {
@@ -319,6 +378,11 @@ $("konstruksiyalar").addEventListener("click", (e) => {
   if (!b) return;
   const d = b.dataset;
   if (d.tahrir != null) { konstruktorniOch(Number(d.tahrir)); return; }
+  if (d.xarajat != null) {
+    if (xarajatOchiq.has(d.xarajat)) xarajatOchiq.delete(d.xarajat); else xarajatOchiq.add(d.xarajat);
+    royxatniChiz();
+    return;
+  }
   if (d.nusxa != null) {
     const k = nusxa(zakaz.konstruksiyalar[Number(d.nusxa)]);
     const nomlar = zakaz.konstruksiyalar.map((x) => x.nom);
@@ -476,6 +540,17 @@ function pdfHtml(o) {
   s += `<div class="p-oxir">Umumiy yuzasi: <b>${son(jamiM2, 2)} m²</b>${m.izoh ? `<br>Izoh: ${esc(m.izoh)}` : ""}</div>`;
   return s;
 }
+
+$("kesish-quti").addEventListener("toggle", () => { if ($("kesish-quti").open) kesishniChiz(); });
+$("kesish-pdf").addEventListener("click", () => {
+  kesishniChiz();
+  if (!kesishNatija) return;
+  $("chop").innerHTML = `<div class="p-sarlavha">Kesish chizmasi — ${esc(zakaz.raqam ? "№" + zakaz.raqam + " " : "")}${esc((zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "")}</div>
+    <div>Hivich 650 sm, skladsiz. Sana: ${new Date().toISOString().slice(0, 10)}</div>` + kesishHtml(kesishNatija);
+  const eski = document.title;
+  document.title = "Kesish " + (zakaz.raqam ? "№" + zakaz.raqam : zakaz.nom || "");
+  setTimeout(() => { window.print(); document.title = eski; }, 100);
+});
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 window.addEventListener("DOMContentLoaded", arxivniChiz);
