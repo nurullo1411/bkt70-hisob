@@ -486,13 +486,7 @@ document.querySelectorAll("[data-mijoz]").forEach((el) => el.addEventListener("i
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
 }));
 $("yangi").addEventListener("click", () => {
-  const b = $("yangi");
-  if (zakaz && zakaz.konstruksiyalar && zakaz.konstruksiyalar.length && !b.classList.contains("tasdiq")) {
-    b.classList.add("tasdiq"); b.textContent = "Joriy zakaz oʻchadi. Davom?";
-    setTimeout(() => { b.classList.remove("tasdiq"); b.textContent = "Yangi zakaz"; }, 4000);
-    return;
-  }
-  b.classList.remove("tasdiq"); b.textContent = "Yangi zakaz";
+  // Joriy zakaz arxivda saqlangan (Zakazlarim), shuning uchun soʻramaymiz
   if (!ol("narxlar")) { xato("Avval narxlar faylini yuklang."); return; }
   zakaz = yangiZakaz();
   belgila(zakaz);
@@ -609,6 +603,8 @@ $("kesish-pdf").addEventListener("click", () => {
 });
 
 $("orqaga").addEventListener("click", () => history.back());
+$("yakunla").addEventListener("click", () => { saqla("oxirgi_zakaz", JSON.stringify(zakaz)); ekran("bosh"); holat("Zakaz saqlandi"); });
+$("yangi2").addEventListener("click", () => { ekran("bosh"); $("yangi").click(); });
 $("davom").addEventListener("click", () => { if (zakaz) ekran("zakaz"); });
 
 // ---------- rasmdan konstruksiya (Claude API, toʻgʻridan telefondan) ----------
