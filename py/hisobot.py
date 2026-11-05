@@ -25,6 +25,10 @@ DVAYNOY_MEXANIZM = "(A3420F.1) Dv. Otk 160kg"
 NOJNITSA_SREDNIY = "(A3400.21) Nojnitsa Sredniy"
 NOJNITSA_DLINNIY = "(A3400.22) Nojnitsa Dlinniy"
 NOJNITSA_CHEGARA = D(65)  # tabaqa eni 65 sm gacha — sredniy, kattasi — dlinniy (ProfOkna, tasdiqlangan)
+# Fortochka (foydalanuvchi, 2026-11-05; ProfOkna "откидная створка")
+CHIT_CHIT = "(A1501.5) Chit-Chit"
+OGRANICHITEL = {"kichik": "(A1115.2) Ogranichitel", "katta": "(A1115.1) Ogranichitel"}  # boʻyi 60 sm gacha / kattasi (ProfOkna)
+FORTOCHKA_PETLYA_EN = D(100)  # eni 1 m dan katta — 3 petlya, aks holda 2
 DVAYNOY_PRIJIM = "Dvaynoy uchun Prijiim (zatsepi bilan)"
 DVAYNOY_PRIJIM_BOY = D(120)
 # Burchak soedineli, katalog "Установка угловых соединителей": har burchakka bittadan
@@ -150,6 +154,24 @@ def _rom_furnitura(s, tanlov, r):
     r.qosh("Furnitura", ROM_TIJ, sum(b - TIJ_AYIRMA for b in boylar) / 100, "m")
 
 
+def _fortochka_furnitura(s, tanlov, r):
+    """Fortochka: rom petlyasi eniga qarab, ogranichitel 1, chit-chit 1 (ruchka tanlansa — ruchka + konnektor)."""
+    f = [(D(e), D(b), bool(ru)) for e, b, ru in s.get("fortochkalar", [])]
+    if not f:
+        return
+    r.qosh("Furnitura", ROM_PETLYA, sum(3 if e > FORTOCHKA_PETLYA_EN else 2 for e, _, _ in f), "dona")
+    for kalit in ("kichik", "katta"):
+        n = sum(1 for _, b, _ in f if (b <= 60) == (kalit == "kichik"))
+        if n:
+            r.qosh("Furnitura", OGRANICHITEL[kalit], n, "dona")
+    ruchkali = sum(1 for *_, ru in f if ru)
+    if len(f) - ruchkali:
+        r.qosh("Furnitura", CHIT_CHIT, len(f) - ruchkali, "dona")
+    if ruchkali:
+        r.qosh("Furnitura", tanlov.get("rom_ruchka", ROM_RUCHKA), ruchkali, "dona")
+        r.qosh("Furnitura", ROM_KONNEKTOR, ruchkali, "dona")
+
+
 def _dvaynoy_furnitura(s, r):
     """ProfOkna "Akfa TERMO 70 поворотно-откидная створка", dona boʻyicha. Tij formulasi ProfOknadan, tasdiqlanmagan."""
     tabaqalar = [(D(e), D(b)) for e, b in s.get("dvaynoylar", [])]
@@ -223,6 +245,7 @@ def hisobot(k, narxlar):
     _furnitura(s, tanlov, r)
     _rom_furnitura(s, tanlov, r)
     _dvaynoy_furnitura(s, r)
+    _fortochka_furnitura(s, tanlov, r)
 
     qalinlik = str(k.get("oyna_qalinligi", 24))
     m2 = D(n["oyna_m2"])

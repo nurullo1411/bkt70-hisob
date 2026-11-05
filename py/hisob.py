@@ -65,6 +65,7 @@ class Hisob:
         self.tabaqa_boylari = []
         self.rom_tabaqa_boylari = []
         self.dvaynoylar = []
+        self.fortochkalar = []  # (en, boʻy, ruchka bilanmi)
         self.impost_soni = 0
         self.eshiklar = []
         self.markaziy_rezina = D(0)
@@ -94,10 +95,12 @@ class Hisob:
         self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}",
                    ichki_boy - 2 * SHTAPIK_QALINLIGI, 2)
 
-    def tabaqa(self, joy, profil, en, boy, shtulp_yonida=False, rom=False, dvaynoy=False):
+    def tabaqa(self, joy, profil, en, boy, shtulp_yonida=False, rom=False, dvaynoy=False, fortochka=None):
         self.tabaqa_soni += 1
         self.tabaqalar[profil] = self.tabaqalar.get(profil, 0) + 1
-        if dvaynoy:
+        if fortochka is not None:
+            self.fortochkalar.append((en, boy, fortochka))
+        elif dvaynoy:
             self.dvaynoylar.append((en, boy))
         else:
             (self.rom_tabaqa_boylari if rom else self.tabaqa_boylari).append(boy)
@@ -219,6 +222,13 @@ def _bolak(b, z, h, ctx):
     tur = b.get("tur")
     if tur == "gluxoy":
         h.oyna("Gluxoy", z.ichki_en, z.ichki_boy, D("1.5"))
+    elif tur == "tabaqa" and b.get("fortochka"):
+        # Fortochka (foydalanuvchi, 2026-11-05): qanot, shtapik, oyna rom tabaqasidagidek, faqat furnitura boshqa
+        ruchka = bool(b.get("ruchka"))
+        if ruchka:
+            h.qoida_yoq.append("Ruchkali fortochka: zapor va tij qoidasi yoʻq (faqat ruchka va konnektor hisoblandi)")
+        h.tabaqa("Fortochka", ROM_TABAQA_PROFILI, z.ichki_en + D("1.1"), z.ichki_boy + D("1.1"), rom=True,
+                 fortochka=ruchka)
     elif tur == "tabaqa":
         h.tabaqa("Rom tabaqasi", ROM_TABAQA_PROFILI, z.ichki_en + D("1.1"), z.ichki_boy + D("1.1"), rom=True,
                  dvaynoy=bool(b.get("dvaynoy")))
@@ -287,6 +297,7 @@ def hisobla(k):
             "tabaqa_boylari": [float(b) for b in h.tabaqa_boylari],
             "rom_tabaqa_boylari": [float(b) for b in h.rom_tabaqa_boylari],
             "dvaynoylar": [[float(e), float(b)] for e, b in h.dvaynoylar],
+            "fortochkalar": [[float(e), float(b), r] for e, b, r in h.fortochkalar],
             "impost_soni": h.impost_soni,
             "eshiklar": h.eshiklar,
             "markaziy_rezina": float(h.markaziy_rezina),
