@@ -43,6 +43,12 @@
     <p id="zakaz-nomi" class="xira"></p>
   </section>
 
+  <section class="karta" id="arxiv-quti">
+    <h2>Zakazlarim</h2>
+    <div id="arxiv-tablar" class="arxiv-tablar"></div>
+    <div id="arxiv"></div>
+  </section>
+
   <p id="xato" class="xato" hidden></p>
 
   <section id="zakaz-ish" hidden>
@@ -79,6 +85,8 @@
       <div class="jami-qator"><span>Toʻlanadi (chegirmadan keyin)</span><b id="j-tolov"></b></div>
       <div class="jami-qator katta"><span>QOLDIQ</span><b id="j-qoldiq"></b></div>
       <p id="j-holat"></p>
+      <div class="sarlavha-kichik">Zakaz holati</div>
+      <div class="seg holatlar" id="holatlar"></div>
     </section>
 
     <section class="karta">
@@ -109,7 +117,8 @@
 
     <section class="karta">
       <div class="tugmalar">
-        <button id="ulash" class="tugma asosiy">Natijani ulashish</button>
+        <button id="pdf" class="tugma asosiy">PDF (mijozga)</button>
+        <button id="ulash" class="tugma">Natijani ulashish</button>
         <button id="saqlash" class="tugma">Zakazni saqlash (JSON)</button>
         <label class="tugma">Narxlarni yangilash<input id="narx-fayl2" type="file" accept=".json,application/json" hidden></label>
       </div>
@@ -117,6 +126,22 @@
   </section>
   <footer class="xira" id="versiya"></footer>
 </main>
+
+<div id="pdf-oyna" class="pdf-fon" hidden>
+  <div class="pdf-quti">
+    <h2>PDF yaratish</h2>
+    <label class="almash"><span>Narxlar koʻrsatilsinmi?</span><input type="checkbox" id="pdf-narx" checked></label>
+    <label class="almash"><span>Oʻlchamlar koʻrsatilsinmi?</span><input type="checkbox" id="pdf-olcham" checked></label>
+    <label class="almash"><span>Kerakli materiallar roʻyxati</span><input type="checkbox" id="pdf-mat"></label>
+    <div class="panjara">
+      <label>Bajaruvchi<input id="pdf-baj" autocomplete="off" placeholder="Ismingiz"></label>
+      <label>Telefon<input id="pdf-baj-tel" type="tel" inputmode="tel" autocomplete="off" placeholder="+998"></label>
+    </div>
+    <p class="xira">Ochilgan oynada “Saqlash: PDF” ni tanlang.</p>
+    <div class="tugmalar"><button id="pdf-yop" class="tugma">Bekor</button><button id="pdf-ber" class="tugma asosiy">PDF yaratish</button></div>
+  </div>
+</div>
+<div id="chop" hidden></div>
 
 <main id="konstruktor" hidden>
   <div class="k-tepa">
