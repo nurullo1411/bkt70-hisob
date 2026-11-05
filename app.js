@@ -426,7 +426,8 @@ for (const id of ["narx-fayl", "narx-fayl2"]) {
 $("matn-tugma").addEventListener("click", () => { $("matn-quti").hidden = !$("matn-quti").hidden; });
 $("matn-hisobla").addEventListener("click", () => zakazniOch($("matn").value));
 $("namuna").addEventListener("click", async () => zakazniOch(await (await fetch("namuna_z002.json")).text()));
-$("kurs").addEventListener("change", () => { saqla("kurs", $("kurs").value); hisobla(); });
+$("kurs").addEventListener("input", () => { if (Number($("kurs").value) > 0) saqla("kurs", $("kurs").value); });
+$("kurs").addEventListener("change", () => { if (Number($("kurs").value) > 0) saqla("kurs", $("kurs").value); else $("kurs").value = ol("kurs") || 12000; hisobla(); });
 $("konstruksiyalar").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
