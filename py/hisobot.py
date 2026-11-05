@@ -28,6 +28,7 @@ NOJNITSA_CHEGARA = D(65)  # tabaqa eni 65 sm gacha — sredniy, kattasi — dlin
 # Fortochka (foydalanuvchi, 2026-11-05; ProfOkna "откидная створка")
 CHIT_CHIT = "(A1501.5) Chit-Chit"
 OGRANICHITEL = {"kichik": "(A1115.2) Ogranichitel", "katta": "(A1115.1) Ogranichitel"}  # boʻyi 60 sm gacha / kattasi (ProfOkna)
+FORTOCHKA_ZATSEP = "Termo Zatsep (4207)"  # A4207.1, ruchkali fortochkada 2 ta
 FORTOCHKA_PETLYA_EN = D(100)  # eni 1 m dan katta — 3 petlya, aks holda 2
 DVAYNOY_PRIJIM = "Dvaynoy uchun Prijiim (zatsepi bilan)"
 DVAYNOY_PRIJIM_BOY = D(120)
@@ -168,8 +169,15 @@ def _fortochka_furnitura(s, tanlov, r):
     if len(f) - ruchkali:
         r.qosh("Furnitura", CHIT_CHIT, len(f) - ruchkali, "dona")
     if ruchkali:
+        # Ruchka (A6004) bilan: konnektor 1, A4207.1 × 2 (foydalanuvchi), tij tepada: eni − 25 sm
+        # (ProfOkna "откидная створка": A2010.2 tomoni 3 = tepa, ayirma 250 mm; rom tabaqasida tomon 2, boʻyi − 25)
         r.qosh("Furnitura", tanlov.get("rom_ruchka", ROM_RUCHKA), ruchkali, "dona")
         r.qosh("Furnitura", ROM_KONNEKTOR, ruchkali, "dona")
+        r.qosh("Furnitura", FORTOCHKA_ZATSEP, ruchkali * 2, "dona")
+        enlar = [e for e, _, ru in f if ru]
+        if any(e <= TIJ_AYIRMA for e in enlar):
+            raise HisobXato(f"Fortochka juda tor, poliamid tij sigʻmaydi: {min(enlar)} sm")
+        r.qosh("Furnitura", ROM_TIJ, sum(e - TIJ_AYIRMA for e in enlar) / 100, "m")
 
 
 def _dvaynoy_furnitura(s, r):

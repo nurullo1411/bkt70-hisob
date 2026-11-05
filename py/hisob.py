@@ -225,8 +225,6 @@ def _bolak(b, z, h, ctx):
     elif tur == "tabaqa" and b.get("fortochka"):
         # Fortochka (foydalanuvchi, 2026-11-05): qanot, shtapik, oyna rom tabaqasidagidek, faqat furnitura boshqa
         ruchka = bool(b.get("ruchka"))
-        if ruchka:
-            h.qoida_yoq.append("Ruchkali fortochka: zapor va tij qoidasi yoʻq (faqat ruchka va konnektor hisoblandi)")
         h.tabaqa("Fortochka", ROM_TABAQA_PROFILI, z.ichki_en + D("1.1"), z.ichki_boy + D("1.1"), rom=True,
                  fortochka=ruchka)
     elif tur == "tabaqa":
