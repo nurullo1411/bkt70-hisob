@@ -592,6 +592,112 @@ function pdfHtml(o) {
 }
 
 $("kesish-quti").addEventListener("toggle", () => { if ($("kesish-quti").open) kesishniChiz(); });
+
+// ---------- sklad bilan kesish rejasi (Dodorom_sklad → Apps Script, faqat oʻqiladi) ----------
+// Har profilga alohida PDF: ishchi adashmasin (raskroy.py dagidek).
+let skladReja = null;
+function skladSaqlangan() { try { return JSON.parse(ol("sklad") || "null"); } catch (e) { return null; } }
+async function skladYukla() {
+  const url = await shifrliOch("sklad.enc");
+  if (!url) throw new Error("Sklad ulanmagan (sklad.enc yoʻq yoki narx havolasi ochilmagan)");
+  const j = await fetch(url).then((r) => r.json());
+  if (!j || j.xato || !Array.isArray(j.qatorlar)) throw new Error("Sklad javobi: " + ((j && j.xato) || "notoʻgʻri"));
+  saqla("sklad", JSON.stringify(j));
+  return j;
+}
+function skladRangiStandart() {
+  const t = (zakaz && zakaz.umumiy && zakaz.umumiy.tanlov) || {};
+  if (t.rang_nomi) return t.rang_nomi;
+  return { "Oq": "oq", "Svetnoy (kraska)": "306g" }[t.rang] || "";
+}
+function skladRanglariniChiz() {
+  const sk = skladSaqlangan();
+  const tanlangan = $("sklad-rang").value || skladRangiStandart();
+  let ranglar = [];
+  if (sk) {
+    py.globals.set("_sq", JSON.stringify(sk.qatorlar));
+    ranglar = JSON.parse(py.runPython(`import raskroy
+json.dumps(raskroy.sklad_ranglari(json.loads(_sq)))`));
+  }
+  if (tanlangan && !ranglar.includes(tanlangan)) ranglar.unshift(tanlangan);
+  $("sklad-rang").innerHTML = (tanlangan ? "" : '<option value="">— tanlang —</option>') +
+    ranglar.map((r) => `<option${r === tanlangan ? " selected" : ""}>${esc(r)}</option>`).join("");
+  $("sklad-holat").textContent = sk ? `Sklad: ${new Date(sk.vaqt).toLocaleString("uz")} holati, ${sk.qatorlar.length} qator` : "Sklad hali yuklanmagan";
+}
+function skladRejaniHisobla() {
+  const sk = skladSaqlangan();
+  const rang = $("sklad-rang").value;
+  if (!sk || !zakaz) return;
+  if (!rang) { $("sklad-reja").innerHTML = '<p class="ogoh">Sklad rangini tanlang</p>'; return; }
+  py.globals.set("_zakaz", JSON.stringify(zakaz));
+  py.globals.set("_sq", JSON.stringify(sk.qatorlar));
+  py.globals.set("_sr", rang);
+  let d;
+  try {
+    d = JSON.parse(py.runPython(`
+import raskroy
+try:
+    _sk = json.dumps({"ok": raskroy.sklad_rejasi(json.loads(_zakaz), json.loads(_sq), _sr)}, ensure_ascii=False)
+except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
+    _sk = json.dumps({"xato": str(_e)}, ensure_ascii=False)
+_sk`));
+  } catch (e) { d = { xato: e.message.split("\n").slice(-2).join(" ") }; }
+  skladReja = d.ok || null;
+  if (d.xato) { $("sklad-reja").innerHTML = `<p class="ogoh">${esc(d.xato)}</p>`; return; }
+  const r = d.ok;
+  $("sklad-reja").innerHTML = r.rejalar.map((p, i) => `<div class="sr-qator">
+      <div><b>${esc(p.nom)}</b><br><span class="xira">yangi ${p.yangi_soni} hivich · skladdan ${p.sklad_soni} boʻlak · ${p.jami_detal} detal</span></div>
+      <button class="tugma" data-sr-pdf="${i}">PDF</button></div>`).join("") +
+    (r.izohlar.length ? `<details class="xira"><summary>Skladdagi ${r.izohlar.length} ta qator olinmadi</summary>${r.izohlar.map(esc).join("<br>")}</details>` : "");
+}
+function skladPdfHtml(r, p) {
+  const nom = zakaz.raqam ? "№" + zakaz.raqam + " " + ((zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "") : (zakaz.nom || "");
+  const belgi = p.togri ? "□ " : "";
+  const karta = (k) => `<div class="sp-karta"><div class="sp-k-bosh${k.manba === "SKLAD" ? " sp-sklad" : ""}">${k.manba === "YANGI"
+      ? `YANGI ${son(k.L, 0)} sm hivich × ${k.soni} dona` : `SKLAD QOLDIQ ${son(k.L, 2)} sm × ${k.soni} dona`}</div>
+    ${k.bolaklar.map(([d, n]) => `<div class="sp-b">${belgi}${son(d, 2)} × ${n}</div>`).join("")}
+    <div class="sp-q">qoldiq: ${son(k.qoldiq, 2)} sm</div></div>`;
+  return `<div class="sp">
+    <div class="p-sarlavha">${esc(p.nom)} — kesish rejasi</div>
+    <div>Zakaz: ${esc(nom)} · Rang: ${esc(r.rang)} · Hivich ${son(r.hivich_sm / 100, 1)} m · ${new Date().toISOString().slice(0, 10)}</div>
+    <div class="xira">${esc(p.kesim)}${p.togri ? " · □ — gradusga kesilmaydi (90°)" : ""}</div>
+    <div class="sp-kartalar">${p.kartalar.map(karta).join("")}</div>
+    <div class="sp-jami"><b>Jami yangi ${son(r.hivich_sm / 100, 1)} m hivich: ${p.yangi_soni} dona</b><br>Skladdan: ${p.sklad_soni} boʻlak · Jami detal: ${p.jami_detal} dona</div>
+    <div class="sp-sar">Qaysi konstruksiyaga</div>
+    ${p.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${esc(k.nom)}: ${son(k.L, 1)} × ${son(k.H, 1)} sm, ${k.soni} dona</b>
+      ${k.detallar.map((x) => `<div>${belgi}${esc(x.nomi)}: ${son(x.uzunlik, 2)} × ${x.soni}</div>`).join("")}</div>`).join("")}
+  </div>`;
+}
+$("sklad-ol").addEventListener("click", async () => {
+  $("sklad-ol").disabled = true;
+  $("sklad-holat").textContent = "Sklad yuklanmoqda…";
+  try { await skladYukla(); } catch (e) {
+    $("sklad-ol").disabled = false;
+    skladRanglariniChiz();
+    $("sklad-holat").innerHTML = `<span class="ogoh">${esc(e.message)}</span>` + (skladSaqlangan() ? " · oxirgi saqlangan sklad ishlatiladi" : "");
+    skladRejaniHisobla();
+    return;
+  }
+  $("sklad-ol").disabled = false;
+  skladRanglariniChiz();
+  skladRejaniHisobla();
+});
+$("sklad-rang").addEventListener("change", skladRejaniHisobla);
+$("sklad-reja").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-sr-pdf]");
+  if (!b || !skladReja) return;
+  const p = skladReja.rejalar[Number(b.dataset.srPdf)];
+  $("chop").innerHTML = skladPdfHtml(skladReja, p);
+  const eski = document.title;
+  document.title = `${zakaz.raqam ? "Z-" + zakaz.raqam + "_" : ""}${p.profil}_${p.fayl.replace("_" + p.profil, "")}`;
+  setTimeout(() => { window.print(); document.title = eski; }, 100);
+});
+$("kesish-quti").addEventListener("toggle", () => {
+  if (!$("kesish-quti").open) return;
+  $("sklad-rang").value = "";
+  skladRanglariniChiz();
+  skladRejaniHisobla();
+});
 $("kesish-pdf").addEventListener("click", () => {
   kesishniChiz();
   if (!kesishNatija) return;

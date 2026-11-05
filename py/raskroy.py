@@ -345,6 +345,44 @@ def toliq_reja(zakaz, sklad_qatorlari, rang):
     return {"rang": rang, "konstruksiyalar": royxat, "rejalar": rejalar, "izohlar": izohlar}
 
 
+def sklad_ranglari(qatorlar):
+    """Skladdagi ranglar (sklad varagʻi B:E qatorlari), sarlavha qatorlarisiz."""
+    ranglar = []
+    for q in qatorlar:
+        if len(q) < 3 or str(q[0]).strip() in ("", "Profil nomi", "BKT 70"):
+            continue
+        r = str(q[1]).strip()
+        if r and r not in ranglar:
+            ranglar.append(r)
+    return ranglar
+
+
+def sklad_rejasi(zakaz, sklad_qatorlari, rang):
+    """Ilova uchun: sklad bilan toʻliq reja, JSON ga tayyor (oʻlchamlar sm da)."""
+    faol = {**zakaz, "konstruksiyalar": [k for k in zakaz.get("konstruksiyalar") or [] if k.get("soni", 1) != 0]}
+    reja = toliq_reja(faol, sklad_qatorlari, rang)
+    rejalar = []
+    for r in reja["rejalar"]:
+        p = r["profil"]
+        kartalar = [{
+            "manba": k["manba"], "L": k["L"] / 100, "soni": k["soni"], "qoldiq": round(k["qoldiq"] / 100, 2),
+            "bolaklar": [[d / 100, n] for d, n in sorted(k["t"].items(), reverse=True)],
+        } for k in r["kartalar"]]
+        rejalar.append({
+            "profil": p, "nom": toliq_nom(p), "fayl": fayl_nomi(p), "kesim": _kesim_matni(p),
+            "togri": p in TOGRI_KESIM, "kartalar": kartalar, "yangi_soni": r["yangi_soni"],
+            "sklad_soni": sum(k["soni"] for k in r["kartalar"] if k["manba"] == "SKLAD"),
+            "jami_detal": sum(n * k["soni"] for k in r["kartalar"] for n in k["t"].values()),
+            "ishlatilmagan": [[L / 100, s] for L, s in r["ishlatilmagan"]],
+            "konstruksiyalar": [{
+                "nom": k["nom"], "L": k["L"], "H": k["H"], "soni": k["soni"],
+                "detallar": [{"nomi": d["nomi"], "uzunlik": _b(d["uzunlik"]) / 100, "soni": d["soni"] * k["soni"]}
+                             for d in k["detallar"] if d["profil"] == p],
+            } for k in reja["konstruksiyalar"] if any(d["profil"] == p for d in k["detallar"])],
+        })
+    return {"rang": reja["rang"], "hivich_sm": HIVICH, "rejalar": rejalar, "izohlar": reja["izohlar"]}
+
+
 def _kesim_matni(profil):
     if profil in AYLANTIRISH:
         return f"45°, aylantirib: har detalga +{_k(_b(AYLANTIRISH[profil]))} sm"

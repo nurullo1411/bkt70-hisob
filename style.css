@@ -289,3 +289,24 @@ header h1 { flex: 1; }
 
 .ai-korinish { text-align: center; margin-bottom: 8px; }
 .ai-korinish img { max-width: 100%; max-height: 40vh; border-radius: 10px; border: 1px solid var(--chiziq); display: block; margin: 0 auto 8px; }
+
+/* Sklad bilan kesish rejasi */
+.sklad-quti { margin: 6px 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--chiziq); }
+.sklad-quti .qator { flex-wrap: wrap; gap: 8px; }
+.sklad-quti select { min-width: 90px; }
+.sr-qator { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--chiziq); }
+.sr-qator .xira { font-size: 12px; }
+@media print {
+  .sp { font-size: 13px; }
+  .sp .p-sarlavha { font-size: 22px; color: #0d47a1; }
+  .sp-kartalar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .sp-karta { border: 1px solid #bbb; border-radius: 8px; padding: 6px 10px; break-inside: avoid; }
+  .sp-k-bosh { font-weight: 700; color: #0d47a1; margin-bottom: 2px; }
+  .sp-k-bosh.sp-sklad { color: #2e7d32; }
+  .sp-b { font-size: 15px; }
+  .sp-q { font-weight: 700; color: #e65100; margin-top: 2px; }
+  .sp-jami { background: #e3f2fd; border-radius: 8px; padding: 8px 12px; margin: 8px 0; break-inside: avoid; }
+  .sp-sar { font-size: 16px; font-weight: 700; color: #0d47a1; margin: 10px 0 4px; }
+  .sp-kon { margin-bottom: 6px; break-inside: avoid; }
+  .sp-kon div { padding-left: 10px; }
+}
