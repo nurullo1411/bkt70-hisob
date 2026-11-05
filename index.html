@@ -46,6 +46,11 @@
   <p id="xato" class="xato" hidden></p>
 
   <section id="zakaz-ish" hidden>
+    <div class="xulosa">
+      <div><b id="x-soni">0</b><span>soni</span></div>
+      <div><b id="x-m2">0</b><span>umumiy yuzasi</span></div>
+      <button id="k-qosh2" class="tugma asosiy">+ Qoʻshish</button>
+    </div>
     <section class="karta">
       <h2>Konstruksiyalar</h2>
       <div id="konstruksiyalar"></div>
@@ -60,11 +65,31 @@
 
   <section id="natija" hidden>
     <section class="karta jami">
+      <div class="hk-bosh"><h2>Hisob-kitob</h2>
+        <div class="seg valyuta"><button data-valyuta="som">soʻm</button><button data-valyuta="usd">USD</button></div></div>
       <div class="jami-qator"><span>Materiallar</span><b id="j-mat"></b></div>
+      <div class="jami-qator"><span>Profil otxodi</span><b id="j-otx"></b></div>
       <div class="jami-qator"><span>Straxovka 3%</span><b id="j-str"></b></div>
-      <div class="jami-qator katta"><span>JAMI TANNARX</span><b id="j-usd"></b></div>
-      <div class="jami-qator"><span></span><b id="j-som"></b></div>
+      <div class="jami-qator katta"><span>TANNARX</span><b id="j-tan"></b></div>
+      <div class="jami-qator xira"><span></span><span id="j-tan2"></span></div>
+      <div class="hk-maydon"><label>Ustama (foyda), %<input id="hk-ustama" type="number" inputmode="decimal" min="0" step="1" placeholder="0"></label><b id="j-ust"></b></div>
+      <div class="jami-qator katta"><span>MIJOZGA NARX</span><b id="j-mijoz"></b></div>
+      <div class="hk-maydon"><label>Chegirma<input id="hk-chegirma" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label><span class="xira hk-birlik"></span></div>
+      <div class="hk-maydon"><label>Avans<input id="hk-avans" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label><span class="xira hk-birlik"></span></div>
+      <div class="jami-qator"><span>Toʻlanadi (chegirmadan keyin)</span><b id="j-tolov"></b></div>
+      <div class="jami-qator katta"><span>QOLDIQ</span><b id="j-qoldiq"></b></div>
       <p id="j-holat"></p>
+    </section>
+
+    <section class="karta">
+      <h2>Buyurtmachi</h2>
+      <div class="panjara mijoz">
+        <label>Ism<input data-mijoz="ism" autocomplete="off" placeholder="Mijoz ismi"></label>
+        <label>Telefon<input data-mijoz="telefon" type="tel" inputmode="tel" autocomplete="off" placeholder="+998"></label>
+        <label>Manzil<input data-mijoz="manzil" autocomplete="off"></label>
+        <label>Muddat<input data-mijoz="muddat" type="date"></label>
+      </div>
+      <label class="keng-label">Izoh<textarea data-mijoz="izoh" rows="2"></textarea></label>
     </section>
 
     <details class="karta">

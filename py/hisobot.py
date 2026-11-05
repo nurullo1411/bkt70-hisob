@@ -258,14 +258,22 @@ def hisobot(k, narxlar):
     _fortochka_furnitura(s, tanlov, r)
 
     qalinlik = str(k.get("oyna_qalinligi", 24))
-    m2 = D(n["oyna_m2"])
-    if oyna_turi not in narxlar["steklopaket_m2"]:
-        raise HisobXato(f"Nomaʼlum oyna turi: {oyna_turi}")
-    m2_narx = narxlar["steklopaket_m2"][oyna_turi].get(qalinlik)
-    r.summa_bilan(
-        "Oyna", f"Steklopaket {oyna_turi} {qalinlik} mm", m2, "m²",
-        None if m2_narx is None else m2 * D(m2_narx), f"Steklopaket {oyna_turi} {qalinlik} mm",
-    )
+    # Oyna turi boʻlakka alohida berilishi mumkin: har tur oʻz m² qatori
+    turlar = {}
+    for o in n["oynalar"]:
+        t = o.get("tur") or oyna_turi
+        turlar[t] = turlar.get(t, D(0)) + D(str(o["en"])) * D(str(o["boy"])) * o["soni"] / 10000
+    if len(turlar) <= 1:
+        turlar = {next(iter(turlar), oyna_turi): D(n["oyna_m2"])}
+    for t, m2 in turlar.items():
+        if t not in narxlar["steklopaket_m2"]:
+            raise HisobXato(f"Nomaʼlum oyna turi: {t}")
+        m2_narx = narxlar["steklopaket_m2"][t].get(qalinlik)
+        r.summa_bilan(
+            "Oyna", f"Steklopaket {t} {qalinlik} mm", m2, "m²",
+            None if m2_narx is None else m2 * D(m2_narx), f"Steklopaket {t} {qalinlik} mm",
+        )
+        r.qatorlar[-1]["oyna_turi"] = t
     if tanlov.get("montaj"):
         r.qosh("Montaj", "MK 01", D(s["rama_perimetri"]) / 100 * PENA_METRGA, "ballon")
 

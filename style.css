@@ -184,3 +184,26 @@ html, body { overscroll-behavior-y: contain; }
 .asbob-qator button.nomli .ik, .asbob-qator button.nomli svg { width: 30px; height: 30px; flex: 0 0 auto; }
 .asbob-qator button.nomli small { font-size: 10px; line-height: 1.1; color: var(--matn); text-align: center; white-space: normal; }
 .surish-soya small { display: none; }
+
+/* Zakaz sahifasi (Romchi kabi) */
+.xulosa { position: sticky; top: 0; z-index: 3; display: flex; gap: 8px; align-items: center; margin: 0 0 12px;
+          padding: 8px 10px; border-radius: 14px; background: var(--karta); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.xulosa > div { display: flex; flex-direction: column; align-items: center; padding: 0 10px; }
+.xulosa > div + div { border-left: 1px solid var(--chiziq); }
+.xulosa b { font-size: 17px; color: var(--asosiy); }
+.xulosa span { font-size: 11px; color: var(--xira); text-transform: uppercase; }
+.xulosa .tugma { margin-left: auto; }
+.teglar { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+.teglar span { font-size: 11px; padding: 2px 7px; border-radius: 8px; background: rgba(91, 141, 239, .14); color: var(--matn); }
+.eslatma { width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--chiziq);
+           background: var(--fon); color: var(--matn); font: inherit; font-size: 14px; box-sizing: border-box; }
+.hk-bosh { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hk-bosh h2 { margin: 0; }
+.seg.valyuta { display: flex; gap: 0; border: 1px solid var(--chiziq); border-radius: 10px; overflow: hidden; }
+.seg.valyuta button { border: 0; padding: 6px 12px; background: var(--fon); color: var(--matn); font: inherit; }
+.seg.valyuta button.faol { background: var(--asosiy); color: var(--asosiy-matn); }
+.hk-maydon { display: flex; align-items: flex-end; gap: 8px; margin: 8px 0; }
+.hk-maydon label { flex: 1; display: flex; flex-direction: column; font-size: 13px; color: var(--xira); gap: 4px; }
+.hk-maydon input, .mijoz input, .keng-label textarea { padding: 9px 10px; border-radius: 10px; border: 1px solid var(--chiziq);
+           background: var(--fon); color: var(--matn); font: inherit; font-size: 15px; box-sizing: border-box; width: 100%; }
+.keng-label { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; font-size: 13px; color: var(--xira); }

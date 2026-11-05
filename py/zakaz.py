@@ -40,7 +40,7 @@ def _qator_kaliti(t, k):
     if t["bolim"] == "Profil":
         return ("Profil", t["nomi"], k["tanlov"]["rang"], t["birlik"])
     if t["bolim"] == "Oyna":
-        return ("Oyna", k["tanlov"]["oyna_turi"], int(k.get("oyna_qalinligi", 24)), t["birlik"])
+        return ("Oyna", t.get("oyna_turi") or k["tanlov"]["oyna_turi"], int(k.get("oyna_qalinligi", 24)), t["birlik"])
     if t["nomi"] == "K188 kley":
         return (t["bolim"], "K188", "", t["birlik"])
     return (t["bolim"], t["nomi"], "", t["birlik"])
@@ -89,7 +89,8 @@ def hisobla_zakaz(zakaz):
         konstruksiyalar.append({"nom": nom, "L": k["L"], "H": k["H"], "soni": soni, "izoh": "; ".join(izoh)})
         # Varaqda miqdor 1 dona uchun yoziladi, soni (D ustuni) bilan formula koʻpaytiradi
         for o in n["oynalar"]:
-            oynalar.append({"nom": nom, "i": i, "joy": o["joy"], "en": o["en"], "boy": o["boy"], "soni": o["soni"]})
+            oynalar.append({"nom": nom, "i": i, "joy": o["joy"], "en": o["en"], "boy": o["boy"], "soni": o["soni"],
+                            "tur": o.get("tur") or k["tanlov"]["oyna_turi"]})
         for t in h["qatorlar"]:
             kalit = _qator_kaliti(t, k)
             miqdorlar.setdefault(kalit, [0.0] * len(royxat))

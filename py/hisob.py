@@ -56,6 +56,7 @@ class Hisob:
         self.vertikal_r = vertikal_r  # False: boʻyiga ham oddiy G shtapik
         self.profillar = {}
         self.oynalar = {}
+        self.joriy_oyna = None  # boʻlakka berilgan oyna turi (None — konstruksiyaniki)
         self.ogohlantirishlar = []
         self.qoida_yoq = []
         self.ramalar = {}
@@ -83,7 +84,7 @@ class Hisob:
         en, boy = ichki_en - ayirma, ichki_boy - ayirma
         if en <= 0 or boy <= 0:
             raise HisobXato(f"{joy} oynasi uchun joy yetmaydi: {en} × {boy}")
-        key = (joy, en, boy)
+        key = (joy, en, boy, self.joriy_oyna)
         self.oynalar[key] = self.oynalar.get(key, 0) + 1
         self.oyna_rezinasi += 2 * (en + boy) + 8
         if joy == "Gluxoy":
@@ -217,6 +218,17 @@ def _eshik(b, z, h):
 
 
 def _bolak(b, z, h, ctx):
+    # Boʻlakka oʻz oyna turi berilsa, ichidagi hamma oynaga tegishli (foydalanuvchi, 2026-11-05)
+    eski = h.joriy_oyna
+    if b.get("oyna_turi"):
+        h.joriy_oyna = b["oyna_turi"]
+    try:
+        _bolak_ichi(b, z, h, ctx)
+    finally:
+        h.joriy_oyna = eski
+
+
+def _bolak_ichi(b, z, h, ctx):
     if z.ichki_en <= 0 or z.ichki_boy <= 0:
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
     tur = b.get("tur")
@@ -274,15 +286,15 @@ def hisobla(k):
     else:
         _rama_hisobi(profil, impost, L, H, k["bolak"], h)
 
-    m2 = sum((en * boy * n for (_, en, boy), n in h.oynalar.items()), D(0)) / 10000
+    m2 = sum((en * boy * n for (_, en, boy, _), n in h.oynalar.items()), D(0)) / 10000
     return {
         "profillar": [
             {"nomi": n, "profil": p, "uzunlik": float(u), "soni": s}
             for (n, p, u), s in h.profillar.items()
         ],
         "oynalar": [
-            {"joy": j, "en": float(e), "boy": float(b), "soni": s}
-            for (j, e, b), s in h.oynalar.items()
+            {"joy": j, "en": float(e), "boy": float(b), "soni": s, **({"tur": t} if t else {})}
+            for (j, e, b, t), s in h.oynalar.items()
         ],
         "oyna_m2": float(m2),
         "ogohlantirishlar": h.ogohlantirishlar,

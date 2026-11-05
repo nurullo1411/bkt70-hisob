@@ -494,6 +494,12 @@ function panelniChiz() {
       ? `<div class="sarlavha">Ruchkali (aktiv) tabaqa</div>${tugmalar("aktiv", b.aktiv || "ong", [["chap", "Chap"], ["ong", "Oʻng"]])}`
       : `<div class="sarlavha">Petlya tomoni</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "chap", [["chap", "Chap"], ["ong", "Oʻng"]])}`;
   } else p += `<div class="xira">Turini almashtirish uchun tepadan asbob tanlab, boʻlakka bosing.</div>`;
+  // Maydon oynasi (Romchi "Maydon sozlamalari"): boʻsh — konstruksiyaning oynasi
+  const asosiyOyna = (tahrir.tanlov || {}).oyna_turi || zakaz.umumiy.tanlov.oyna_turi;
+  p += `<div class="sarlavha">Oyna</div><select data-maydon-oyna>
+    <option value="">Konstruksiyadagi (${esc(asosiyOyna || "")})</option>
+    ${oynaTurlari().map((t) => `<option value="${esc(t)}"${b.oyna_turi === t ? " selected" : ""}>${esc(t)}</option>`).join("")}
+  </select>`;
   $("k-panel").innerHTML = p;
 }
 
@@ -675,6 +681,14 @@ $("k-chizma").addEventListener("click", (e) => {
   if (!r) return;
   if (asbob) { asbobniQolla(r.dataset.p); return; }
   tanlangan = r.dataset.p;
+  yangila();
+});
+$("k-panel").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-maydon-oyna]");
+  if (!el) return;
+  const b = tugun(tahrir.bolak, tanlangan);
+  saqlaTarix();
+  if (el.value) b.oyna_turi = el.value; else delete b.oyna_turi;
   yangila();
 });
 $("k-panel").addEventListener("click", (e) => {

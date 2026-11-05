@@ -125,8 +125,15 @@ function hisobla() {
   royxatniChiz();
 }
 
+const yuza = (k) => (Number(k.L) || 0) * (Number(k.H) || 0) / 10000;
+const m2 = (x) => son(x, 2) + " m²";
+
 function royxatniChiz() {
   const n = natija;
+  const sonlar = zakaz.konstruksiyalar.map((k) => k.soni ?? 1);
+  $("x-soni").textContent = sonlar.reduce((a, b) => a + b, 0);
+  $("x-m2").textContent = m2(zakaz.konstruksiyalar.reduce((a, k, i) => a + yuza(k) * sonlar[i], 0));
+  mijozniChiz();
   $("zakaz-nomi").textContent = (zakaz.nom ? zakaz.nom + " · " : "") + zakaz.konstruksiyalar.length + " ta konstruksiya";
   // Konstruksiyalar: soni 0 boʻlganlari ham koʻrinadi, qaytarish uchun
   const hisoblangan = Object.fromEntries((n ? n.konstruksiyalar : []).map((k) => [k.nom, k]));
@@ -134,11 +141,15 @@ function royxatniChiz() {
     const nom = k.nom || "K" + (i + 1);
     const h = hisoblangan[nom];
     const soni = k.soni ?? 1;
+    const u = zakaz.umumiy, t = { ...(u.tanlov || {}), ...(k.tanlov || {}) };
+    const teglar = [k.rama || u.rama, t.rang_nomi || t.rang, (t.oyna_turi || "") + " " + (k.oyna_qalinligi || u.oyna_qalinligi || 24) + " mm"];
     return `<div class="konstr${soni === 0 ? " nol" : ""}">
       <div class="konstr-ichi">
         <button class="eskiz" data-tahrir="${i}" aria-label="Tahrirlash">${chizmaSVG(k, { kichik: true })}</button>
         <div class="konstr-matn">
           <div class="konstr-bosh"><b>${esc(nom)}</b><span>${esc(k.L)} × ${esc(k.H)}</span></div>
+          <div class="teglar">${teglar.filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}</div>
+          <div class="xira">Yuzasi: ${m2(yuza(k))}${soni > 1 ? ` · jami ${m2(yuza(k) * soni)}` : ""}</div>
           <div class="konstr-past">
             <div class="soni"><button data-i="${i}" data-d="-1" aria-label="Kamaytirish">−</button><span>${soni}</span><button data-i="${i}" data-d="1" aria-label="Koʻpaytirish">+</button></div>
             <div style="text-align:right">${h ? `<div class="xira">1 dona ${usd(h.bir_dona_usd)}</div><b>${usd(h.jami_usd)}</b>` : `<span class="xira">${soni === 0 ? "hisobga kirmaydi" : "—"}</span>`}</div>
@@ -146,17 +157,49 @@ function royxatniChiz() {
         </div>
       </div>
       ${h && h.izoh ? `<div class="ogoh xira">${esc(h.izoh)}</div>` : ""}
+      <input class="eslatma" data-eslatma="${i}" value="${esc(k.eslatma || "")}" placeholder="Izoh qoʻshish (masalan: 2-qavat, oshxona)" autocomplete="off">
       <div class="kichik-tugmalar"><button data-tahrir="${i}">Tahrirlash</button><button data-nusxa="${i}">Nusxa</button><button data-ochir="${i}">Oʻchirish</button></div>
     </div>`;
   }).join("") || '<p class="xira">Konstruksiya yoʻq. Pastdagi tugma bilan qoʻshing.</p>';
 }
 
+// ---------- hisob-kitob (Romchi kabi): tannarx, ustama, chegirma, avans, qoldiq ----------
+// Chegirma va avans soʻmda saqlanadi; USD rejimida kurs bilan oʻgiriladi.
+function hk() { zakaz.hisob_kitob = zakaz.hisob_kitob || {}; return zakaz.hisob_kitob; }
+function valyuta() { return ol("valyuta") === "usd" ? "usd" : "som"; }
+function pul(usdQiymat) { return valyuta() === "usd" ? usd(usdQiymat) : som(usdQiymat * natija.kurs); }
+
+function hisobKitobniChiz() {
+  const n = natija, h = hk(), kurs = n.kurs, v = valyuta();
+  const otxod = n.materiallar.filter((m) => m.bolim === "Profil otxod").reduce((a, m) => a + (m.summa || 0), 0);
+  document.querySelectorAll("[data-valyuta]").forEach((b) => b.classList.toggle("faol", b.dataset.valyuta === v));
+  $("j-mat").textContent = pul(n.materiallar_usd - otxod);
+  $("j-otx").textContent = pul(otxod);
+  $("j-str").textContent = pul(n.straxovka_usd);
+  $("j-tan").textContent = pul(n.jami_usd);
+  $("j-tan2").textContent = v === "usd" ? som(n.jami_som) : usd(n.jami_usd);
+  const ustama = n.jami_usd * (Number(h.ustama_foiz) || 0) / 100;
+  const mijozga = n.jami_usd + ustama;
+  const chegirma = (Number(h.chegirma_som) || 0) / kurs, avans = (Number(h.avans_som) || 0) / kurs;
+  $("j-ust").textContent = ustama ? "+ " + pul(ustama) : "";
+  $("j-mijoz").textContent = pul(mijozga);
+  $("j-tolov").textContent = pul(mijozga - chegirma);
+  $("j-qoldiq").textContent = pul(mijozga - chegirma - avans);
+  if (document.activeElement !== $("hk-ustama")) $("hk-ustama").value = h.ustama_foiz ?? "";
+  const korsat = (s) => (s ? (v === "usd" ? Math.round(s / kurs * 100) / 100 : s) : "");
+  if (document.activeElement !== $("hk-chegirma")) $("hk-chegirma").value = korsat(h.chegirma_som);
+  if (document.activeElement !== $("hk-avans")) $("hk-avans").value = korsat(h.avans_som);
+  document.querySelectorAll(".hk-birlik").forEach((s) => { s.textContent = v === "usd" ? "$" : "soʻm"; });
+}
+
+function mijozniChiz() {
+  const m = zakaz.mijoz || {};
+  document.querySelectorAll("[data-mijoz]").forEach((el) => { if (document.activeElement !== el) el.value = m[el.dataset.mijoz] || ""; });
+}
+
 function chiz() {
   const n = natija;
-  $("j-mat").textContent = usd(n.materiallar_usd);
-  $("j-str").textContent = usd(n.straxovka_usd);
-  $("j-usd").textContent = usd(n.jami_usd);
-  $("j-som").textContent = som(n.jami_som);
+  hisobKitobniChiz();
   const izoh = [];
   if (n.narx_yoq.length) izoh.push(`<span class="ogoh">Tannarx toʻliq emas, narxi yoʻq: ${esc(n.narx_yoq.join(", "))}</span>`);
   else izoh.push('<span class="yaxshi">Hamma narx bor</span>');
@@ -178,7 +221,7 @@ function chiz() {
   $("oyna-m2").textContent = "· " + son(n.oyna_m2) + " m²";
   const nomlar = n.konstruksiyalar;
   $("oynalar").innerHTML = "<table><tr><th>Joyi</th><th class='son'>Eni × boʻyi, sm</th><th class='son'>Soni</th></tr>" +
-    n.oynalar.map((o) => `<tr><td>${esc(o.nom)}<br><span class="xira">${esc(o.joy)}</span></td><td class="son">${son(o.en, 2)} × ${son(o.boy, 2)}</td><td class="son">${o.soni * nomlar[o.i].soni}</td></tr>`).join("") + "</table>";
+    n.oynalar.map((o) => `<tr><td>${esc(o.nom)}<br><span class="xira">${esc(o.joy)}${o.tur ? " · " + esc(o.tur) : ""}</span></td><td class="son">${son(o.en, 2)} × ${son(o.boy, 2)}</td><td class="son">${o.soni * nomlar[o.i].soni}</td></tr>`).join("") + "</table>";
 
   $("otxod").innerHTML = "<table><tr><th>Profil</th><th class='son'>Hivich</th><th class='son'>Ishlatilgan</th><th class='son'>Otxod</th></tr>" +
     n.otxod.map((o) => `<tr><td>${esc(o.profil)}</td><td class="son">${o.hivich}</td><td class="son">${son(o.ishlatilgan_m, 2)} m</td><td class="son">${son(o.jami_m - o.ishlatilgan_m, 2)} m</td></tr>`).join("") +
@@ -188,6 +231,8 @@ function chiz() {
 function matnNatija() {
   const n = natija;
   const q = [`BKT 70 tannarx${zakaz.nom ? " — " + zakaz.nom : ""}`, ""];
+  const m = zakaz.mijoz || {};
+  if (m.ism || m.telefon) q.push(`Mijoz: ${[m.ism, m.telefon, m.manzil].filter(Boolean).join(", ")}`, "");
   for (const k of n.konstruksiyalar) q.push(`${k.nom}: ${k.L} × ${k.H}, ${k.soni} dona — ${usd(k.jami_usd)}`);
   q.push("", `Materiallar: ${usd(n.materiallar_usd)}`, `Straxovka: ${usd(n.straxovka_usd)}`,
     `JAMI: ${usd(n.jami_usd)} / ${som(n.jami_som)} (kurs ${n.kurs})`);
@@ -244,6 +289,35 @@ $("konstruksiyalar").addEventListener("click", (e) => {
   hisobla();
 });
 $("k-qosh").addEventListener("click", () => konstruktorniOch(-1));
+$("k-qosh2").addEventListener("click", () => konstruktorniOch(-1));
+$("konstruksiyalar").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-eslatma]");
+  if (!el) return;
+  const k = zakaz.konstruksiyalar[Number(el.dataset.eslatma)];
+  if (el.value.trim()) k.eslatma = el.value.trim(); else delete k.eslatma;
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+});
+document.querySelectorAll("[data-valyuta]").forEach((b) => b.addEventListener("click", () => {
+  saqla("valyuta", b.dataset.valyuta);
+  if (natija) hisobKitobniChiz();
+}));
+for (const [id, kalit] of [["hk-ustama", "ustama_foiz"], ["hk-chegirma", "chegirma_som"], ["hk-avans", "avans_som"]]) {
+  $(id).addEventListener("input", () => {
+    if (!natija) return;
+    const x = Number($(id).value);
+    const h = hk();
+    if (!$(id).value || !(x > 0)) delete h[kalit];
+    else h[kalit] = kalit === "ustama_foiz" || valyuta() === "som" ? x : Math.round(x * natija.kurs);
+    saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+    hisobKitobniChiz();
+  });
+}
+document.querySelectorAll("[data-mijoz]").forEach((el) => el.addEventListener("input", () => {
+  zakaz.mijoz = zakaz.mijoz || {};
+  const v = el.value.trim();
+  if (v) zakaz.mijoz[el.dataset.mijoz] = v; else delete zakaz.mijoz[el.dataset.mijoz];
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+}));
 $("yangi").addEventListener("click", () => {
   const b = $("yangi");
   if (zakaz && zakaz.konstruksiyalar && zakaz.konstruksiyalar.length && !b.classList.contains("tasdiq")) {
