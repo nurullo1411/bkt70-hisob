@@ -2,7 +2,7 @@
 "use strict";
 
 // narxlar.json ilovada yoʻq (ochiq repo): foydalanuvchi bir marta yuklaydi, telefonda saqlanadi.
-const PY_FAYLLAR = ["hisob.py", "hisobot.py", "zakaz.py", "raskroy.py", "tannarx.py"];
+const PY_FAYLLAR = ["hisob.py", "hisobot.py", "zakaz.py", "raskroy.py", "tannarx.py", "narx_sheets.py"];
 const $ = (id) => document.getElementById(id);
 let py = null;
 let zakaz = null;
@@ -34,7 +34,9 @@ async function yukla() {
     }
     py.runPython("import sys; sys.path.insert(0, '/home/pyodide'); import json, tannarx, hisob");
     $("versiya").dataset.hisob = versiya.trim() || "nusxa";
-    if (!narxlarniQoy(await shifrliNarx() || ol("narxlar"))) return;
+    // Sheets dan olingan oxirgi narx saytdagi narxlar.enc dan yangiroq: avval u
+    if (!narxlarniQoy(ol("narxlar_jonli") || await shifrliNarx() || ol("narxlar"))) { jonliNarx(); return; }
+    jonliNarx();
     const oxirgi = ol("oxirgi_zakaz");
     if (oxirgi) zakazniOch(oxirgi, true);
     if (zakaz) qoralamaniTikla();
@@ -78,6 +80,36 @@ async function shifrliNarx() {
   } catch (e) {
     return null;
   }
+}
+
+// Jonli narx: "bkt 70 hisoblash" (Narxlar, Malumot, Hisob!F5) Apps Script orqali (sklad bilan bitta manzil, kalit bilan).
+// narx_sheets.py narxlar.json shaklini tuzadi. Internet boʻlmasa oxirgi olingani qoladi.
+async function jonliNarx(qolda) {
+  if (!py) return;
+  const url = await shifrliOch("sklad.enc");
+  if (!url) { if (qolda) xato("Sheets ulanmagan (narx havolasi ochilmagan)"); return; }
+  if (qolda) holat("Narx olinmoqda…");
+  let j;
+  try {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 20000);
+    j = await fetch(url + "&t=narx", { signal: c.signal }).then((r) => r.json());
+    clearTimeout(t);
+  } catch (e) { if (qolda) { holat("Tayyor"); xato("Sheets ga ulanib boʻlmadi: internetni tekshiring"); } return; }
+  if (!j || j.xato) { if (qolda) xato("Sheets: " + ((j && j.xato) || "javob yoʻq")); return; }
+  py.globals.set("_nj", JSON.stringify(j));
+  let matn;
+  try {
+    matn = py.runPython(`import narx_sheets
+json.dumps(narx_sheets.tuz(json.loads(_nj)), ensure_ascii=False)`);
+  } catch (e) { if (qolda) xato("Sheets narxlari oʻqilmadi: " + e.message.split("\n").slice(-2).join(" ")); return; }
+  const toza = (m) => { try { const o = JSON.parse(m); delete o.manba; delete o.kurs; return JSON.stringify(o); } catch (e) { return ""; } };
+  const ozgardi = toza(ol("narxlar")) !== toza(matn);
+  if (!narxlarniQoy(matn)) return;
+  saqla("narxlar_jonli", matn);
+  if (ozgardi && zakaz) hisobla();
+  holat(ozgardi ? "Narxlar Sheets dan yangilandi" : "Tayyor");
+  if (qolda && !ozgardi) holat("Narxlar oʻzgarmagan");
 }
 
 // Narxlar faylini tekshirib Python ga beradi. Muvaffaqiyatli boʻlsa true.
@@ -428,13 +460,17 @@ $("fayl").addEventListener("change", async (e) => {
   if (f) zakazniOch(await f.text());
   e.target.value = "";
 });
+$("narx-sheets").addEventListener("click", () => { xato(""); jonliNarx(true); });
 for (const id of ["narx-fayl", "narx-fayl2"]) {
   $(id).addEventListener("change", async (e) => {
     const f = e.target.files[0];
     e.target.value = "";
     if (!f || !py) return;
     xato("");
-    if (narxlarniQoy(await f.text())) { holat("Narxlar yangilandi"); hisobla(); }
+    if (narxlarniQoy(await f.text())) {
+      try { localStorage.removeItem("narxlar_jonli"); } catch (e) {}  // qoʻlda yuklangan fayl ustun
+      holat("Narxlar yangilandi"); hisobla();
+    }
   });
 }
 $("matn-tugma").addEventListener("click", () => { $("matn-quti").hidden = !$("matn-quti").hidden; });
