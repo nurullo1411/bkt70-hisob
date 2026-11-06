@@ -69,6 +69,7 @@ function ochir(p) {
   const o = ota(p);
   if (!o) return false;
   const otaB = tugun(tahrir.bolak, o.yol);
+  if (otaB.tur === "portal") { almashtir(o.yol, otaB.bolaklar[1]); tanlangan = o.yol; return true; }
   const [w, h] = olchamTaxmin(o.yol);
   otaB.bolaklar.splice(o.i, 1);
   otaB.olchamlar.splice(o.i, 1);
@@ -116,7 +117,40 @@ function egilganChuqurlik(b, x, w, tY) {
 }
 
 // Barglar (boʻlaklar), impostlar va boʻlinishlar (oʻlcham zanjiri uchun). tY / pY — boʻlak tepasi / pasti yoy boʻlsa.
+// Portal yon ustunlari: berilmasa uch teng, bittasi berilsa ikkinchisi unga teng (hisob.py bilan bir xil)
+function portalEnlar(b, w) {
+  const c = b.chap ?? b.ong, o = b.ong ?? c;
+  return [c != null ? Number(c) : w / 3, o != null ? Number(o) : w / 3];
+}
+
 function joyla(b, x, y, w, h, p, g, chuqur = 0, tY = null, pY = null) {
+  if (b.tur === "portal") {
+    // Portal (foydalanuvchi, 2026-11-06): arkali oʻrta, atrofida U oyna, yon ustunlar pastida yotiq impost
+    const [chap, ong] = portalEnlar(b, w), tepa = Number(b.tepa);
+    const orta = Math.max(1, w - chap - ong);
+    const c = Math.max(0.1, Math.min(b.chuqurlik != null ? Number(b.chuqurlik) : orta / 2, orta / 2));
+    const xa = x + chap, xb = x + w - ong, ys = y + tepa + c;
+    const yo = yoyYasa(xa + orta / 2, orta, c, y + tepa);
+    const yl = b.chap_boy != null ? y + Number(b.chap_boy) : null, yr = b.ong_boy != null ? y + Number(b.ong_boy) : null;
+    g.portallar.push({ p, x, y, w, h, xa, xb, tepa, c, ys, yl, yr, parallel: b.chuqurlik == null, chapAvto: b.chap == null, ongAvto: b.ong == null, b });
+    g.impostlar.push({ portalTik: true, x: xa, y1: ys, y2: y + h }, { portalTik: true, x: xb, y1: ys, y2: y + h });
+    g.impostlar.push({ yoy: yo, x1: xa, x2: xb });
+    if (yl != null) g.impostlar.push({ x1: x, y1: yl, x2: xa, y2: yl });
+    if (yr != null) g.impostlar.push({ x1: xb, y1: yr, x2: x + w, y2: yr });
+    const ul = yl ?? y + h, ur = yr ?? y + h;
+    const u = { xa, xb, yo, ys, ul, ur, ux: x, uw: w, tY };
+    if (b.tepa_impost !== false) {
+      // tepada tik impost: ramadan arka choʻqqisigacha, U oyna ikkiga boʻlinadi
+      const cx = xa + orta / 2;
+      g.impostlar.push({ portalTepa: true, x: cx, y1: tY ? Math.max(y, yoyY(tY, cx)) : y, y2: y + tepa });
+      g.barglar.push({ b: b.bolaklar[0], x, y, w: cx - x, h: ul - y, p: bolaYoli(p, 0), tY, u: { ...u, yarim: "chap", cx } });
+      g.barglar.push({ b: b.bolaklar[0], x: cx, y, w: x + w - cx, h: ur - y, p: bolaYoli(p, 0), tY, u: { ...u, yarim: "ong", cx } });
+    } else g.barglar.push({ b: b.bolaklar[0], x, y, w, h: Math.max(ul, ur) - y, p: bolaYoli(p, 0), tY, u });
+    joyla(b.bolaklar[1], xa, y + tepa, orta, h - tepa, bolaYoli(p, 1), g, chuqur + 1, yo, pY);
+    if (yl != null && b.bolaklar[2]) joyla(b.bolaklar[2], x, yl, chap, y + h - yl, bolaYoli(p, 2), g, chuqur + 1, null, pY);
+    if (yr != null && b.bolaklar[3]) joyla(b.bolaklar[3], xb, yr, ong, y + h - yr, bolaYoli(p, 3), g, chuqur + 1, null, pY);
+    return;
+  }
   if (b.tur === "bolinish") {
     const v = b.yonalish === "vertikal";
     const s = taqsimla(b.olchamlar, v ? w : h);
@@ -143,7 +177,7 @@ function joyla(b, x, y, w, h, p, g, chuqur = 0, tY = null, pY = null) {
 }
 
 function geometriya(k) {
-  const g = { barglar: [], impostlar: [], bolinishlar: [], ramalar: ramalar(k), ark: arkaGeom(k) };
+  const g = { barglar: [], impostlar: [], bolinishlar: [], portallar: [], ramalar: ramalar(k), ark: arkaGeom(k) };
   const a = g.ramalar.find((r) => r.asosiy);
   joyla(k.bolak, a.x, 0, a.w, Number(k.H) || 0, "", g, 0, g.ark, null);
   return g;
@@ -151,7 +185,7 @@ function geometriya(k) {
 
 function olchamTaxmin(p) {
   const g = geometriya(tahrir);
-  const bor = g.barglar.find((o) => o.p === p) || g.bolinishlar.find((o) => o.p === p);
+  const bor = g.barglar.find((o) => o.p === p) || g.bolinishlar.find((o) => o.p === p) || g.portallar.find((o) => o.p === p);
   return bor ? [bor.w, bor.h] : [Number(tahrir.L), Number(tahrir.H)];
 }
 
@@ -210,6 +244,24 @@ function chizmaSVG(k, opts = {}) {
     return p + "Z";
   }
   const yuza = (x, y, w, h, d, cls, qosh = "", tY = null, pY = null, dB = d) => `<path d="${shakl(x, y, w, h, d, tY, pY, dB)}" class="${cls}" ${qosh}/>`;
+
+  // Portal U oynasi: tashqi chetdan, impost oʻqlaridan va arka oʻqidan d ichkarida
+  function uYol(o, d) {
+    const { xa, xb, yo, ys, ul, ur, ux: x, uw: w, yarim, cx, tY } = o.u;
+    const y = o.y, n = 40;
+    const yoyB = (x1, x2) => { let q = ""; for (let j = 0; j <= n; j++) { const xx = x1 + ((x2 - x1) * j) / n; q += `L${f(xx)} ${f(yoyY(yo, xx, -d))}`; } return q; };
+    // tepa cheti: toʻgʻri yoki rama arkasi boʻylab (x1 dan x2 gacha)
+    const tepaB = (x1, x2, bosh) => {
+      if (!tY) return `${bosh ? "M" : "L"}${f(x1)} ${f(y + d)}L${f(x2)} ${f(y + d)}`;
+      let q = ""; for (let j = 0; j <= n; j++) { const xx = x1 + ((x2 - x1) * j) / n; q += `${bosh && !j ? "M" : "L"}${f(xx)} ${f(tepaY(tY, xx, y, d))}`; } return q;
+    };
+    if (yarim === "chap")
+      return tepaB(x + d, cx - d, true) + yoyB(cx - d, xa) + `L${f(xa - d)} ${f(ys)}L${f(xa - d)} ${f(ul - d)}L${f(x + d)} ${f(ul - d)}Z`;
+    if (yarim === "ong")
+      return tepaB(cx + d, x + w - d, true) + `L${f(x + w - d)} ${f(ur - d)}L${f(xb + d)} ${f(ur - d)}L${f(xb + d)} ${f(ys)}` + yoyB(xb, cx + d) + "Z";
+    const q = tepaB(x + d, x + w - d, true) + `L${f(x + w - d)} ${f(ur - d)}L${f(xb + d)} ${f(ur - d)}L${f(xb + d)} ${f(ys)}`;
+    return q + yoyB(xb, xa) + `L${f(xa - d)} ${f(ys)}L${f(xa - d)} ${f(ul - d)}L${f(x + d)} ${f(ul - d)}Z`;
+  }
 
   // Oyna: gradient va ikkita yaltiroq chiziq (faqat katta chizmada)
   function oyna(x, y, w, h, d, tY = null, pY = null) {
@@ -273,6 +325,7 @@ function chizmaSVG(k, opts = {}) {
     const d = t * 0.5;
     const x = o.x + d, y = o.y + d, w = o.w - 2 * d, h = o.h - 2 * d;
     const b = o.b, tY = o.tY, pY = o.pY;
+    if (o.u) { s += `<path d="${uYol(o, d + t * 0.3)}" class="oy"/>`; continue; }
     if (b.tur === "gluxoy") s += oyna(x + t * 0.3, y + t * 0.3, w - t * 0.6, h - t * 0.6, d + t * 0.3, tY, pY);
     else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka, d, tY, pY);
     else if (b.tur === "eshik") {
@@ -285,6 +338,8 @@ function chizmaSVG(k, opts = {}) {
   // impost uchi: rama yoyidan t, impost yoyidan t/2 ichkarida
   const ichOf = (yo) => (yo ? (yo.rama ? t : t / 2) : t);
   for (const c of g.impostlar) {
+    if (c.portalTepa) { s += rect(c.x - t / 2, c.y1 + t, t, c.y2 - c.y1 - t - t / 2, "ra im"); continue; }
+    if (c.portalTik) { s += rect(c.x - t / 2, c.y1, t, c.y2 - t - c.y1, "ra im"); continue; }
     if (c.yoy) {
       // egilgan impost: yoy boʻylab t qalinlikdagi tasma
       const n = Math.max(12, Math.ceil(((c.x2 - c.x1) / L) * 64));
@@ -302,12 +357,13 @@ function chizmaSVG(k, opts = {}) {
   if (!opts.kichik) {
     for (const o of g.barglar) {
       const cx = o.x + o.w / 2;
-      const yt = tepaY(o.tY, cx, o.y, t), yb = pastY(o.pY, cx, o.y + o.h, t);
+      const yt = tepaY(o.tY, cx, o.y, t), yb = o.u ? o.u.yo.y0 - t : pastY(o.pY, cx, o.y + o.h, t);
       // eshik belgisi yuqoriroqda: oʻrtada ruchka (shtulp) bor
       const cy = o.b.tur === "eshik" ? yt + (yb - yt) * 0.3 : (yt + yb) / 2;
       s += nishon(cx, cy, belgi[o.p]);
       if (o.b.tur === "eshik") s += matn(cx, cy + shrift * 1.5, o.b.ochilish === "tashqariga" ? "tashqariga" : "ichkariga", 0.62, "yoz fon xira-yoz");
-      s += yuza(o.x, o.y, o.w, o.h, 0, "bos" + (o.p === opts.tanlangan ? " tanl" : ""), `data-p="${o.p}"`, o.tY, o.pY);
+      const bosCls = "bos" + (o.p === opts.tanlangan ? " tanl" : "");
+      s += o.u ? `<path d="${uYol(o, 0)}" class="${bosCls}" data-p="${o.p}"/>` : yuza(o.x, o.y, o.w, o.h, 0, bosCls, `data-p="${o.p}"`, o.tY, o.pY);
     }
   }
   // F1 / C1 / E1 belgisi: yumaloq taxtacha
@@ -358,6 +414,19 @@ function chizmaSVG(k, opts = {}) {
         s += olchamChizigi(x2, b.y + b.s[0], x2, b.y + b.s[0] + b.egilgan, b.egilgan, b.parallel, `${b.p}|yoy`);
       }
     }
+    for (const pt of g.portallar) {
+      const yy = H + qadam * (++pastQator);
+      s += olchamChizigi(pt.x, yy, pt.xa, yy, pt.xa - pt.x, pt.chapAvto, `${pt.p}|chap`, H + qadam * 0.2) +
+        olchamChizigi(pt.xa, yy, pt.xb, yy, pt.xb - pt.xa, true, null, H + qadam * 0.2) +
+        olchamChizigi(pt.xb, yy, pt.x + pt.w, yy, pt.x + pt.w - pt.xb, pt.ongAvto, `${pt.p}|ong`, H + qadam * 0.2);
+      let xx = L + qadam * (++ongQator);
+      s += olchamChizigi(xx, pt.y, xx, pt.y + pt.tepa, pt.tepa, false, `${pt.p}|tepa`, L + qadam * 0.2) +
+        olchamChizigi(xx, pt.y + pt.tepa, xx, pt.ys, pt.c, pt.parallel, `${pt.p}|yoy`);
+      for (const [kal, yv] of [["chap_boy", pt.yl], ["ong_boy", pt.yr]]) {
+        xx = L + qadam * (++ongQator);
+        s += olchamChizigi(xx, pt.y, xx, yv ?? pt.y + pt.h, (yv ?? pt.y + pt.h) - pt.y, yv == null, `${pt.p}|${kal}`);
+      }
+    }
     if (ark) {
       const xx = L + qadam * (++ongQator);
       s += olchamChizigi(xx, 0, xx, ark.a, ark.a, false, "arka");
@@ -384,6 +453,7 @@ const ASBOBLAR = {
     ["yotiq", "Yotiq impost", ik('<line x1="3" y1="12" x2="21" y2="12" class="q"/>')],
     ["tik3", "3 ga boʻlish", ik('<line x1="8" y1="3" x2="8" y2="21" class="q"/><line x1="16" y1="3" x2="16" y2="21" class="q"/>')],
     ["yoy", "Yoy impost (arkaga parallel yoki oʻz chuqurligi)", ik('<path d="M3 15q9-9 18 0" class="q"/>')],
+    ["portal", "Portal: arkali oʻrta, atrofida U oyna", ik('<path d="M3 3h18v18H3z" class="q"/><path d="M8 21v-9a4 4 0 0 1 8 0v9"/>')],
     ["shtulp", "Shtulp: 2 tabaqali eshik", ik('<line x1="12" y1="3" x2="12" y2="21" class="q"/><path d="M9 9h6M9 15h6"/>')],
     ["yotiq3", "3 ga boʻlish (yotiq)", ik('<line x1="3" y1="8" x2="21" y2="8" class="q"/><line x1="3" y1="16" x2="21" y2="16" class="q"/>')],
     ["ochir", "Boʻlakni oʻchirish", ik(ramaIk() + '<path d="M8 8l8 8M16 8l-8 8" class="x"/>')],
@@ -419,7 +489,7 @@ const BOLIMLAR = [
 
 // Tugma ostidagi qisqa nom (belgining oʻzi tushunarsiz boʻlmasin)
 const QISQA = {
-  tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", shtulp: "Shtulp", ochir: "Oʻchirish",
+  tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", portal: "Portal", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", shtulp: "Shtulp", ochir: "Oʻchirish",
   tab_chap: "Chap", tab_ong: "Oʻng", dv_chap: "Dvaynoy chap", dv_ong: "Dvaynoy oʻng", fortochka: "Fortochka ↓", fortochka_tepa: "Fortochka ↑", gluxoy: "Gluxoy",
   esh1_chap: "1 tab. chap", esh1_ong: "1 tab. oʻng", esh2_ong: "2 tab. ruchka oʻng", esh2_chap: "2 tab. ruchka chap",
   togri: "Toʻgʻri", arka_yarim: "Yarim doira", arka: "Pologiy arka",
@@ -460,6 +530,20 @@ function saqlaTarix() { orqaga.push(nusxa(tahrir)); if (orqaga.length > 50) orqa
 
 function asbobniQolla(p) {
   const b = tugun(tahrir.bolak, p);
+  // Portal U oynasi faqat gluxoy (shakli impostlardan chiqadi)
+  const o_ = ota(p);
+  if (o_ && o_.i === 0 && tugun(tahrir.bolak, o_.yol).tur === "portal" && asbob === "tik") {
+    const pt = tugun(tahrir.bolak, o_.yol);
+    saqlaTarix();
+    if (pt.tepa_impost === false) delete pt.tepa_impost; else pt.tepa_impost = false;
+    xabar(pt.tepa_impost === false ? "Tepadagi impost olindi: U oyna bitta" : "Tepada impost: U oyna ikkiga boʻlindi");
+    yangila();
+    return;
+  }
+  if (o_ && o_.i === 0 && tugun(tahrir.bolak, o_.yol).tur === "portal" && asbob !== "ochir" && asbob !== "gluxoy") {
+    xabar("Portal atrofidagi U oyna faqat gluxoy boʻladi");
+    return;
+  }
   saqlaTarix();
   const tabaqa = (petlya, dv) => ({ tur: "tabaqa", petlya_tomoni: petlya, ...(dv ? { dvaynoy: true } : {}) });
   switch (asbob) {
@@ -475,6 +559,25 @@ function asbobniQolla(p) {
       const s0 = yaxlit(Math.max(10, (o.h - c) * 0.3));
       if (s0 + c >= o.h - 10) { orqaga.pop(); xabar("Yoy impost uchun boʻy yetmaydi"); return; }
       almashtir(p, { tur: "bolinish", yonalish: "gorizontal", egilgan: o.tY ? {} : { chuqurlik: c }, olchamlar: [s0, null], bolaklar: [{ tur: "gluxoy" }, b] });
+      break;
+    }
+    case "portal": {
+      const o = geometriya(tahrir).barglar.find((x) => x.p === p);
+      if (!o) { orqaga.pop(); return; }
+      if (o.pY) { orqaga.pop(); xabar("Portal ostida yoy boʻlmaydi"); return; }
+      const chap = null, orta = o.w / 3, c = orta / 2;
+      let tepa = Math.max(10, Math.min(30, o.h * 0.13));
+      if (o.tY) {
+        // rama arkasi ostida: portal arkasi rama arkasiga tegmasin
+        const xa = o.x + o.w / 3, xb = o.x + (o.w * 2) / 3, tt = 5.8;
+        tepa = Math.max(tepa, yoyY(o.tY, o.x + o.w / 2, tt) - o.y + 15, yoyY(o.tY, xa, tt) - o.y + 8 - c, yoyY(o.tY, xb, tt) - o.y + 8 - c);
+      }
+      tepa = yaxlit(Math.ceil(tepa));
+      if (tepa + c > o.h * 0.6 || orta < 30) { orqaga.pop(); xabar("Portal uchun joy yetmaydi"); return; }
+      const yb = yaxlit(tepa + c + (o.h - tepa - c) * 0.25);
+      almashtir(p, { tur: "portal", chap, ong: chap, tepa, chuqurlik: null, chap_boy: yb, ong_boy: yb,
+        bolaklar: [{ tur: "gluxoy" }, b, { tur: "gluxoy" }, { tur: "gluxoy" }] });
+      xabar("Oʻlchamlarni raqamlarga bosib kiriting: ustun enlari pastda, arka va yon impostlar oʻngda");
       break;
     }
     case "shtulp":
@@ -571,6 +674,7 @@ async function olchamniOzgartir(kalit) {
   } else {
     const [p, i] = kalit.split("|");
     const b = tugun(tahrir.bolak, p);
+    if (b.tur === "portal") { await portalOlchami(p, b, i); return; }
     if (i === "yoy") {
       const bo = geometriya(tahrir).bolinishlar.find((x) => x.p === p);
       const j = await soraSon(bo.tY ? "Yoy impost chuqurligi, sm (Teng — arkaga parallel)" : "Yoy impost chuqurligi, sm", b.egilgan.chuqurlik ?? bo.egilgan, !!bo.tY);
@@ -601,6 +705,47 @@ async function olchamniOzgartir(kalit) {
     }
   }
   yangila();
+}
+
+async function portalOlchami(p, b, i) {
+  const nomlar = {
+    chap: "Chap ustun eni, sm (Teng — uchga teng)", ong: "Oʻng ustun eni, sm (Teng — chapga teng)", tepa: "Tepadan arka choʻqqisigacha, sm",
+    yoy: "Arka chuqurligi, sm (Teng — yarim doira)", chap_boy: "Chap yotiq impost, tepadan, sm (Teng — impost yoʻq)",
+    ong_boy: "Oʻng yotiq impost, tepadan, sm (Teng — impost yoʻq)",
+  };
+  const kal = i === "yoy" ? "chuqurlik" : i;
+  const pt = geometriya(tahrir).portallar.find((x) => x.p === p);
+  const avtoQiymat = i === "yoy" ? pt.c : i === "chap" ? pt.xa - pt.x : i === "ong" ? pt.x + pt.w - pt.xb : null;
+  const j = await soraSon(nomlar[i], b[kal] ?? avtoQiymat, true);
+  if (!j) return;
+  if (j.bosh && i === "tepa") { xabar("Tepadan arkagacha oʻlcham kerak"); return; }
+  const eski = nusxa(b);
+  saqlaTarix();
+  if (j.bosh) {
+    b[kal] = null;
+    if (i === "chap_boy") b.bolaklar[2] = null;
+    if (i === "ong_boy") b.bolaklar[3] = null;
+  } else {
+    b[kal] = j.son;
+    if (i === "chap_boy" && !b.bolaklar[2]) b.bolaklar[2] = { tur: "gluxoy" };
+    if (i === "ong_boy" && !b.bolaklar[3]) b.bolaklar[3] = { tur: "gluxoy" };
+  }
+  // chegaralar (hisob.py bilan bir xil): oʻrta tor emas, arka sigʻadi, yon impost arka boshlanishidan pastda
+  const [ec, eo] = portalEnlar(b, pt.w);
+  const orta = pt.w - ec - eo;
+  const c = b.chuqurlik != null ? Number(b.chuqurlik) : orta / 2;
+  let xato = null;
+  if (orta < 20) xato = "Oʻrta juda tor qoldi";
+  else if (c > orta / 2) xato = "Arka chuqurligi oʻrta eni yarmidan katta boʻlmaydi";
+  else if (Number(b.tepa) + c >= pt.h - 10) xato = "Arka boʻyga sigʻmaydi";
+  else for (const yb of [b.chap_boy, b.ong_boy]) if (yb != null && (yb <= Number(b.tepa) + c || yb >= pt.h - 10)) xato = "Yon impost arka boshlanishidan pastda boʻlishi kerak";
+  if (xato) { Object.keys(b).forEach((k) => delete b[k]); Object.assign(b, eski); orqaga.pop(); xabar(xato); return; }
+  yangila();
+}
+function almashtirIchida(ildiz, p, yangi) {
+  const o = ota(p);
+  if (!o) { ildiz.bolak = yangi; return; }
+  tugun(ildiz.bolak, o.yol).bolaklar[o.i] = yangi;
 }
 
 // ---------- tahrirlash oynasi ----------

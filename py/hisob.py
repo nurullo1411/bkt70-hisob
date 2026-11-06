@@ -159,6 +159,32 @@ class Hisob:
         self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}",
                    ichki_boy - 2 * SHTAPIK_QALINLIGI, 2)
 
+    def shakl_oyna(self, ichki_en, ichki_boy, tekis_gor, tekis_ver, yoylar):
+        """Toʻrtburchak boʻlmagan gluxoy oyna (portal U oynasi): oʻlcham va narx eng katta eni × boʻyi boʻyicha.
+
+        Shtapik har tomon boʻyicha: gorizontallari oʻz eni, vertikallari boʻyi − 2 × qalinlik, yoy tomoni egiladi.
+        Rezina tomonlar yigʻindisi, yoy tomoni tekis profil boʻyicha (eni + chuqurlik), + 8. yoylar: [(eni, chuqurlik)].
+        """
+        en, boy = ichki_en - D("1.5"), ichki_boy - D("1.5")
+        if en <= 0 or boy <= 0:
+            raise HisobXato(f"Portal oynasi uchun joy yetmaydi: {en} × {boy}")
+        key = ("Gluxoy (shakl)", en, boy, self.joriy_oyna)
+        self.oynalar[key] = self.oynalar.get(key, 0) + 1
+        self.gluxoy_oyna_soni += 1
+        self.arka_oyna_m2 += en * boy / 10000
+        g = self.qalinlik
+        rezina = D(8) + sum(e + c for e, c in yoylar)
+        for u in tekis_gor:
+            self.detal("Shtapik gorizontal", f"G{g}", u, 1)
+            rezina += u
+        for u in tekis_ver:
+            if u > 2 * SHTAPIK_QALINLIGI:
+                self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}", u - 2 * SHTAPIK_QALINLIGI, 1)
+                rezina += u
+        for e, c in yoylar:
+            self.egilgan("Shtapik arka", f"G{g}", e, c, egish=False)
+        self.oyna_rezinasi += rezina
+
     def tabaqa(self, joy, profil, en, boy, shtulp_yonida=False, rom=False, dvaynoy=False, fortochka=None, arka=D(0), past=D(0)):
         self.tabaqa_soni += 1
         self.tabaqalar[profil] = self.tabaqalar.get(profil, 0) + 1
@@ -331,6 +357,123 @@ def _impost_uzunligi(vertikal, joy, z, h):
     return uzunlik
 
 
+def _portal(b, z, h, ctx):
+    """Portal (foydalanuvchi, 2026-11-06): boʻlak ichida arkali oʻrta va atrofida U shaklidagi bitta oyna.
+
+    chap, ong — yon ustunlar eni (tashqi chetdan impost oʻqigacha); tepa — tepadan arka choʻqqisigacha (oʻqi);
+    chuqurlik — arka chuqurligi (berilmasa yarim doira, oʻrta eni : 2); chap_boy, ong_boy — tepadan yon yotiq
+    impost oʻqigacha (null — yotiq impost yoʻq, U oyna pastgacha tushadi).
+    bolaklar: [U oyna (gluxoy), arka ostidagi boʻlak, chap pastki boʻlak yoki null, oʻng pastki boʻlak yoki null].
+    Tik impostlar pastdan arka boshlanadigan joygacha, arka ularning ustida (egilgan impost qoidasi bilan).
+    Toʻrtburchak boʻlmagan oyna: eng katta eni × eng katta boʻyi boʻyicha (+ arka ustamasi).
+    """
+    yarmi, impost = ctx["yarmi"], ctx["impost"]
+    bol = b.get("bolaklar") or []
+    if len(bol) != 4 or not bol[1] or not bol[0] or bol[0].get("tur") != "gluxoy":
+        raise HisobXato("Portal: bolaklar [U oyna (gluxoy), arka ostidagi, chap pastki, oʻng pastki] boʻlishi kerak")
+    if z.past_yoy:
+        raise HisobXato("Portal ostida yoy boʻlmaydi")
+    tY = z.tepa_yoy  # rama arkasi ostida boʻlsa (foydalanuvchi eskizi 2, 2026-11-06)
+    # yon ustunlar: berilmasa uch teng boʻlak (oʻq boʻyicha), bittasi berilsa ikkinchisi unga teng (foydalanuvchi, 2026-11-06)
+    chap = b.get("chap") if b.get("chap") is not None else b.get("ong")
+    ong = b.get("ong") if b.get("ong") is not None else chap
+    chap = D(chap) if chap is not None else z.en / 3
+    ong = D(ong) if ong is not None else z.en / 3
+    tepa = D(b["tepa"])
+    orta = z.en - chap - ong
+    c = D(b["chuqurlik"]) if b.get("chuqurlik") is not None else orta / 2
+    if chap <= z.chap + yarmi or ong <= z.ong + yarmi or orta <= 2 * yarmi:
+        raise HisobXato("Portal: yon ustunlar yoki oʻrta juda tor")
+    if c <= 0 or c > orta / 2:
+        raise HisobXato(f"Portal arkasi chuqurligi 0 dan katta, oʻrta eni yarmidan katta boʻlmasligi kerak: {c}")
+    if tepa <= z.tepa + yarmi or tepa + c >= z.boy - z.past:
+        raise HisobXato("Portal arkasi boʻlakka sigʻmaydi: tepa yoki chuqurlik notoʻgʻri")
+    xa = z.x + chap
+    yoy = Yoy(xa + orta / 2, orta, c, z.y + tepa)
+    tepa_ichki = z.y + z.tepa
+    cx = xa + orta / 2
+
+    def ust(x):
+        """x da U oyna tepasi (rama yoki arka ichki cheti)."""
+        return D(round(tY.y(x, float(z.tepa)), 2)) if tY else tepa_ichki
+
+    def ust_eng(x1, x2):
+        """[x1, x2] oraligʻida U oyna tepasining eng baland nuqtasi."""
+        return ust(min(max(D(str(tY.cx)), x1), x2)) if tY else tepa_ichki
+
+    ys = z.y + tepa + c                 # arka boshlanadigan joy (tik impostlar shu yergacha)
+    xb = z.x + z.en - ong
+    if tY and (ust(xa) + yarmi >= ys or ust(xb) + yarmi >= ys or ust_eng(xa, xb) >= z.y + tepa - 2 * yarmi):
+        raise HisobXato("Portal arkasi rama arkasiga tegib qoldi: tepa yoki yon ustunlarni oʻzgartiring")
+    pastki = z.y + z.boy - z.past
+    ichki_ctx = {**ctx, "bolinish_ichida": True}
+
+    h.detal("Impost vertikal", impost, pastki - ys, 2)
+    h.egilgan("Impost egilgan", impost, orta - 2 * yarmi, c)
+    h.impost_soni += 3
+
+    oyoqlar = []  # (oyoq eni ichki, oyoq pasti y)
+    for kalit, bola, x0, en, ichki_chap, ichki_ong, tashqi in (
+        ("chap_boy", bol[2], z.x, chap, z.chap, yarmi, z.chap),
+        ("ong_boy", bol[3], z.x + z.en - ong, ong, yarmi, z.ong, z.ong),
+    ):
+        eni = en - tashqi - yarmi
+        if b.get(kalit) is None:
+            if bola:
+                raise HisobXato(f"Portal: {kalit} berilmagan, pastki boʻlak boʻlmaydi")
+            oyoqlar.append((eni, pastki))
+            continue
+        yb = D(b[kalit])
+        x_ichki = z.x + z.chap if kalit == "chap_boy" else z.x + z.en - z.ong
+        if tY and z.y + yb - yarmi <= ust(x_ichki) + 2 * SHTAPIK_QALINLIGI:
+            raise HisobXato("Portal: yon yotiq impost rama arkasidan pastda boʻlishi kerak")
+        if yb <= tepa + c or yb >= z.boy - z.past - yarmi:
+            raise HisobXato("Portal: yon yotiq impost arka boshlanishidan pastda va boʻlak ichida boʻlishi kerak")
+        if not bola:
+            raise HisobXato(f"Portal: {kalit} bor, pastki boʻlak yoʻq")
+        h.detal("Impost gorizontal", impost, eni, 1)
+        h.impost_soni += 1
+        _bolak(bola, Zona(en, z.boy - yb, ichki_chap, ichki_ong, yarmi, z.past, x0, z.y + yb), h, ichki_ctx)
+        oyoqlar.append((eni, z.y + yb - yarmi))
+
+    _bolak(bol[1], Zona(orta, z.boy - tepa, yarmi, yarmi, yarmi, z.past, xa, z.y + tepa, yoy, None), h, ichki_ctx)
+
+    # U oyna: toʻrtburchak boʻyicha (eng katta eni × eng katta boʻyi)
+    eski = h.joriy_oyna
+    if bol[0].get("oyna_turi"):
+        h.joriy_oyna = bol[0]["oyna_turi"]
+    try:
+        if b.get("tepa_impost", True):
+            # tepada tik impost: ramadan arka choʻqqisigacha, U oynani ikkiga boʻladi (foydalanuvchi eskizi)
+            # rama arkasi ostida: impost arka ichki chetidan, yarim oyna tepasi yoy (shtapik egiladi)
+            ti = z.y + tepa - yarmi - ust(cx)
+            h.detal("Impost vertikal", impost, ti, 1)
+            h.impost_soni += 1
+            for (eni, yb), (x1, x2, x_chet) in zip(oyoqlar, ((z.x, cx, z.x + z.chap), (cx, z.x + z.en, z.x + z.en - z.ong))):
+                yarim_en = (cx - x_chet if x_chet < cx else x_chet - cx) - yarmi
+                yoylar = [((orta - 2 * yarmi) / 2, c)]
+                gor = [eni]
+                if tY:
+                    yoylar.append((yarim_en, tY.chuqurlik(x1, x2)))
+                else:
+                    gor.append(yarim_en)
+                h.shakl_oyna(yarim_en, yb - ust_eng(x1, x2), tekis_gor=gor,
+                             tekis_ver=[yb - ust(x_chet), yb - ys, ti], yoylar=yoylar)
+        else:
+            en_ichki = z.en - z.chap - z.ong
+            yoylar = [(orta - 2 * yarmi, c)]
+            gor = [e for e, _ in oyoqlar]
+            if tY:
+                yoylar.append((en_ichki, tY.chuqurlik(z.x, z.x + z.en)))
+            else:
+                gor.append(en_ichki)
+            h.shakl_oyna(en_ichki, max(y for _, y in oyoqlar) - ust_eng(z.x, z.x + z.en), tekis_gor=gor,
+                         tekis_ver=[oyoqlar[0][1] - ust(z.x + z.chap), oyoqlar[1][1] - ust(z.x + z.en - z.ong)]
+                         + [y - ys for _, y in oyoqlar], yoylar=yoylar)
+    finally:
+        h.joriy_oyna = eski
+
+
 def _eshik(b, z, h, arka=D(0)):
     ochilish = b.get("ochilish")
     if ochilish not in ESHIK_PROFILI:
@@ -390,6 +533,8 @@ def _bolak_ichi(b, z, h, ctx):
                  dvaynoy=bool(b.get("dvaynoy")), arka=arka, past=past)
     elif tur == "eshik":
         _eshik(b, z, h, arka)
+    elif tur == "portal":
+        _portal(b, z, h, ctx)
     elif tur == "bolinish":
         _bolinish(b, z, h, ctx)
     else:
