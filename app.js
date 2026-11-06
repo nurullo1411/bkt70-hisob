@@ -823,6 +823,8 @@ Javob FAQAT bitta JSON obyekt boʻlsin, boshqa matnsiz:
 {"konstruksiyalar": [ {"nom": "...", "soni": 1, "L": 150, "H": 150, "bolak": BOLAK} ], "savollar": ["noaniq joylar, oʻzbekcha, qisqa"]}
 
 Oʻlchamlar SANTIMETRDA. Hujjat mm da boʻlsa (1500 kabi) 10 ga boʻl. L — tashqi eni, H — tashqi boʻyi.
+Rom tepasi yoy (arka) boʻlsa konstruksiyaga "arka": {"balandlik": a} qoʻsh: a — yon devor tepasidan yoy choʻqqisigacha (sm), yarim doirada L/2; H — choʻqqigacha umumiy boʻy.
+Yoy (egilgan) impost: yotiq 2 boʻlakli boʻlinishga "egilgan": {} qoʻsh (arkaga parallel) yoki "egilgan": {"chuqurlik": c} (oʻz chuqurligi); olchamlar[0] — tepadan impost choʻqqisigacha.
 BOLAK turlari:
 - {"tur": "gluxoy"} — ochilmaydigan oyna.
 - {"tur": "tabaqa", "petlya_tomoni": "chap"|"ong"} — rom ochiladigan tabaqasi (petlya qaysi tomonda). Povorot-otkidnoy boʻlsa "dvaynoy": true. Faqat tepadan ochiladigan fortochka: {"tur": "tabaqa", "fortochka": true}.

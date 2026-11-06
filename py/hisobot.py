@@ -42,6 +42,10 @@ IMPOST_J = "J01+J05"  # tanlov: katalog 9-12
 TIJ_AYIRMA_ESHIK ={"Stublina 1177": D(50), "Stublina 1177 (Uz)": D(50)}  # foydalanuvchi tasdiqlagan, 2026-11-02
 
 
+ARKA_EGISH = "Arka egish"        # $ / m egiladigan profil
+ARKA_OYNA = "Arka oyna soʻm"     # soʻm / m² arkali oyna ustamasi (narx soʻmda, kursga boʻlinadi)
+
+
 def _pul(x):
     return x.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
@@ -274,6 +278,13 @@ def hisobot(k, narxlar):
             None if m2_narx is None else m2 * D(m2_narx), f"Steklopaket {t} {qalinlik} mm",
         )
         r.qatorlar[-1]["oyna_turi"] = t
+    # Arka (foydalanuvchi, 2026-11-06): egish 7,5 $ / m (shtapik ichida), arkali oyna m² ga soʻmda ustama
+    if s.get("arka_metr"):
+        r.qosh("Arka", ARKA_EGISH, D(str(s["arka_metr"])), "m")
+    if s.get("arka_oyna_m2"):
+        m2 = D(str(s["arka_oyna_m2"]))
+        som = r.narx.get(ARKA_OYNA)
+        r.summa_bilan("Arka", ARKA_OYNA, m2, "m²", None if som is None else m2 * D(som) / kurs, ARKA_OYNA)
     if tanlov.get("montaj"):
         r.qosh("Montaj", "MK 01", D(s["rama_perimetri"]) / 100 * PENA_METRGA, "ballon")
 

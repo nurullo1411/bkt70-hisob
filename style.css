@@ -54,22 +54,27 @@ td.son, th.son { text-align: right; white-space: nowrap; }
 footer { text-align: center; padding: 0 16px 24px; }
 
 /* Konstruktor */
-:root { --rama: #e6e9ee; --rama-chiziq: #4a5560; --oyna: #cfe6f7; --oyna-chiziq: #6f9fc2; --tanl: #e65100; }
+:root { --rama: #e6e9ee; --rama-1: #fbfcfd; --rama-2: #d9dee4; --rama-chiziq: #56616d;
+        --oyna: #cfe6f7; --oyna-1: #e4f3fd; --oyna-2: #a9d2ee; --oyna-chiziq: #6f9fc2; --tanl: #e65100; --olcham: #0d47a1; }
 @media (prefers-color-scheme: dark) {
-  :root { --rama: #3a4049; --rama-chiziq: #aab4bf; --oyna: #24435c; --oyna-chiziq: #5d8fb8; --tanl: #ff9f5a; }
+  :root { --rama: #3a4049; --rama-1: #4b525c; --rama-2: #30353c; --rama-chiziq: #aab4bf;
+          --oyna: #24435c; --oyna-1: #2f5878; --oyna-2: #1a3247; --oyna-chiziq: #5d8fb8; --tanl: #ff9f5a; --olcham: #8fb2f5; }
 }
 .chizma { width: 100%; height: auto; max-height: 60vh; display: block; touch-action: manipulation; }
-.chizma .ra { fill: var(--rama); stroke: var(--rama-chiziq); stroke-width: .4; }
-.chizma .tb { fill: var(--rama); stroke: var(--rama-chiziq); stroke-width: .35; }
-.chizma .oy { fill: var(--oyna); stroke: var(--oyna-chiziq); stroke-width: .3; }
-.chizma .ch { stroke: var(--rama-chiziq); stroke-width: .35; }
+.chizma .ra, .chizma .tb { fill: var(--g-ra, var(--rama)); stroke: var(--rama-chiziq); stroke-width: .35; stroke-linejoin: round; }
+.chizma .im { stroke-width: .3; }
+.chizma .oy { fill: var(--g-oy, var(--oyna)); stroke: var(--oyna-chiziq); stroke-width: .25; }
+.chizma .nur { stroke: #fff; stroke-opacity: .7; stroke-width: .9; stroke-linecap: round; }
+.chizma .ch { stroke: var(--rama-chiziq); stroke-width: .3; stroke-linecap: round; }
 .chizma .uz { stroke-dasharray: 2 1.5; }
 .chizma .ru { fill: var(--rama-chiziq); }
 .chizma .xt { fill: none; stroke: red; }
 .chizma .yoz { fill: var(--matn); font-family: system-ui, sans-serif; }
+.chizma .xira-yoz { fill: var(--xira); }
 .chizma .fon { paint-order: stroke; stroke: var(--karta); stroke-width: .8; }
+.chizma .belgi-fon { fill: var(--karta); fill-opacity: .88; stroke: var(--rama-chiziq); stroke-width: .2; }
 .chizma .bos { fill: transparent; stroke: none; cursor: pointer; }
-.chizma .bos.tanl { fill: rgba(230, 81, 0, .12); stroke: var(--tanl); stroke-width: 1.2; }
+.chizma .bos.tanl { fill: rgba(230, 81, 0, .12); stroke: var(--tanl); stroke-width: 1.2; stroke-dasharray: 3 1.5; }
 .chizma.kichik .ra, .chizma.kichik .tb { stroke-width: .8; }
 .panjara { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
 .panjara label, #k-maydon label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--xira); }
@@ -82,6 +87,50 @@ select { width: 100%; font: inherit; color: var(--matn); background: var(--fon);
               background: var(--fon); color: var(--matn); font: inherit; font-size: 14px; }
 .seg button.faol { background: var(--asosiy); color: var(--asosiy-matn); border-color: var(--asosiy); }
 #k-panel .qator input { max-width: none; flex: 1; }
+#k-holat { margin-top: 8px; font-size: 14px; }
+.keng { width: 100%; margin-top: 10px; }
+.konstr-ichi { display: flex; gap: 10px; align-items: center; }
+.eskiz { flex: 0 0 64px; height: 64px; padding: 2px; border: 1px solid var(--chiziq); border-radius: 8px; background: var(--fon); }
+.eskiz svg { width: 100%; height: 100%; }
+.konstr-matn { flex: 1; min-width: 0; }
+.kichik-tugmalar { display: flex; gap: 6px; margin-top: 8px; }
+.kichik-tugmalar button { flex: 1; min-height: 34px; border-radius: 8px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font: inherit; font-size: 13px; }
+.kichik-tugmalar button.tasdiq, .tugma.tasdiq { border-color: var(--xato); color: var(--xato); }
+
+/* Konstruktor: Romchi uslubi */
+#konstruktor { padding-top: 8px; }
+.k-tepa { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.k-nom { flex: 1; min-width: 0; font-size: 14px; color: var(--xira); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dumaloq { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--chiziq); background: var(--karta);
+           color: var(--matn); font-size: 20px; flex: 0 0 auto; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+.dumaloq.asosiy { background: var(--asosiy); color: var(--asosiy-matn); border-color: var(--asosiy); }
+.dumaloq.tasdiq { border-color: var(--xato); color: var(--xato); }
+.asbob-qator { display: flex; gap: 6px; align-items: center; overflow-x: auto; padding: 4px 0; }
+.asbob-qator .bosh { flex: 1; }
+.asbob-qator button { flex: 0 0 auto; width: 48px; height: 48px; padding: 6px; border-radius: 10px; border: 2px solid transparent;
+                      background: var(--karta); color: var(--asosiy); font-size: 20px; }
+.asbob-qator button.matnli { width: auto; padding: 6px 12px; font-size: 14px; color: var(--matn); border-color: var(--chiziq); }
+.asbob-qator button.faol { border-color: var(--asosiy); background: rgba(13, 71, 161, .12); }
+.asbob-qator button:disabled { opacity: .35; }
+.bolimlar button { color: var(--xira); }
+.bolimlar button.faol { color: var(--asosiy); border-color: transparent; border-bottom: 3px solid var(--asosiy); border-radius: 10px 10px 4px 4px; }
+.ik { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.ik .q { stroke-width: 3; stroke-linecap: round; }
+.ik .x { stroke: var(--xato); stroke-width: 2; }
+.ik .uz { stroke-dasharray: 2 1.5; }
+.ik circle { fill: currentColor; }
+.maslahat { margin: 4px 0 6px; font-size: 13px; min-height: 18px; }
+#k-chizma { background: var(--karta); border: 1px solid var(--chiziq); border-radius: 12px; padding: 6px; }
+#k-chizma .chizma { max-height: 62vh; }
+.chizma .ol { stroke: var(--olcham); stroke-width: .3; }
+.chizma .ol.qiya { stroke-width: .55; stroke-linecap: round; }
+.chizma .ol-uzat { stroke: var(--olcham); stroke-opacity: .35; stroke-width: .2; }
+.chizma .ol-fon { fill: var(--karta); stroke: var(--olcham); stroke-opacity: .45; stroke-width: .22; }
+.chizma .ol-fon.bosiladi { stroke-opacity: .9; }
+.chizma .olch { fill: var(--olcham); font-weight: 600; pointer-events: none; }
+.chizma .avto { fill: var(--xira); font-style: italic; font-weight: 500; }
+.chizma .qalin { font-weight: 700; }
+.chizma .olbos { fill: transparent; cursor: pointer; }
 #k-holat { margin-top: 8px; font-size: 14px; }
 .keng { width: 100%; margin-top: 10px; }
 .konstr-ichi { display: flex; gap: 10px; align-items: center; }

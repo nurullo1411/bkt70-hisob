@@ -12,7 +12,7 @@ from collections import Counter
 from pathlib import Path
 
 from hisob import HisobXato
-from hisobot import hisobot, narxlarni_oqi
+from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
 KURS = "Hisob!$F$5"
@@ -58,6 +58,8 @@ def _narx_formulasi(kalit, q):
             f'=IFERROR(1/(1/INDEX(Narxlar!$I$3:$O$8;MATCH($B{q};Narxlar!$H$3:$H$8;0);'
             f'MATCH($C{q};Narxlar!$I$2:$O$2;0)))/{KURS};"")'
         )
+    if artikul == ARKA_OYNA:  # soʻmda, kursga boʻlinadi
+        return "=" + NARX_VLOOKUP.format(kalit=f"$B{q}", boluvchi=f"/{KURS}")
     if artikul == "01.553":
         return "=" + NARX_VLOOKUP.format(kalit='"Soedinitel Urta 19 ugl"', boluvchi="/4")
     return "=" + NARX_VLOOKUP.format(kalit=f"$B{q}", boluvchi="")

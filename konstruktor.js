@@ -51,7 +51,7 @@ function bolish(p, yonalish, n = 2) {
   const b = tugun(tahrir.bolak, p);
   const o = ota(p);
   const otaB = o ? tugun(tahrir.bolak, o.yol) : null;
-  if (otaB && otaB.tur === "bolinish" && otaB.yonalish === yonalish) {
+  if (otaB && otaB.tur === "bolinish" && otaB.yonalish === yonalish && !otaB.egilgan) {
     for (let j = 1; j < n; j++) { otaB.bolaklar.splice(o.i + j, 0, { tur: "gluxoy" }); otaB.olchamlar.splice(o.i + j, 0, null); }
     // bu boʻlakning oʻlchami berilgan boʻlsa, yangilari bilan teng boʻlishsin
     if (otaB.olchamlar[o.i] != null && otaB.olchamlar.filter((x) => x != null).length > 1) otaB.olchamlar[o.i] = null;
@@ -100,26 +100,52 @@ function ramalar(k) {
   return r;
 }
 
-// Barglar (boʻlaklar), impostlar va boʻlinishlar (oʻlcham zanjiri uchun)
-function joyla(b, x, y, w, h, p, g, chuqur = 0) {
+// ---------- yoylar: rama arkasi va egilgan impost (foydalanuvchi, 2026-11-06) ----------
+// Yoy: {cx, R, y0 (choʻqqi), c (chuqurlik), rama}. y oʻqi pastga. ich > 0 — ostidagi, < 0 — ustidagi konsentrik yoy.
+function yoyYasa(cx, en, c, y0, rama = false) { return { cx, R: (en * en / 4 + c * c) / (2 * c), y0, c, rama }; }
+function yoyY(yo, x, ich = 0) { const r = yo.R - ich; return yo.y0 + yo.R - Math.sqrt(Math.max(0, r * r - (x - yo.cx) ** 2)); }
+function yoyChuqurligi(yo, x1, x2) {
+  if (!yo) return 0;
+  return Math.max(yoyY(yo, x1), yoyY(yo, x2)) - yoyY(yo, Math.min(Math.max(yo.cx, x1), x2));
+}
+// Egilgan impost chuqurligi: berilmasa tepadagi yoyga parallel (hisob.py bilan bir xil qoida)
+function egilganChuqurlik(b, x, w, tY) {
+  const eg = b.egilgan || {};
+  const c = eg.chuqurlik != null ? Number(eg.chuqurlik) : tY ? yoyChuqurligi(tY, x, x + w) : w * 0.2;
+  return Math.max(0.1, Math.min(c, w / 2));
+}
+
+// Barglar (boʻlaklar), impostlar va boʻlinishlar (oʻlcham zanjiri uchun). tY / pY — boʻlak tepasi / pasti yoy boʻlsa.
+function joyla(b, x, y, w, h, p, g, chuqur = 0, tY = null, pY = null) {
   if (b.tur === "bolinish") {
     const v = b.yonalish === "vertikal";
     const s = taqsimla(b.olchamlar, v ? w : h);
-    g.bolinishlar.push({ p, v, x, y, w, h, s, olchamlar: b.olchamlar, chuqur });
+    if (!v && b.egilgan && b.bolaklar.length === 2) {
+      // egilgan impost: olchamlar[0] — tepadan choʻqqigacha; tepadagi boʻlak impost uchlarigacha
+      const c = egilganChuqurlik(b, x, w, tY);
+      const yo = yoyYasa(x + w / 2, w, c, y + s[0]);
+      g.bolinishlar.push({ p, v, x, y, w, h, s, olchamlar: b.olchamlar, chuqur, egilgan: c, parallel: b.egilgan.chuqurlik == null, tY });
+      g.impostlar.push({ yoy: yo, x1: x, x2: x + w, tY, pY });
+      joyla(b.bolaklar[0], x, y, w, s[0] + c, bolaYoli(p, 0), g, chuqur + 1, tY, yo);
+      joyla(b.bolaklar[1], x, y + s[0], w, h - s[0], bolaYoli(p, 1), g, chuqur + 1, yo, pY);
+      return;
+    }
+    g.bolinishlar.push({ p, v, x, y, w, h, s, olchamlar: b.olchamlar, chuqur, tY });
     let q = v ? x : y;
+    const oxiri = s.length - 1;
     s.forEach((o, i) => {
-      if (i > 0) g.impostlar.push(v ? { x1: q, y1: y, x2: q, y2: y + h } : { x1: x, y1: q, x2: x + w, y2: q });
-      if (v) joyla(b.bolaklar[i], q, y, o, h, bolaYoli(p, i), g, chuqur + 1);
-      else joyla(b.bolaklar[i], x, q, w, o, bolaYoli(p, i), g, chuqur + 1);
+      if (i > 0) g.impostlar.push(v ? { x1: q, y1: y, x2: q, y2: y + h, tY, pY } : { x1: x, y1: q, x2: x + w, y2: q, tY, pY });
+      if (v) joyla(b.bolaklar[i], q, y, o, h, bolaYoli(p, i), g, chuqur + 1, tY, pY);
+      else joyla(b.bolaklar[i], x, q, w, o, bolaYoli(p, i), g, chuqur + 1, i === 0 ? tY : null, i === oxiri ? pY : null);
       q += o;
     });
-  } else g.barglar.push({ b, x, y, w, h, p });
+  } else g.barglar.push({ b, x, y, w, h, p, tY, pY });
 }
 
 function geometriya(k) {
-  const g = { barglar: [], impostlar: [], bolinishlar: [], ramalar: ramalar(k) };
+  const g = { barglar: [], impostlar: [], bolinishlar: [], ramalar: ramalar(k), ark: arkaGeom(k) };
   const a = g.ramalar.find((r) => r.asosiy);
-  joyla(k.bolak, a.x, 0, a.w, Number(k.H) || 0, "", g);
+  joyla(k.bolak, a.x, 0, a.w, Number(k.H) || 0, "", g, 0, g.ark, null);
   return g;
 }
 
@@ -141,82 +167,173 @@ function belgilar(barglar) {
   return nat;
 }
 
+// ---------- arka (foydalanuvchi, 2026-11-06; WinPro kabi) ----------
+// k.arka = {balandlik: a}: tepasi aylana yoyi, a — yoy balandligi (yon devor tepasidan choʻqqigacha), sm.
+// H — umumiy boʻy (choʻqqigacha). a = L/2 — yarim doira. Lapshali vitrajda arka yoʻq.
+function arkaGeom(k) {
+  if (!k || !k.arka || k.tur === "lapshali") return null;
+  const L = Number(k.L) || 0, H = Number(k.H) || 0;
+  const a = Math.min(Number(k.arka.balandlik) || 0, L / 2, H * 0.95);
+  if (!(a > 0) || !(L > 0)) return null;
+  return { ...yoyYasa(L / 2, L, a, 0, true), a };
+}
+
 // ---------- SVG ----------
+let svgSanoq = 0;  // har chizmaga alohida gradient id (yashirin chizmadagi gradient boshqasida ishlamaydi)
 function chizmaSVG(k, opts = {}) {
+  const gid = "g" + ++svgSanoq;
   const L = Number(k.L) || 1, H = Number(k.H) || 1;
   const M = Math.max(L, H);
   const t = Math.max(2.5, Math.min(7, Math.min(L, H) * 0.045));
   const g = geometriya(k);
+  const ark = g.ark;
   const shrift = M * 0.04;
   const qadam = M * 0.085;  // oʻlcham qatorlari orasidagi masofa
+  const f = (v) => Math.round(v * 100) / 100;
   let s = "";
-  const rect = (x, y, w, h, cls, qosh = "") => `<rect x="${x}" y="${y}" width="${Math.max(0, w)}" height="${Math.max(0, h)}" class="${cls}" ${qosh}/>`;
-  const chiziq = (x1, y1, x2, y2, cls = "ch") => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${cls}"/>`;
-  const matn = (x, y, m, kat = 1, cls = "yoz", qosh = "") => `<text x="${x}" y="${y}" font-size="${shrift * kat}" class="${cls}" text-anchor="middle" dominant-baseline="middle" ${qosh}>${esc(m)}</text>`;
+  const rect = (x, y, w, h, cls, qosh = "") => `<rect x="${f(x)}" y="${f(y)}" width="${f(Math.max(0, w))}" height="${f(Math.max(0, h))}" class="${cls}" ${qosh}/>`;
+  const chiziq = (x1, y1, x2, y2, cls = "ch") => `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" class="${cls}"/>`;
+  const matn = (x, y, m, kat = 1, cls = "yoz", qosh = "") => `<text x="${f(x)}" y="${f(y)}" font-size="${f(shrift * kat)}" class="${cls}" text-anchor="middle" dominant-baseline="central" ${qosh}>${esc(m)}</text>`;
 
-  function tabaqa(x, y, w, h, petlya, dvaynoy, ruchkaBor, fortochka) {
-    const i = t * 0.35;
-    let q = rect(x + i, y + i, w - 2 * i, h - 2 * i, "tb") + rect(x + i + t * 0.8, y + i + t * 0.8, w - 2 * i - 1.6 * t, h - 2 * i - 1.6 * t, "oy");
-    const x1 = x + i + t * 0.8, y1 = y + i + t * 0.8, x2 = x + w - i - t * 0.8, y2 = y + h - i - t * 0.8;
-    if (fortochka) {
-      // uchburchak uchi ruchka (chit-chit) tomonida, petlya qarama-qarshi tomonda (foydalanuvchi, 2026-11-05)
-      if (petlya === "tepa") {
-        q += chiziq(x1, y1, (x1 + x2) / 2, y2) + chiziq(x2, y1, (x1 + x2) / 2, y2);
-        return q + rect(x + w / 2 - t * 0.9, y + h - i - t * 0.55, t * 1.8, t * 0.3, "ru");
+  // Yoy chegaralari: tepa — tY dan dT ichkarida, past — pY dan dB yuqorida (konsentrik). Yoʻq boʻlsa toʻgʻri chiziq.
+  const tepaY = (tY, xx, y0, d) => (tY ? Math.max(y0, yoyY(tY, xx, d)) : y0);
+  const pastY = (pY, xx, y1, d) => (pY ? Math.min(y1, yoyY(pY, xx, -d)) : y1);
+  // Toʻrtburchak, yoylar bilan kesilgan qismi (dT, dB — yoydan ichkariga masofa)
+  function shakl(x, y, w, h, dT, tY = null, pY = null, dB = dT) {
+    w = Math.max(0, w); h = Math.max(0, h);
+    if (!tY && !pY) return `M${f(x)} ${f(y)}h${f(w)}v${f(h)}h${f(-w)}Z`;
+    const n = Math.max(8, Math.ceil((w / L) * 64));
+    const yt = (xx) => tepaY(tY, xx, y, dT), yb = (xx) => pastY(pY, xx, y + h, dB);
+    let p = "";
+    for (let j = 0; j <= n; j++) { const xx = x + (w * j) / n; p += (j ? "L" : "M") + f(xx) + " " + f(Math.min(yt(xx), yb(xx))); }
+    for (let j = n; j >= 0; j--) { const xx = x + (w * j) / n; p += "L" + f(xx) + " " + f(Math.max(yt(xx), yb(xx))); }
+    return p + "Z";
+  }
+  const yuza = (x, y, w, h, d, cls, qosh = "", tY = null, pY = null, dB = d) => `<path d="${shakl(x, y, w, h, d, tY, pY, dB)}" class="${cls}" ${qosh}/>`;
+
+  // Oyna: gradient va ikkita yaltiroq chiziq (faqat katta chizmada)
+  function oyna(x, y, w, h, d, tY = null, pY = null) {
+    let q = yuza(x, y, w, h, d, "oy", "", tY, pY);
+    if (!opts.kichik && w > t * 3 && h > t * 3) {
+      const yt = tepaY(tY, x + w * 0.5, y, d), yb = pastY(pY, x + w * 0.5, y + h, d);
+      const hh = yb - yt;
+      for (const [k1, k2] of [[0.18, 0.5], [0.3, 0.58]]) {
+        q += chiziq(x + w * (k2 - 0.05), yt + hh * (k1 + 0.06), x + w * (k1 - 0.06), yt + hh * (k2 - 0.02), "nur");
       }
-      q += chiziq(x1, y2, (x1 + x2) / 2, y1) + chiziq(x2, y2, (x1 + x2) / 2, y1);
-      return q + rect(x + w / 2 - t * 0.9, y + i + t * 0.25, t * 1.8, t * 0.3, "ru");
-    }
-    // uchburchak uchi ruchka tomonida, petlya qarama-qarshi tomonda (foydalanuvchi, 2026-11-05)
-    if (petlya === "ong") q += chiziq(x2, y1, x1, (y1 + y2) / 2) + chiziq(x2, y2, x1, (y1 + y2) / 2);
-    else q += chiziq(x1, y1, x2, (y1 + y2) / 2) + chiziq(x1, y2, x2, (y1 + y2) / 2);
-    // dvaynoy: yon uchburchak + uchi pastdagi uchburchak (foydalanuvchi namunasi, 2026-11-05)
-    if (dvaynoy) q += chiziq(x1, y1, (x1 + x2) / 2, y2, "ch uz") + chiziq(x2, y1, (x1 + x2) / 2, y2, "ch uz");
-    if (ruchkaBor !== false) {
-      const rx = petlya === "ong" ? x + i + t * 0.25 : x + w - i - t * 0.55;
-      q += rect(rx, y + h / 2 - t * 0.9, t * 0.3, t * 1.8, "ru");
     }
     return q;
   }
 
+  // d0 — boʻlak katagi chetidan tabaqa chetigacha masofa (arka chegarasi uchun)
+  function tabaqa(x, y, w, h, petlya, dvaynoy, ruchkaBor, fortochka, d0, tY = null, pY = null) {
+    const i = t * 0.35, ic = i + t * 0.8;
+    let q = yuza(x + i, y + i, w - 2 * i, h - 2 * i, d0 + i, "tb", "", tY, pY) + oyna(x + ic, y + ic, w - 2 * ic, h - 2 * ic, d0 + ic, tY, pY);
+    const x1 = x + ic, x2 = x + w - ic, xo = (x1 + x2) / 2;
+    const tepa = (xx) => tepaY(tY, xx, y + ic, d0 + ic);  // oyna tepasi shu nuqtada
+    const past = (xx) => pastY(pY, xx, y + h - ic, d0 + ic);  // oyna pasti
+    const ru = (rx, ry, rw, rh) => rect(rx, ry, rw, rh, "ru", `rx="${f(Math.min(rw, rh) / 2)}"`);
+    if (fortochka) {
+      // uchburchak uchi ruchka (chit-chit) tomonida, petlya qarama-qarshi tomonda (foydalanuvchi, 2026-11-05)
+      if (petlya === "tepa") {
+        q += chiziq(x1, tepa(x1), xo, past(xo)) + chiziq(x2, tepa(x2), xo, past(xo));
+        return q + ru(x + w / 2 - t * 0.9, past(xo) + t * 0.2, t * 1.8, t * 0.38);
+      }
+      q += chiziq(x1, past(x1), xo, tepa(xo)) + chiziq(x2, past(x2), xo, tepa(xo));
+      return q + ru(x + w / 2 - t * 0.9, tepa(xo) - t * 0.6, t * 1.8, t * 0.38);
+    }
+    // uchburchak uchi ruchka tomonida, petlya qarama-qarshi tomonda (foydalanuvchi, 2026-11-05)
+    const ym = (tepa(xo) + past(xo)) / 2;
+    if (petlya === "ong") q += chiziq(x2, tepa(x2), x1, ym) + chiziq(x2, past(x2), x1, ym);
+    else q += chiziq(x1, tepa(x1), x2, ym) + chiziq(x1, past(x1), x2, ym);
+    // dvaynoy: yon uchburchak + uchi pastdagi uchburchak (foydalanuvchi namunasi, 2026-11-05)
+    if (dvaynoy) q += chiziq(x1, tepa(x1), xo, past(xo), "ch uz") + chiziq(x2, tepa(x2), xo, past(xo), "ch uz");
+    if (ruchkaBor !== false) {
+      const rx = petlya === "ong" ? x + i + t * 0.22 : x + w - i - t * 0.6;
+      q += ru(rx, ym - t * 1.1, t * 0.38, t * 2.2);
+    }
+    return q;
+  }
+
+  s += `<defs>
+    <linearGradient id="${gid}-ra" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--rama-1)"/><stop offset="1" style="stop-color:var(--rama-2)"/></linearGradient>
+    <linearGradient id="${gid}-oy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--oyna-1)"/><stop offset="1" style="stop-color:var(--oyna-2)"/></linearGradient>
+  </defs>`;
+
   const belgi = opts.kichik ? {} : belgilar(g.barglar);
   for (const r of g.ramalar) {
+    if (r.asosiy && ark) {
+      // arkali rama: tashqi va ichki chegara orasidagi tasma
+      s += `<path d="${shakl(0, 0, L, H, 0, ark)} ${shakl(t, t, L - 2 * t, H - 2 * t, t, ark)}" class="ra" fill-rule="evenodd"/>`;
+      continue;
+    }
     s += rect(r.x, 0, r.w, H, "ra");
-    if (!r.asosiy) { s += rect(r.x + t, t, r.w - 2 * t, H - 2 * t, "oy"); continue; }
+    if (!r.asosiy) s += oyna(r.x + t, t, r.w - 2 * t, H - 2 * t, t);
   }
   for (const o of g.barglar) {
-    const x = o.x + t * 0.5, y = o.y + t * 0.5, w = o.w - t, h = o.h - t;
-    const b = o.b;
-    if (b.tur === "gluxoy") s += rect(x + t * 0.3, y + t * 0.3, w - t * 0.6, h - t * 0.6, "oy");
-    else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka);
+    const d = t * 0.5;
+    const x = o.x + d, y = o.y + d, w = o.w - 2 * d, h = o.h - 2 * d;
+    const b = o.b, tY = o.tY, pY = o.pY;
+    if (b.tur === "gluxoy") s += oyna(x + t * 0.3, y + t * 0.3, w - t * 0.6, h - t * 0.6, d + t * 0.3, tY, pY);
+    else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka, d, tY, pY);
     else if (b.tur === "eshik") {
       if (b.tabaqa_soni === 2) {
         const aktiv = b.aktiv || "ong";
-        s += tabaqa(x, y, w / 2, h, "chap", false, aktiv === "chap") + tabaqa(x + w / 2, y, w / 2, h, "ong", false, aktiv === "ong");
-      } else s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", false, true);
+        s += tabaqa(x, y, w / 2, h, "chap", false, aktiv === "chap", false, d, tY, pY) + tabaqa(x + w / 2, y, w / 2, h, "ong", false, aktiv === "ong", false, d, tY, pY);
+      } else s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", false, true, false, d, tY, pY);
     } else s += rect(x, y, w, h, "xt");
   }
-  for (const c of g.impostlar) s += c.x1 === c.x2 ? rect(c.x1 - t / 2, c.y1 + t, t, c.y2 - c.y1 - 2 * t, "ra im") : rect(c.x1 + t, c.y1 - t / 2, c.x2 - c.x1 - 2 * t, t, "ra im");
+  // impost uchi: rama yoyidan t, impost yoyidan t/2 ichkarida
+  const ichOf = (yo) => (yo ? (yo.rama ? t : t / 2) : t);
+  for (const c of g.impostlar) {
+    if (c.yoy) {
+      // egilgan impost: yoy boʻylab t qalinlikdagi tasma
+      const n = Math.max(12, Math.ceil(((c.x2 - c.x1) / L) * 64));
+      const xa = c.x1 + t * 0.5, xb = c.x2 - t * 0.5;
+      let p = "";
+      for (let j = 0; j <= n; j++) { const xx = xa + ((xb - xa) * j) / n; p += (j ? "L" : "M") + f(xx) + " " + f(yoyY(c.yoy, xx, -t / 2)); }
+      for (let j = n; j >= 0; j--) { const xx = xa + ((xb - xa) * j) / n; p += "L" + f(xx) + " " + f(yoyY(c.yoy, xx, t / 2)); }
+      s += `<path d="${p}Z" class="ra im"/>`;
+      continue;
+    }
+    s += c.x1 === c.x2
+      ? yuza(c.x1 - t / 2, c.y1 + t, t, c.y2 - c.y1 - 2 * t, ichOf(c.tY), "ra im", "", c.tY, c.pY, ichOf(c.pY))
+      : yuza(c.x1 + t, c.y1 - t / 2, c.x2 - c.x1 - 2 * t, t, ichOf(c.tY), "ra im", "", c.tY, null);
+  }
   if (!opts.kichik) {
     for (const o of g.barglar) {
-      s += matn(o.x + o.w / 2, o.y + o.h / 2, belgi[o.p], 1.1, "yoz fon qalin");
-      if (o.b.tur === "eshik") s += matn(o.x + o.w / 2, o.y + o.h / 2 + shrift * 1.4, o.b.ochilish === "tashqariga" ? "tashqariga" : "ichkariga", 0.65, "yoz fon");
-      s += rect(o.x, o.y, o.w, o.h, "bos" + (o.p === opts.tanlangan ? " tanl" : ""), `data-p="${o.p}"`);
+      const cx = o.x + o.w / 2;
+      const yt = tepaY(o.tY, cx, o.y, t), yb = pastY(o.pY, cx, o.y + o.h, t);
+      // eshik belgisi yuqoriroqda: oʻrtada ruchka (shtulp) bor
+      const cy = o.b.tur === "eshik" ? yt + (yb - yt) * 0.3 : (yt + yb) / 2;
+      s += nishon(cx, cy, belgi[o.p]);
+      if (o.b.tur === "eshik") s += matn(cx, cy + shrift * 1.5, o.b.ochilish === "tashqariga" ? "tashqariga" : "ichkariga", 0.62, "yoz fon xira-yoz");
+      s += yuza(o.x, o.y, o.w, o.h, 0, "bos" + (o.p === opts.tanlangan ? " tanl" : ""), `data-p="${o.p}"`, o.tY, o.pY);
     }
   }
+  // F1 / C1 / E1 belgisi: yumaloq taxtacha
+  function nishon(x, y, m) {
+    const w = shrift * (0.75 + 0.62 * String(m).length), h = shrift * 1.45;
+    return rect(x - w / 2, y - h / 2, w, h, "belgi-fon", `rx="${f(h / 2)}"`) + matn(x, y, m, 0.95, "yoz qalin");
+  }
 
-  // Oʻlcham chiziqlari: tik boʻlinishlar pastda, yotiqlari oʻngda; umumiy L pastda, H chapda
+  // Oʻlcham chiziqlari: tik boʻlinishlar pastda, yotiqlari oʻngda; umumiy L pastda, H chapda.
+  // Uchlari qiya chiziqcha (arxitektura uslubi), qiymat yumaloq taxtachada.
   let pastQator = 0, ongQator = 0;
-  const olchamChizigi = (x1, y1, x2, y2, qiymat, avto, kalit) => {
+  const olchamChizigi = (x1, y1, x2, y2, qiymat, avto, kalit, uzat) => {
     const yot = y1 === y2;
-    const uz = qadam * 0.18;
-    let q = chiziq(x1, y1, x2, y2, "ol") +
-      (yot ? chiziq(x1, y1 - uz, x1, y1 + uz, "ol") + chiziq(x2, y2 - uz, x2, y2 + uz, "ol")
-           : chiziq(x1 - uz, y1, x1 + uz, y1, "ol") + chiziq(x2 - uz, y2, x2 + uz, y2, "ol"));
+    const uz = qadam * 0.16;
+    let q = "";
+    if (uzat != null) {
+      q += yot ? chiziq(x1, uzat, x1, y1 + uz, "ol-uzat") + chiziq(x2, uzat, x2, y1 + uz, "ol-uzat")
+               : chiziq(uzat, y1, x1 + uz, y1, "ol-uzat") + chiziq(uzat, y2, x1 + uz, y2, "ol-uzat");
+    }
+    q += chiziq(x1, y1, x2, y2, "ol") + chiziq(x1 - uz, y1 + uz, x1 + uz, y1 - uz, "ol qiya") + chiziq(x2 - uz, y2 + uz, x2 + uz, y2 - uz, "ol qiya");
     const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
-    const yozuv = (avto ? "≈" : "") + yx(qiymat);
-    q += yot ? matn(mx, my - shrift * 0.15, yozuv, 0.95, "yoz fon olch" + (avto ? " avto" : ""))
-             : matn(mx + shrift * 0.15, my, yozuv, 0.95, "yoz fon olch" + (avto ? " avto" : ""), `transform="rotate(-90 ${mx + shrift * 0.15} ${my})"`);
+    const yozuv = (avto ? "≈" : "") + String(yx(qiymat)).replace(".", ",");
+    const pw = shrift * (0.7 + 0.56 * yozuv.length), ph = shrift * 1.3;
+    const pill = rect(mx - pw / 2, my - ph / 2, pw, ph, "ol-fon" + (kalit ? " bosiladi" : ""), `rx="${f(ph / 2)}"`) +
+      matn(mx, my, yozuv, 0.9, "yoz olch" + (avto ? " avto" : ""));
+    q += yot ? pill : `<g transform="rotate(-90 ${f(mx)} ${f(my)})">${pill}</g>`;
     if (kalit) {
       q += yot ? rect(x1, my - qadam * 0.45, x2 - x1, qadam * 0.9, "olbos", `data-ol="${kalit}"`)
                : rect(mx - qadam * 0.45, y1, qadam * 0.9, y2 - y1, "olbos", `data-ol="${kalit}"`);
@@ -229,23 +346,32 @@ function chizmaSVG(k, opts = {}) {
     for (const b of tik) {
       const yy = H + qadam * (++pastQator);
       let q = b.x;
-      b.s.forEach((o, i) => { s += olchamChizigi(q, yy, q + o, yy, o, b.olchamlar[i] == null, `${b.p}|${i}`); q += o; });
+      b.s.forEach((o, i) => { s += olchamChizigi(q, yy, q + o, yy, o, b.olchamlar[i] == null, `${b.p}|${i}`, H + qadam * 0.2); q += o; });
     }
     for (const b of yotiq) {
       const xx = L + qadam * (++ongQator);
       let q = b.y;
-      b.s.forEach((o, i) => { s += olchamChizigi(xx, q, xx, q + o, o, b.olchamlar[i] == null, `${b.p}|${i}`); q += o; });
+      b.s.forEach((o, i) => { s += olchamChizigi(xx, q, xx, q + o, o, b.olchamlar[i] == null, `${b.p}|${i}`, L + qadam * 0.2); q += o; });
+      if (b.egilgan != null) {
+        // yoy impost chuqurligi: choʻqqidan uchlarigacha (≈ — arkaga parallel)
+        const x2 = L + qadam * (++ongQator);
+        s += olchamChizigi(x2, b.y + b.s[0], x2, b.y + b.s[0] + b.egilgan, b.egilgan, b.parallel, `${b.p}|yoy`);
+      }
+    }
+    if (ark) {
+      const xx = L + qadam * (++ongQator);
+      s += olchamChizigi(xx, 0, xx, ark.a, ark.a, false, "arka");
     }
     if (k.tur === "lapshali") {
       const yy = H + qadam * (++pastQator);
-      for (const r of g.ramalar) s += olchamChizigi(r.x, yy, r.x + r.w, yy, r.w, r.asosiy, r.asosiy ? null : (r.x === 0 ? "chap" : "ong"));
+      for (const r of g.ramalar) s += olchamChizigi(r.x, yy, r.x + r.w, yy, r.w, r.asosiy, r.asosiy ? null : (r.x === 0 ? "chap" : "ong"), H + qadam * 0.2);
     }
-    s += olchamChizigi(0, H + qadam * (++pastQator), L, H + qadam * pastQator, L, false, "L");
-    s += olchamChizigi(-qadam, 0, -qadam, H, H, false, "H");
+    s += olchamChizigi(0, H + qadam * (++pastQator), L, H + qadam * pastQator, L, false, "L", H + qadam * 0.2);
+    s += olchamChizigi(-qadam, 0, -qadam, H, H, false, "H", -qadam * 0.2);
   }
   const chap = opts.kichik ? t : qadam * 1.6, tepa = opts.kichik ? t : qadam * 0.6;
-  const vb = `${-chap} ${-tepa} ${L + chap + (opts.kichik ? t : qadam * (ongQator + 0.7))} ${H + tepa + (opts.kichik ? t : qadam * (pastQator + 0.7))}`;
-  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" class="chizma${opts.kichik ? " kichik" : ""}" preserveAspectRatio="xMidYMid meet">${s}</svg>`;
+  const vb = `${f(-chap)} ${f(-tepa)} ${f(L + chap + (opts.kichik ? t : qadam * (ongQator + 0.7)))} ${f(H + tepa + (opts.kichik ? t : qadam * (pastQator + 0.7)))}`;
+  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" class="chizma${opts.kichik ? " kichik" : ""}" style="--g-ra:url(#${gid}-ra);--g-oy:url(#${gid}-oy)" preserveAspectRatio="xMidYMid meet">${s}</svg>`;
 }
 const yx = (v) => Math.round(v * 10) / 10;
 
@@ -257,6 +383,7 @@ const ASBOBLAR = {
     ["tik", "Tik impost", ik('<line x1="12" y1="3" x2="12" y2="21" class="q"/>')],
     ["yotiq", "Yotiq impost", ik('<line x1="3" y1="12" x2="21" y2="12" class="q"/>')],
     ["tik3", "3 ga boʻlish", ik('<line x1="8" y1="3" x2="8" y2="21" class="q"/><line x1="16" y1="3" x2="16" y2="21" class="q"/>')],
+    ["yoy", "Yoy impost (arkaga parallel yoki oʻz chuqurligi)", ik('<path d="M3 15q9-9 18 0" class="q"/>')],
     ["shtulp", "Shtulp: 2 tabaqali eshik", ik('<line x1="12" y1="3" x2="12" y2="21" class="q"/><path d="M9 9h6M9 15h6"/>')],
     ["yotiq3", "3 ga boʻlish (yotiq)", ik('<line x1="3" y1="8" x2="21" y2="8" class="q"/><line x1="3" y1="16" x2="21" y2="16" class="q"/>')],
     ["ochir", "Boʻlakni oʻchirish", ik(ramaIk() + '<path d="M8 8l8 8M16 8l-8 8" class="x"/>')],
@@ -277,27 +404,55 @@ const ASBOBLAR = {
     ["esh2_chap", "2 tabaqa, ruchka chapda", ik(ramaIk(3, 18) + '<line x1="12" y1="3" x2="12" y2="21"/><path d="M5 5l6 7-6 7M19 5l-6 7 6 7"/><circle cx="10" cy="12" r="1"/>')],
     ["gluxoy", "Gluxoy", ik(ramaIk())],
   ],
+  shakl: [
+    ["togri", "Toʻgʻri burchak", ik(ramaIk())],
+    ["arka_yarim", "Arka: yarim doira", ik('<path d="M4 21V12a8 8 0 0 1 16 0v9z"/>')],
+    ["arka", "Arka: pologiy", ik('<path d="M4 21V9q8-6 16 0v12z"/>')],
+  ],
 };
 const BOLIMLAR = [
   ["impost", "Impost", ik('<line x1="12" y1="3" x2="12" y2="21" class="q"/>')],
   ["tabaqa", "Tabaqa", ik(ramaIk() + '<path d="M6 5l12 7-12 7"/>')],
   ["eshik", "Eshik", ik(ramaIk(6, 12) + '<circle cx="15" cy="12" r="1"/>')],
+  ["shakl", "Shakl (arka)", ik('<path d="M5 21V12a7 7 0 0 1 14 0v9z"/>')],
 ];
 
 // Tugma ostidagi qisqa nom (belgining oʻzi tushunarsiz boʻlmasin)
 const QISQA = {
-  tik: "Tik", yotiq: "Yotiq", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", shtulp: "Shtulp", ochir: "Oʻchirish",
+  tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", shtulp: "Shtulp", ochir: "Oʻchirish",
   tab_chap: "Chap", tab_ong: "Oʻng", dv_chap: "Dvaynoy chap", dv_ong: "Dvaynoy oʻng", fortochka: "Fortochka ↓", fortochka_tepa: "Fortochka ↑", gluxoy: "Gluxoy",
   esh1_chap: "1 tab. chap", esh1_ong: "1 tab. oʻng", esh2_ong: "2 tab. ruchka oʻng", esh2_chap: "2 tab. ruchka chap",
+  togri: "Toʻgʻri", arka_yarim: "Yarim doira", arka: "Pologiy arka",
 };
+
+// Shakl butun konstruksiyaga qoʻllanadi (boʻlakka emas)
+function shaklId(k) {
+  if (!k.arka) return "togri";
+  return Number(k.arka.balandlik) >= Number(k.L) / 2 - 0.05 ? "arka_yarim" : "arka";
+}
+function shaklniQolla(id) {
+  if (id !== "togri" && tahrir.tur === "lapshali") { xabar("Lapshali vitrajda arka boʻlmaydi: ⚙ da lapshani oʻchiring"); return; }
+  saqlaTarix();
+  const L = Number(tahrir.L), H = Number(tahrir.H);
+  if (id === "togri") delete tahrir.arka;
+  else {
+    const a = id === "arka_yarim" ? L / 2 : yaxlit(L * 0.2);
+    if (a >= H) { orqaga.pop(); xabar("Arka uchun boʻy yetmaydi: H arka balandligidan katta boʻlishi kerak"); return; }
+    tahrir.arka = { balandlik: yaxlit(a) };
+  }
+  yangila();
+  if (id !== "togri") xabar("Arka balandligini oʻngdagi raqamga bosib oʻzgartiring. H — choʻqqigacha umumiy boʻy.");
+}
 
 function asboblarniChiz() {
   $("k-bolimlar").innerHTML = BOLIMLAR.map(([id, nom, i]) => `<button data-bolim="${id}" class="${id === bolim ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("") +
     `<span class="bosh"></span><button data-tarix="orqaga" ${orqaga.length ? "" : "disabled"} aria-label="Orqaga">↶</button><button data-tarix="oldinga" ${oldinga.length ? "" : "disabled"} aria-label="Oldinga">↷</button>`;
-  let html = ASBOBLAR[bolim].map(([id, nom, i]) => `<button data-asbob="${id}" class="nomli${id === asbob ? " faol" : ""}" title="${nom}" aria-label="${nom}">${i}<small>${QISQA[id] || ""}</small></button>`).join("");
+  const faolId = bolim === "shakl" ? shaklId(tahrir) : asbob;
+  let html = ASBOBLAR[bolim].map(([id, nom, i]) => `<button data-asbob="${id}" class="nomli${id === faolId ? " faol" : ""}" title="${nom}" aria-label="${nom}">${i}<small>${QISQA[id] || ""}</small></button>`).join("");
   if (bolim === "eshik" || (bolim === "impost" && asbob === "shtulp")) html += `<button data-ochilish class="matnli">${eshikOchilish === "tashqariga" ? "Tashqariga" : "Ichkariga"} ⇄</button>`;
   $("k-asboblar").innerHTML = html;
-  const nom = asbob ? ASBOBLAR[bolim].find((a) => a[0] === asbob)[1] : null;
+  const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
+  if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
   $("k-maslahat").textContent = nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbob tanlang yoki boʻlakka bosib sozlang. Oʻlchamni oʻzgartirish uchun raqamga bosing.";
 }
 
@@ -312,6 +467,16 @@ function asbobniQolla(p) {
     case "yotiq": bolish(p, "gorizontal"); break;
     case "tik3": bolish(p, "vertikal", 3); break;
     case "yotiq3": bolish(p, "gorizontal", 3); break;
+    case "yoy": {
+      // egilgan impost: tepada lenta (gluxoy), pastda boʻlakning oʻzi; tepada yoy boʻlsa unga parallel
+      const o = geometriya(tahrir).barglar.find((x) => x.p === p);
+      if (!o) { orqaga.pop(); return; }
+      const c = o.tY ? yoyChuqurligi(o.tY, o.x, o.x + o.w) : yaxlit(o.w * 0.2);
+      const s0 = yaxlit(Math.max(10, (o.h - c) * 0.3));
+      if (s0 + c >= o.h - 10) { orqaga.pop(); xabar("Yoy impost uchun boʻy yetmaydi"); return; }
+      almashtir(p, { tur: "bolinish", yonalish: "gorizontal", egilgan: o.tY ? {} : { chuqurlik: c }, olchamlar: [s0, null], bolaklar: [{ tur: "gluxoy" }, b] });
+      break;
+    }
     case "shtulp":
       almashtir(p, { tur: "eshik", tabaqa_soni: 2, ochilish: b.tur === "eshik" ? b.ochilish : eshikOchilish, aktiv: b.aktiv || "ong" }); break;
     case "ochir": if (!ochir(p)) { orqaga.pop(); xabar("Bitta boʻlakni oʻchirib boʻlmaydi"); return; } break;
@@ -388,15 +553,39 @@ function soraSon(sarlavha, qiymat, boshMumkin) {
 }
 
 async function olchamniOzgartir(kalit) {
-  if (kalit === "L" || kalit === "H" || kalit === "chap" || kalit === "ong") {
+  if (kalit === "arka") {
+    const j = await soraSon(`Arka balandligi, sm (yarim doira = ${yx(Number(tahrir.L) / 2)})`, tahrir.arka.balandlik, false);
+    if (!j) return;
+    const a = Math.min(j.son, Number(tahrir.L) / 2);
+    if (a >= Number(tahrir.H)) { xabar("Arka balandligi H dan kichik boʻlishi kerak"); return; }
+    saqlaTarix();
+    tahrir.arka = { balandlik: yaxlit(a) };
+    if (a < j.son) { yangila(); xabar("Arka L/2 dan baland boʻlmaydi: yarim doira qilindi"); return; }
+  } else if (kalit === "L" || kalit === "H" || kalit === "chap" || kalit === "ong") {
     const nom = { L: "Umumiy eni (L), sm", H: "Umumiy boʻyi (H), sm", chap: "Chap yon oyna eni, sm", ong: "Oʻng yon oyna eni, sm" }[kalit];
     const j = await soraSon(nom, tahrir[kalit], false);
     if (!j) return;
     saqlaTarix();
     tahrir[kalit] = j.son;
+    if (tahrir.arka && Number(tahrir.arka.balandlik) > Number(tahrir.L) / 2) tahrir.arka = { balandlik: yaxlit(Number(tahrir.L) / 2) };
   } else {
     const [p, i] = kalit.split("|");
     const b = tugun(tahrir.bolak, p);
+    if (i === "yoy") {
+      const bo = geometriya(tahrir).bolinishlar.find((x) => x.p === p);
+      const j = await soraSon(bo.tY ? "Yoy impost chuqurligi, sm (Teng — arkaga parallel)" : "Yoy impost chuqurligi, sm", b.egilgan.chuqurlik ?? bo.egilgan, !!bo.tY);
+      if (!j) return;
+      saqlaTarix();
+      if (j.bosh) b.egilgan = {};
+      else {
+        const c = Math.min(j.son, bo.w / 2);
+        if (b.olchamlar[0] != null && Number(b.olchamlar[0]) + c >= bo.h - 5) { orqaga.pop(); xabar("Bu chuqurlikka boʻy yetmaydi"); return; }
+        b.egilgan = { chuqurlik: yaxlit(c) };
+        if (c < j.son) xabar("Chuqurlik eni yarmidan katta boʻlmaydi");
+      }
+      yangila();
+      return;
+    }
     const v = b.yonalish === "vertikal";
     const j = await soraSon(`Boʻlak ${v ? "eni" : "boʻyi"}, sm (chetdan impost oʻrtasigacha)`, b.olchamlar[+i], true);
     if (!j) return;
@@ -652,7 +841,7 @@ function maydonOzgardi(e) {
     const x = sonOl(el.value);
     if (x == null || x <= 0) { if (m === "chap" || m === "ong") delete k[m]; else return; } else k[m] = x;
   } else if (m === "lapsha") {
-    if (el.checked) { k.tur = "lapshali"; k.chap = k.chap ?? 50; k.ong = k.ong ?? 50; }
+    if (el.checked) { k.tur = "lapshali"; k.chap = k.chap ?? 50; k.ong = k.ong ?? 50; delete k.arka; }
     else { delete k.tur; delete k.chap; delete k.ong; }
     sozlamaOynasi();
   }
@@ -677,6 +866,7 @@ $("k-asboblar").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   if (surildi) { surildi = false; return; }  // surib tashlangandan keyingi "click" hisoblanmaydi
+  if (bolim === "shakl" && b.dataset.asbob) { shaklniQolla(b.dataset.asbob); return; }
   if (b.dataset.ochilish != null) eshikOchilish = eshikOchilish === "ichkariga" ? "tashqariga" : "ichkariga";
   else asbob = asbob === b.dataset.asbob ? null : b.dataset.asbob;
   yangila();
@@ -797,7 +987,7 @@ function barmoqOstidagiBolak(x, y) {
 
 $("k-asboblar").addEventListener("pointerdown", (e) => {
   const b = e.target.closest("button[data-asbob]");
-  if (!b || !tahrir) return;
+  if (!b || !tahrir || bolim === "shakl") return;
   surish = { id: b.dataset.asbob, x0: e.clientX, y0: e.clientY, kochdi: false, soya: null, p: null, tugma: b };
 });
 
