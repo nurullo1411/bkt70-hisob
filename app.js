@@ -359,6 +359,7 @@ function hisobKitobniChiz() {
   const chegirma = (Number(h.chegirma_som) || 0) / kurs, avans = (Number(h.avans_som) || 0) / kurs;
   $("j-ust").textContent = ustama ? "+ " + pul(ustama) : "";
   $("j-mijoz").textContent = pul(mijozga);
+  $("x-narx").textContent = pul(mijozga);
   $("j-tolov").textContent = pul(mijozga - chegirma);
   $("j-qoldiq").textContent = pul(mijozga - chegirma - avans);
   const narxSom = Math.round((mijozga - chegirma) * kurs);
