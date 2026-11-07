@@ -27,25 +27,32 @@
   </section>
 
   <section class="bosh-hero">
-    <button id="yangi" class="hero-tugma"><span class="hero-plus">+</span><span><b>Yangi zakaz</b><small>Oʻlcham bilan chizib hisoblash</small></span></button>
-    <div class="hero-plitka">
+    <button id="kiritish" class="hero-tugma" aria-expanded="false"><span class="hero-plus">+</span><span><b>Buyurtma kiritish</b><small>Rasmdan, PDF dan yoki qoʻlda</small></span></button>
+    <div id="kiritish-tanlov" class="hero-plitka" hidden>
       <label class="plitka"><span>📷</span>Rasmdan<input data-rasm="yangi" type="file" accept="image/*" hidden></label>
       <label class="plitka"><span>📄</span>PDF dan<input data-rasm="yangi" type="file" accept="application/pdf,.pdf" hidden></label>
-      <label class="plitka"><span>📂</span>Fayl<input id="fayl" type="file" accept=".json,application/json" hidden></label>
+      <button id="yangi" class="plitka"><span>✏️</span>Qoʻlda</button>
     </div>
     <div class="hero-pastki">
       <label class="kurs-pill" for="kurs">1 $ = <input id="kurs" type="number" inputmode="decimal" min="1" step="1"> soʻm</label>
-      <span class="hero-havola"><button id="matn-tugma" class="havola">Matn qoʻyish</button> · <button id="namuna" class="havola">Namuna</button></span>
+    </div>
+  </section>
+
+  <button id="davom" class="davom karta" hidden></button>
+  <div class="bosh-sarlavha">Buyurtmalar</div>
+  <div id="arxiv-tablar" class="bosh-bolimlar"></div>
+  <details class="boshqa">
+    <summary>Boshqa</summary>
+    <div class="boshqa-ich">
+      <label class="havola">Zakaz faylini ochish (JSON)<input id="fayl" type="file" accept=".json,application/json" hidden></label>
+      <button id="matn-tugma" class="havola">Matn qoʻyish</button>
+      <button id="namuna" class="havola">Namuna zakaz</button>
     </div>
     <div id="matn-quti" hidden>
       <textarea id="matn" rows="6" placeholder="Claude bergan zakaz JSON matnini shu yerga qoʻying"></textarea>
       <button id="matn-hisobla" class="tugma asosiy">Hisobla</button>
     </div>
-  </section>
-
-  <button id="davom" class="davom karta" hidden></button>
-  <div class="bosh-sarlavha">Zakazlarim</div>
-  <div id="arxiv-tablar" class="bosh-bolimlar"></div>
+  </details>
  </div>
 
  <div id="e-royxat" class="ekran" hidden>

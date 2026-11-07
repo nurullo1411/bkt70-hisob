@@ -152,7 +152,7 @@ function ekran(nom, push = true) {
   if (push && nom !== joriyEkran) history.pushState({ ekran: nom }, "");
   joriyEkran = nom;
   $("orqaga").hidden = nom === "bosh";
-  const bolim = HOLATLAR.find((h) => h[0] === arxivTab);
+  const bolim = BOSH_BOLIMLAR.find((h) => h[0] === arxivTab) || HOLATLAR.find((h) => h[0] === arxivTab);
   $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : "Buyurtma maʼlumotlari";
   if (nom !== "zakaz") arxivniChiz();
   window.scrollTo(0, 0);
@@ -178,7 +178,11 @@ window.addEventListener("popstate", (e) => {
 history.replaceState({ ekran: "bosh" }, "");
 
 // ---------- zakazlar arxivi (Romchi "Buyurtmalar"): telefonda saqlanadi ----------
-const HOLATLAR = [["yangi", "Yangi"], ["jarayonda", "Ish jarayonida"], ["qarzdor", "Qarzdor"], ["tugatilgan", "Tugatilgan"]];
+const HOLATLAR = [["yangi", "Hisoblangan"], ["jarayonda", "Boshlangan"], ["qarzdor", "Qarzdor"], ["tugatilgan", "Tugallangan"]];
+// Bosh sahifa boʻlimlari (foydalanuvchi, 2026-11-07); qarzdor hozircha tugallanganlar ichida
+const BOSH_BOLIMLAR = [["yangi", "Hisoblangan buyurtmalar", ["yangi"]], ["jarayonda", "Boshlangan ishlar", ["jarayonda"]],
+  ["tugatilgan", "Tugallangan ishlar", ["tugatilgan", "qarzdor"]]];
+const bolimHolatlari = (tab) => (BOSH_BOLIMLAR.find((b) => b[0] === tab) || [0, 0, [tab]])[2];
 function arxivOl() { try { return JSON.parse(ol("zakazlar") || "[]"); } catch (e) { return []; } }
 function arxivYoz(a) { try { localStorage.setItem("zakazlar", JSON.stringify(a)); } catch (e) {} }
 function belgila(z) {
@@ -200,26 +204,33 @@ function arxivga(matn) {
   arxivniChiz();
 }
 let arxivTab = "yangi";
+// Roʻyxatdan keyingi boʻlimga oʻtkazish (foydalanuvchi, 2026-11-07)
+function keyingiHolat(z) {
+  const h = z.holat || "yangi";
+  if (h === "yangi") return `<button data-holatga="${z.id}|jarayonda" class="tugma keng holat-ot">Ishga tushirish →</button>`;
+  if (h === "jarayonda") return `<button data-holatga="${z.id}|tugatilgan" class="tugma keng holat-ot yashil">Tugatildi ✓</button>`;
+  return "";
+}
 function arxivniChiz() {
   const a = arxivOl();
   const narxi = (z) => Number(z.narx_som) || 0;
-  const BELGI = { yangi: ["⬇", "#e3f2fd", "#1e88e5"], jarayonda: ["🛠", "#fff8e1", "#f9a825"], qarzdor: ["⏰", "#ffebee", "#e53935"], tugatilgan: ["✔", "#e8f5e9", "#43a047"] };
-  $("arxiv-tablar").innerHTML = HOLATLAR.map(([k, y]) => {
-    const t = a.filter((z) => (z.holat || "yangi") === k);
+  const BELGI = { yangi: ["🧮", "#e3f2fd", "#1e88e5"], jarayonda: ["🛠", "#fff8e1", "#f9a825"], qarzdor: ["⏰", "#ffebee", "#e53935"], tugatilgan: ["✔", "#e8f5e9", "#43a047"] };
+  $("arxiv-tablar").innerHTML = BOSH_BOLIMLAR.map(([k, y, hl]) => {
+    const t = a.filter((z) => hl.includes(z.holat || "yangi"));
     const [b, fon, rang] = BELGI[k];
-    return `<button data-tab="${k}" class="bolim-k" style="--b-rang:${rang};--b-fon:${fon}"><span class="bolim-yuqori"><span class="bolim-belgi">${b}</span><span class="bolim-son">${t.length}</span></span>
-      <b>${y}</b><span class="bolim-summa">${t.length ? som(t.reduce((s, z) => s + narxi(z), 0)) : "—"}</span></button>`;
+    return `<button data-tab="${k}" class="bolim-k" style="--b-rang:${rang};--b-fon:${fon}"><span class="bolim-yuqori"><span class="bolim-belgi">${b}</span></span>
+      <span class="bolim-matn2"><b>${y}</b><span class="bolim-summa">${t.length ? som(t.reduce((s, z) => s + narxi(z), 0)) : "—"}</span></span><span class="bolim-katta">${t.length}</span></button>`;
   }).join("");
   const dv = $("davom");
   dv.hidden = !(zakaz && zakaz.konstruksiyalar && zakaz.konstruksiyalar.length);
   if (!dv.hidden) dv.innerHTML = `<span class="xira">Oxirgi ochilgan</span><b>№${esc(zakaz.raqam ?? "")} · ${esc((zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "")}</b><span class="bolim-oq">›</span>`;
-  const t = a.filter((z) => (z.holat || "yangi") === arxivTab);
+  const t = a.filter((z) => bolimHolatlari(arxivTab).includes(z.holat || "yangi"));
   $("arxiv").innerHTML = t.map((z) => `<div class="arxiv-k${zakaz && zakaz.id === z.id ? " joriy" : ""}">
       <div class="arxiv-eskiz">${z.konstruksiyalar[0] ? chizmaSVG(z.konstruksiyalar[0], { kichik: true }) : ""}</div>
       <div class="arxiv-matn"><span class="xira">№${esc(z.raqam ?? "")} · ${esc(z.sana || "")}</span>
         <b>${esc((z.mijoz && z.mijoz.ism) || z.nom || "Mijoz")}</b>
         <span>${narxi(z) ? som(narxi(z)) : "—"}</span></div>
-      <div class="arxiv-tugma"><button data-och="${z.id}" class="tugma asosiy">Ochish</button><button data-dub="${z.id}" class="tugma">Dublikat</button><button data-arx-ochir="${z.id}" class="tugma">Oʻchirish</button></div>
+      ${keyingiHolat(z)}<div class="arxiv-tugma"><button data-och="${z.id}" class="tugma asosiy">Ochish</button><button data-dub="${z.id}" class="tugma">Dublikat</button><button data-arx-ochir="${z.id}" class="tugma">Oʻchirish</button></div>
     </div>`).join("") || '<p class="xira">Bu boʻlimda zakaz yoʻq.</p>';
 }
 
@@ -583,6 +594,10 @@ document.querySelectorAll("[data-mijoz]").forEach((el) => el.addEventListener("i
   if (v) zakaz.mijoz[el.dataset.mijoz] = v; else delete zakaz.mijoz[el.dataset.mijoz];
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
 }));
+$("kiritish").addEventListener("click", () => {
+  const t = $("kiritish-tanlov"); t.hidden = !t.hidden;
+  $("kiritish").setAttribute("aria-expanded", String(!t.hidden));
+});
 $("yangi").addEventListener("click", () => {
   // Joriy zakaz arxivda saqlangan (Zakazlarim), shuning uchun soʻramaymiz
   if (!ol("narxlar")) { xato("Avval narxlar faylini yuklang."); return; }
@@ -604,7 +619,7 @@ $("holatlar").addEventListener("click", (e) => {
   const b = e.target.closest("[data-holat]");
   if (!b) return;
   zakaz.holat = b.dataset.holat;
-  arxivTab = zakaz.holat;
+  arxivTab = zakaz.holat === "qarzdor" ? "tugatilgan" : zakaz.holat;
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   hisobKitobniChiz();
 });
@@ -616,6 +631,17 @@ $("arxiv").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   const a = arxivOl(), d = b.dataset;
+  if (d.holatga) {
+    const [id, h] = d.holatga.split("|");
+    const z = a.find((x) => x.id === id);
+    if (!z) return;
+    z.holat = h;
+    arxivYoz(a);
+    if (zakaz && zakaz.id === id) { zakaz.holat = h; saqla("oxirgi_zakaz", JSON.stringify(zakaz)); }
+    holat(h === "jarayonda" ? "Boshlangan ishlarga oʻtdi" : "Tugallangan ishlarga oʻtdi");
+    arxivniChiz();
+    return;
+  }
   if (d.och) {
     const z = a.find((x) => x.id === d.och);
     if (z) zakazniOch(JSON.stringify(z));

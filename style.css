@@ -465,3 +465,18 @@ header h1 { letter-spacing: .2px; }
   .bosh-bolimlar .bolim-k::after { background: var(--b-rang); opacity: .1; }
   .bosh-bolimlar .bolim-belgi { background: color-mix(in srgb, var(--b-rang) 18%, transparent); }
 }
+.boshqa { margin-top: 18px; color: var(--xira); font-size: 14px; }
+.boshqa summary { font-size: 13px; font-weight: 600; color: var(--xira); padding: 6px 2px; }
+.boshqa-ich { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 4px 2px; }
+.hero-plitka[hidden] { display: none; }
+button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
+/* bosh sahifa: 3 boʻlim, keng qator */
+.bosh-bolimlar { grid-template-columns: 1fr; }
+.bosh-bolimlar .bolim-k { flex-direction: row; align-items: center; gap: 12px; }
+.bosh-bolimlar .bolim-k .bolim-yuqori { width: auto; flex: 0 0 auto; }
+.bosh-bolimlar .bolim-k .bolim-son { display: none; }
+.bosh-bolimlar .bolim-k .bolim-matn2 { flex: 1; display: flex; flex-direction: column; }
+.bosh-bolimlar .bolim-k b { margin-top: 0; font-size: 16px; }
+.bolim-katta { font-size: 26px; font-weight: 800; color: var(--b-rang); position: relative; z-index: 1; }
+.holat-ot { grid-column: 1 / -1; margin: 4px 0 0; background: color-mix(in srgb, var(--asosiy) 10%, var(--karta)); color: var(--asosiy); border-color: var(--asosiy); font-weight: 700; }
+.holat-ot.yashil { background: color-mix(in srgb, var(--yaxshi) 12%, var(--karta)); color: var(--yaxshi); border-color: var(--yaxshi); }
