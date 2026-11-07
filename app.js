@@ -421,6 +421,29 @@ function kesishniChiz() {
   $("kesish").innerHTML = d.xato ? `<p class="ogoh">${esc(d.xato)}</p>` : kesishHtml(d.ok);
 }
 
+// ---------- material rasmi (katalogdan; furnitura rasmi kelguncha belgi) ----------
+const RASMLAR = ["A01-002", "A01-003", "A01-005", "A10-001", "A10-002", "A10-003", "A1501_5", "A701", "A8060", "EPD001", "F702", "F703", "G24", "G32", "H702", "M702", "V702", "V707", "V708"];
+const RASM_KODLAR = RASMLAR.map((f) => [f.replace("_", "."), f]).sort((a, b) => b[0].length - a[0].length);
+const BELGILAR = [[/ruchka/i, "✋"], [/zamok|serdtsevina|otvetka|a4202|cylinder/i, "🔒"], [/petlya|nojnitsa|dv\. otk/i, "🔗"],
+  [/tij/i, "📏"], [/samorez|yhbm|3,9×19/i, "🔩"], [/kley|k188/i, "🧴"], [/pena|mk 01/i, "🧯"], [/podokonnik/i, "▭"],
+  [/zatsep|zapor|prijim|ogranichitel|shpingalet|a4514/i, "🔧"], [/takos|ct 203/i, "▪"], [/soed|w0|m535|j0|01\.553/i, "📐"], [/arka/i, "◠"]];
+function materialRasm(artikul, kichik = true) {
+  const a = String(artikul || "");
+  const t = RASM_KODLAR.find(([k]) => new RegExp("(^|[^0-9A-Z])" + k.replace(/[.]/g, "[.]") + "($|[^0-9])").test(a));
+  if (t) return `<img class="m-rasm" src="rasm/${t[1]}.webp" alt="" loading="lazy" data-katta="rasm/${t[1]}.webp">`;
+  const b = BELGILAR.find(([r]) => r.test(a));
+  return `<span class="m-rasm belgi">${b ? b[1] : "•"}</span>`;
+}
+document.addEventListener("click", (e) => {
+  const im = e.target.closest("img[data-katta]");
+  if (!im) return;
+  const p = document.createElement("div");
+  p.className = "rasm-parda";
+  p.innerHTML = `<img src="${im.dataset.katta}" alt="">`;
+  p.addEventListener("click", () => p.remove());
+  document.body.appendChild(p);
+});
+
 function chiz() {
   const n = natija;
   hisobKitobniChiz();
@@ -438,7 +461,7 @@ function chiz() {
       html += `<div class="bolim">${esc(bolim)}</div><table><tr><th>Nomi</th><th class="son">Miqdor</th><th class="son">Summa</th></tr>`;
     }
     const nom = m.artikul + (m.izoh !== "" && m.bolim !== "Oyna" ? "" : "") + (m.bolim === "Oyna" ? ` (${m.izoh} mm)` : "");
-    html += `<tr><td>${esc(nom)}</td><td class="son">${son(m.jami)} ${esc(m.birlik)}</td><td class="son">${usd(m.summa)}</td></tr>`;
+    html += `<tr><td class="m-nom">${m.bolim === "Oyna" || m.bolim === "Profil otxod" ? "" : materialRasm(m.artikul)}${esc(nom)}</td><td class="son">${son(m.jami)} ${esc(m.birlik)}</td><td class="son">${usd(m.summa)}</td></tr>`;
   }
   $("materiallar").innerHTML = html + (bolim ? "</table>" : "");
 
@@ -840,7 +863,7 @@ $("diller-pdf").addEventListener("click", async () => {
   const r = dillerOl("diller_royxati", sk ? sk.qatorlar : null);
   if (r.xato) { alert("Roʻyxat chiqmadi: " + r.xato); return; }
   const d = r.ok;
-  const qator = d.qatorlar.map((q, i) => `<tr><td>${i + 1}</td><td>${esc(q.nomi)}${q.izoh ? ` <span class="dl-izoh">(${esc(q.izoh)})</span>` : ""}</td><td class="son">${son(q.soni, 2)} ${esc(q.birlik)}</td></tr>`).join("");
+  const qator = d.qatorlar.map((q, i) => `<tr><td>${i + 1}</td><td class="m-nom">${materialRasm(q.nomi)}<span>${esc(q.nomi)}${q.izoh ? ` <span class="dl-izoh">(${esc(q.izoh)})</span>` : ""}</span></td><td class="son">${son(q.soni, 2)} ${esc(q.birlik)}</td></tr>`).join("");
   const izoh = [...(skIzoh ? [skIzoh] : []), ...d.izohlar];
   chopEt(`<div class="dl">
     <div class="p-sarlavha">Dillerga roʻyxat — ${esc(zakazNomi())}</div>
