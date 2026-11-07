@@ -7,7 +7,7 @@
 const RANGLAR = ["Laminatsiya", "Svetnoy (kraska)", "Oq", "Anod"];
 const ESHIK_RUCHKA = ["Komfort dver ruchka", "Stublina 1177", "Stublina 1177 (Uz)", "Ruchka Dver (1076.92.28) (Qora)"];
 const ZAMOKLAR = ["Zamok Dver (3147) (Otvetka) (Tr)", "TERMO Zamok Dvernoy GIESSE", "Stublina Serbia"];
-const PETLYALAR = ["(A8060) 2SK TERMO Petlya (Tr)", "(A8060) 2SK TERMO Petlya (Uz)", "(A9211.3) 2SK TERMO Petlya (Tr)"];
+const PETLYALAR = ["(A8060) 2SK TERMO Petlya (Tr)", "(A8060) 2SK TERMO Petlya (Uz)"];  // A9211.3 — rom petlyasi, eshikka emas
 
 const nusxa = (x) => JSON.parse(JSON.stringify(x));
 let tahrir = null;      // tahrirlanayotgan konstruksiya (nusxa)
@@ -981,6 +981,21 @@ function ornat(joy, kalit, qiymat) {
   }
 }
 
+// Eshik furniturasi (foydalanuvchi, 2026-11-07): konstruksiyaga alohida; tanlanmasa — zakazning standarti
+function eshikFurnitura(k) {
+  const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
+  const bolim = (nom, kalit, royxat, asos) => {
+    const std = ut[kalit] ?? asos;
+    return `<div class="sz-bolim">${nom}</div>
+    <div class="sz-seg sz-fur">${[[null, `Standart <small>${esc(std || "—")}</small>`], ...royxat.map((x) => [x, esc(x)])]
+      .map(([v, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(v))}" class="${(v == null ? t[kalit] == null : t[kalit] === v) ? " faol" : ""}">${y}</button>`).join("")}</div>`;
+  };
+  return `<div class="sz-sarlavha">Eshik furniturasi</div>` +
+    bolim("Ruchka", "ruchka", ESHIK_RUCHKA, ESHIK_RUCHKA[0]) +
+    bolim("Zamok", "zamok", ZAMOKLAR, ZAMOKLAR[0]) +
+    bolim("Petlya", "petlya", PETLYALAR, PETLYALAR[0]);
+}
+
 function sozlamaOynasi() {
   const k = tahrir;
   const lap = k.tur === "lapshali";
@@ -1008,6 +1023,7 @@ function sozlamaOynasi() {
 
     <div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
     <div class="sz-seg">${[["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]].map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>
+    ${eshiklar(k.bolak).length ? eshikFurnitura(k) : ""}
 
     <div class="sz-bolim">Konstruksiya</div>
     <div class="panjara">
@@ -1144,6 +1160,9 @@ $("k-tozala").addEventListener("click", () => {
 // ---------- umumiy tanlovlar ----------
 function sozlamaniChiz() {
   const u = zakaz.umumiy, t = u.tanlov || (u.tanlov = {});
+  // tanlanmasa standart (foydalanuvchi, 2026-11-07)
+  if (t.ruchka == null) t.ruchka = ESHIK_RUCHKA[0];
+  if (t.zamok == null) t.zamok = ZAMOKLAR[0];
   const qator = (yorliq, html) => `<label>${yorliq}${html}</label>`;
   const qoshib = (royxat, qiymat) => (qiymat != null && !royxat.includes(qiymat) ? [qiymat, ...royxat] : royxat).map((x) => [x, x]);
   $("sozlama").innerHTML = `<div class="panjara">
@@ -1152,8 +1171,8 @@ function sozlamaniChiz() {
     ${qator("Rang", tanlov("t:rang", t.rang, qoshib(RANGLAR, t.rang)))}
     ${qator("Steklopaket", tanlov("t:oyna_turi", t.oyna_turi, qoshib(oynaTurlari(), t.oyna_turi)))}
     ${qator("Oyna qalinligi", tanlov("s:oyna_qalinligi", u.oyna_qalinligi ?? 24, [[24, "24 mm"], [32, "32 mm"]]))}
-    ${qator("Eshik ruchkasi", tanlov("t:ruchka", t.ruchka ?? null, [[null, "—"], ...qoshib(ESHIK_RUCHKA, t.ruchka)]))}
-    ${qator("Zamok", tanlov("t:zamok", t.zamok ?? null, [[null, "—"], ...qoshib(ZAMOKLAR, t.zamok)]))}
+    ${qator("Eshik ruchkasi", tanlov("t:ruchka", t.ruchka, qoshib(ESHIK_RUCHKA, t.ruchka)))}
+    ${qator("Zamok", tanlov("t:zamok", t.zamok, qoshib(ZAMOKLAR, t.zamok)))}
     ${qator("Petlya", tanlov("t:petlya", t.petlya ?? PETLYALAR[0], qoshib(PETLYALAR, t.petlya)))}
     ${qator("Impost soedineli", tanlov("t:impost_soedinitel", t.impost_soedinitel ?? "ugol", [["ugol", "01.553 ugol"], ["J01+J05", "236 J01 + J05"]]))}
     ${qator("Vertikal shtapik", tanlov("t:vertikal_shtapik", t.vertikal_shtapik ?? "R", [["R", "G…-R"], ["oddiy", "oddiy G"]]))}

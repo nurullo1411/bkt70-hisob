@@ -405,3 +405,8 @@ header h1 { flex: 1; }
 #k-asboblar { flex-wrap: wrap; overflow: visible; }
 #k-asboblar button.nomli { width: 52px; height: 52px; padding: 6px; }
 #k-asboblar button.nomli .ik, #k-asboblar button.nomli svg { width: 34px; height: 34px; }
+
+/* eshik furniturasi */
+.sz-sarlavha { margin: 18px 0 2px; font-weight: 700; font-size: 17px; border-top: 1px solid var(--chiziq); padding-top: 12px; }
+.sz-fur button { flex: 1 1 45%; text-align: left; font-size: 14px; }
+.sz-fur button small { display: block; font-size: 11px; opacity: .75; }
