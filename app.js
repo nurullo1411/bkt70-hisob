@@ -690,6 +690,7 @@ $("pdf-ber").addEventListener("click", () => {
 });
 
 function pdfHtml(o) {
+  // Oʻz uslubimiz (Romchidan farqli): hisob-faktura jadvali + 2 ustunli chizma kartalari
   const n = natija, kurs = n.kurs, m = zakaz.mijoz || {}, h = hk();
   const k1 = 1 + (Number(h.ustama_foiz) || 0) / 100;
   const chegirma = Number(h.chegirma_som) || 0, avans = Number(h.avans_som) || 0;
@@ -699,33 +700,36 @@ function pdfHtml(o) {
   const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) > 0);
   const jamiSoni = faol.reduce((a, k) => a + (k.soni ?? 1), 0);
   const jamiM2 = faol.reduce((a, k) => a + yuza(k) * (k.soni ?? 1), 0);
-  const q = (y, v) => (v ? `<tr><td>${esc(y)}</td><td><b>${esc(v)}</b></td></tr>` : "");
-  let s = `<div class="p-bosh"><div><div class="p-sarlavha">BUYURTMA MAʼLUMOTI</div>
-      <div>Buyurtma raqami: <b>№${esc(zakaz.raqam ?? "")}</b> · Sana: <b>${esc(zakaz.sana || new Date().toISOString().slice(0, 10))}</b></div></div></div>
-    <div class="p-ikki"><table class="p-jad">
-      ${q("Buyurtmachi", m.ism)}${q("Telefon", m.telefon)}${q("Manzil", m.manzil)}${q("Muddat", m.muddat)}
-      ${q("Bajaruvchi", ol("bajaruvchi"))}${q("Telefon", ol("bajaruvchi_tel"))}
-      <tr><td>Umumiy soni</td><td><b>${jamiSoni} dona</b></td></tr><tr><td>Umumiy yuzasi</td><td><b>${son(jamiM2, 2)} m²</b></td></tr></table>
-    ${o.narx ? `<table class="p-jad p-narx"><tr><td>Boshlangʻich narx</td><td><b>${som(boshlang)}</b></td></tr>
-      <tr><td>Chegirma</td><td><b>${som(chegirma)}</b></td></tr>
-      <tr class="yashil"><td>Kelishilgan narx</td><td><b>${som(boshlang - chegirma)}</b></td></tr>
-      ${avans ? `<tr><td>Avans</td><td><b>${som(avans)}</b></td></tr><tr><td>Qoldiq</td><td><b>${som(boshlang - chegirma - avans)}</b></td></tr>` : ""}</table>` : ""}</div>`;
+  const kHisob = (k) => hisob[k.nom || "K" + (zakaz.konstruksiyalar.indexOf(k) + 1)];
+  const malumot = (y, v) => (v ? `<div><span>${esc(y)}</span><b>${esc(v)}</b></div>` : "");
+  let s = `<div class="p-bosh"><div><div class="p-sarlavha">BUYURTMA №${esc(zakaz.raqam ?? "")}</div>
+      <div>${esc(zakaz.sana || new Date().toISOString().slice(0, 10))} · TERMO 70 (BKT 70)</div></div>
+      ${ol("bajaruvchi") ? `<div class="p-baj"><b>${esc(ol("bajaruvchi"))}</b>${ol("bajaruvchi_tel") ? `<span>${esc(ol("bajaruvchi_tel"))}</span>` : ""}</div>` : ""}</div>
+    <div class="p-mijoz">${malumot("Buyurtmachi", m.ism)}${malumot("Telefon", m.telefon)}${malumot("Manzil", m.manzil)}${malumot("Muddat", m.muddat)}</div>
+    <table class="p-faktura"><thead><tr><th>№</th><th>Nomi</th><th>Oʻlchami, sm</th><th>Soni</th><th>Yuzasi</th>${o.narx ? "<th>Narxi</th>" : ""}</tr></thead><tbody>
+    ${faol.map((k, i) => { const x = kHisob(k); return `<tr><td>${i + 1}</td><td>${esc(k.nom)}</td><td>${esc(k.L)} × ${esc(k.H)}</td><td>${k.soni ?? 1}</td><td>${son(yuza(k) * (k.soni ?? 1), 2)} m²</td>${o.narx ? `<td>${x ? som(x.jami_usd * k1 * kurs) : "—"}</td>` : ""}</tr>`; }).join("")}
+    </tbody><tfoot><tr><td></td><td>Jami</td><td></td><td>${jamiSoni}</td><td>${son(jamiM2, 2)} m²</td>${o.narx ? `<td>${som(boshlang)}</td>` : ""}</tr></tfoot></table>`;
+  if (o.narx) {
+    s += `<div class="p-jami">${chegirma ? `<div><span>Chegirma</span><b>− ${som(chegirma)}</b></div>` : ""}
+      <div class="p-asosiy"><span>Kelishilgan narx</span><b>${som(boshlang - chegirma)}</b></div>
+      ${avans ? `<div><span>Avans</span><b>${som(avans)}</b></div><div class="p-qoldiq"><span>Qoldiq</span><b>${som(boshlang - chegirma - avans)}</b></div>` : ""}</div>`;
+  }
+  s += `<div class="p-kartalar">`;
   faol.forEach((k, i) => {
     const t = { ...(u.tanlov || {}), ...(k.tanlov || {}) };
-    const hk_ = hisob[k.nom || "K" + (zakaz.konstruksiyalar.indexOf(k) + 1)];
-    s += `<div class="p-k"><div class="p-rasm"><b>${i + 1}.</b>${chizmaSVG(k, { kichik: !o.olcham })}</div>
-      <table class="p-jad">${q("Nomi", k.nom)}${q("Seriya", "TERMO 70 (BKT 70)")}${q("Rama", k.rama || u.rama)}
-        ${q("Rang", t.rang_nomi ? `${t.rang} (${t.rang_nomi})` : t.rang)}
-        ${q("Oyna", `${t.oyna_turi || ""} ${k.oyna_qalinligi || u.oyna_qalinligi || 24} mm`)}
-        ${q("Oʻlchami", `${k.L} × ${k.H} sm`)}${q("Yuzasi", son(yuza(k), 2) + " m²")}${q("Soni", (k.soni ?? 1) + " dona")}
-        ${q("Izoh", k.eslatma)}
-        ${o.narx && hk_ ? `<tr class="yashil"><td>Narxi</td><td><b>${som(hk_.jami_usd * k1 * kurs)}</b></td></tr>` : ""}</table></div>`;
+    const x = kHisob(k);
+    s += `<div class="p-k"><div class="p-k-bosh"><b class="p-raqam">${i + 1}</b><b>${esc(k.nom)}</b><span>${esc(k.L)} × ${esc(k.H)} sm · ${k.soni ?? 1} dona</span></div>
+      <div class="p-rasm">${chizmaSVG(k, { kichik: !o.olcham })}</div>
+      <div class="p-xus">${malumot("Rama", k.rama || u.rama)}${malumot("Rang", t.rang_nomi ? `${t.rang} (${t.rang_nomi})` : t.rang)}
+        ${malumot("Oyna", `${t.oyna_turi || ""} ${k.oyna_qalinligi || u.oyna_qalinligi || 24} mm`)}${malumot("Yuzasi", son(yuza(k), 2) + " m²")}
+        ${malumot("Izoh", k.eslatma)}${o.narx && x ? malumot("Narxi", som(x.jami_usd * k1 * kurs)) : ""}</div></div>`;
   });
+  s += `</div>`;
   if (o.mat) {
-    s += `<div class="p-k p-mat"><b>Kerakli materiallar</b><table class="p-jad">` +
+    s += `<div class="p-mat"><b>Kerakli materiallar</b><table class="p-jad">` +
       n.materiallar.filter((x) => x.bolim !== "Profil otxod").map((x) => `<tr><td>${esc(x.artikul)}${x.bolim === "Oyna" ? ` (${esc(x.izoh)} mm)` : ""}</td><td>${son(x.jami)} ${esc(x.birlik)}</td></tr>`).join("") + "</table></div>";
   }
-  s += `<div class="p-oxir">Umumiy yuzasi: <b>${son(jamiM2, 2)} m²</b>${o.usul ? `<br>Profil hisobi: ${esc(n.otxod_usuli_nomi)}` : ""}${m.izoh ? `<br>Izoh: ${esc(m.izoh)}` : ""}</div>`;
+  if (o.usul || m.izoh) s += `<div class="p-izoh">${o.usul ? `Profil hisobi: ${esc(n.otxod_usuli_nomi)}` : ""}${o.usul && m.izoh ? "<br>" : ""}${m.izoh ? `Izoh: ${esc(m.izoh)}` : ""}</div>`;
   return s;
 }
 

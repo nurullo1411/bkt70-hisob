@@ -883,7 +883,7 @@ function qoralamaniTikla() {
 
 function yangila() {
   saqla("qoralama", JSON.stringify({ tahrir, indeks: tahrirIndeks, orqaga: orqaga.slice(-20) }));
-  $("k-nom").textContent = `${tahrir.nom || ""} · ${yx(Number(tahrir.L))} × ${yx(Number(tahrir.H))}${(tahrir.soni ?? 1) > 1 ? " · " + tahrir.soni + " dona" : ""}`;
+  $("k-nom").innerHTML = `<b>${esc(tahrir.nom || "")}</b><span>${yx(Number(tahrir.L))} × ${yx(Number(tahrir.H))} sm${(tahrir.soni ?? 1) > 1 ? " · " + tahrir.soni + " dona" : ""}</span>`;
   asboblarniChiz();
   $("k-chizma").innerHTML = chizmaSVG(tahrir, { tanlangan: asbob ? null : tanlangan });
   panelniChiz();
@@ -930,7 +930,7 @@ function oldindanHisobla() {
     }
     const k = d.ok.konstruksiyalar[0];
     const oy = d.ok.oynalar.map((o) => `${o.joy} ${son(o.en, 2)}×${son(o.boy, 2)}${o.soni > 1 ? " ×" + o.soni : ""}`).join("; ");
-    $("k-holat").innerHTML = `<b>1 dona: ${usd(k.bir_dona_usd)}</b>${k.izoh ? `<br><span class="ogoh">${esc(k.izoh)}</span>` : ""}<br><span class="xira">Oynalar: ${esc(oy)}</span>`;
+    $("k-holat").innerHTML = `<span class="k-narx">1 dona <b>${usd(k.bir_dona_usd)}</b></span>${k.izoh ? `<br><span class="ogoh">${esc(k.izoh)}</span>` : ""}<br><span class="xira">Oynalar: ${esc(oy)}</span>`;
     $("k-holat").className = "";
   }, 250);
 }
