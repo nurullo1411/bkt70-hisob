@@ -114,6 +114,8 @@ class Hisob:
         self.tabaqa_oyna_soni = 0
         self.gluxoy_oyna_soni = 0
         self.arka = None
+        self.segment = False  # yarim aylana: yon devorsiz (arka balandligi = H)
+        self.segment_ramalar = 0
         self.arka_metr = D(0)      # egiladigan profil (egish xizmati), sm
         self.arka_oyna_m2 = D(0)   # arkali oyna yuzasi (ustama uchun)
 
@@ -134,14 +136,15 @@ class Hisob:
         key = (nomi, profil, uzunlik)
         self.profillar[key] = self.profillar.get(key, 0) + soni
 
-    def oyna(self, joy, ichki_en, ichki_boy, ayirma, arka=D(0), past=D(0)):
+    def oyna(self, joy, ichki_en, ichki_boy, ayirma, arka=D(0), past=D(0), yonlar=2):
         en, boy = ichki_en - ayirma, ichki_boy - ayirma
         if en <= 0 or boy <= 0:
             raise HisobXato(f"{joy} oynasi uchun joy yetmaydi: {en} × {boy}")
         key = (joy, en, boy, self.joriy_oyna)
         self.oynalar[key] = self.oynalar.get(key, 0) + 1
         # rezina arka tomonida tekis profil boʻyicha: eni + chuqurlik (foydalanuvchi, 2026-11-06)
-        self.oyna_rezinasi += 2 * (en + boy) + 8 + arka + past
+        # yarim aylanada ramaga tegadigan tomonda yon yoʻq (yonlar: 0, 1 yoki 2)
+        self.oyna_rezinasi += 2 * en + yonlar * boy + 8 + arka + past
         if arka or past:
             self.arka_oyna_m2 += en * boy / 10000
         if joy == "Gluxoy":
@@ -156,8 +159,9 @@ class Hisob:
         for c in (arka, past):
             if c:
                 self.egilgan("Shtapik arka", f"G{g}", ichki_en, c, egish=False)
-        self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}",
-                   ichki_boy - 2 * SHTAPIK_QALINLIGI, 2)
+        if yonlar:
+            self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}",
+                       ichki_boy - 2 * SHTAPIK_QALINLIGI, yonlar)
 
     def shakl_oyna(self, ichki_en, ichki_boy, tekis_gor, tekis_ver, yoylar):
         """Toʻrtburchak boʻlmagan gluxoy oyna (portal U oynasi): oʻlcham va narx eng katta eni × boʻyi boʻyicha.
@@ -208,6 +212,14 @@ class Hisob:
         self.oyna(joy, en - ayirma, boy - ayirma, D("1.5") if fortochka is not None else D(2), arka, past)
 
     def rama(self, profil, en, boy):
+        if self.segment:
+            # Yarim aylana (foydalanuvchi, 2026-11-07): past + arka, yon yoʻq; 2 burchakka ugl soedinitel
+            a = D(str(self.arka.a))
+            self.segment_ramalar += 1
+            self.rama_perimetri += en + en + a
+            self.detal("Rama eni", profil, en, 1)
+            self.egilgan("Rama arka", profil, en, a)
+            return
         self.ramalar[profil] = self.ramalar.get(profil, 0) + 1
         if self.arka:
             a = D(str(self.arka.a))
@@ -523,7 +535,11 @@ def _bolak_ichi(b, z, h, ctx):
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas
     past = h.yoy_chuqurligi(z.past_yoy, z)
     if tur == "gluxoy":
-        h.oyna("Gluxoy", z.ichki_en, z.ichki_boy, D("1.5"), arka, past)
+        # yarim aylanada ramaga (yon devori yoʻq) tegadigan tomonda vertikal shtapik va rezina yoʻq
+        yonlar = 2
+        if h.segment and z.tepa_yoy is h.arka:
+            yonlar -= (z.x == 0) + (z.x + z.en == D(str(h.arka.en)))
+        h.oyna("Gluxoy", z.ichki_en, z.ichki_boy, D("1.5"), arka, past, yonlar=yonlar)
     elif tur == "tabaqa" and b.get("fortochka"):
         # Fortochka (foydalanuvchi, 2026-11-05): qanot, shtapik, oyna rom tabaqasidagidek, faqat furnitura boshqa
         ruchka = bool(b.get("ruchka"))
@@ -570,9 +586,10 @@ def hisobla(k):
         a = D(arka.get("balandlik") or 0)
         if k.get("tur") == "lapshali":
             raise HisobXato("Lapshali vitrajda arka boʻlmaydi")
-        if a <= 0 or a > L / 2 or a >= H:
-            raise HisobXato(f"Arka chuqurligi 0 dan katta, L/2 dan katta emas va H dan kichik boʻlishi kerak: {a}")
+        if a <= 0 or a > L / 2 or a > H:
+            raise HisobXato(f"Arka chuqurligi 0 dan katta, L/2 dan va H dan katta emas boʻlishi kerak: {a}")
         h.arka = Arka(L, a)
+        h.segment = a == H  # yarim aylana, yon devorsiz
 
     if k.get("tur") == "lapshali":
         yonlar = [D(k[t]) for t in ("chap", "ong") if k.get(t) is not None]
@@ -603,6 +620,7 @@ def hisobla(k):
         "qoida_yoq": h.qoida_yoq,
         "sanoq": {
             "ramalar": h.ramalar,
+            "segment_ramalar": h.segment_ramalar,
             "rama_perimetri": float(h.rama_perimetri),
             "tabaqa_soni": h.tabaqa_soni,
             "tabaqalar": h.tabaqalar,

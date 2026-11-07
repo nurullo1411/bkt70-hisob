@@ -120,6 +120,11 @@ def _aksessuar(s, narxlar, r, tanlov=None):
                 burchaklar[kod] = burchaklar.get(kod, 0) + 4 * soni
     for kod, soni in burchaklar.items():
         r.qosh("Aksessuar", kod, soni, "dona")
+    # Yarim aylana ramasi: har burchakka (2 ta) ugl soedinitel 01.553 bittadan (foydalanuvchi, 2026-11-07)
+    seg = s.get("segment_ramalar", 0)
+    if seg:
+        r.qosh("Aksessuar", "01.553", 2 * seg, "dona", kalit="Soedinitel Urta 19 ugl", komplekt=4)
+        r.qosh("Aksessuar", "3,9×19 YHBM", 2 * seg * 2, "dona")
     rama_soni, tabaqa_soni = sum(s["ramalar"].values()), sum(s["tabaqalar"].values())
     r.qosh("Aksessuar", "A10-001", 4 * rama_soni, "dona")
     if tabaqa_soni:

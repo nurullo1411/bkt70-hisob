@@ -215,7 +215,7 @@ function belgilar(barglar) {
 function arkaGeom(k) {
   if (!k || !k.arka || k.tur === "lapshali") return null;
   const L = Number(k.L) || 0, H = Number(k.H) || 0;
-  const a = Math.min(Number(k.arka.balandlik) || 0, L / 2, H * 0.95);
+  const a = Math.min(Number(k.arka.balandlik) || 0, L / 2, H);
   if (!(a > 0) || !(L > 0)) return null;
   return { ...yoyYasa(L / 2, L, a, 0, true), a };
 }
@@ -544,6 +544,7 @@ const ASBOBLAR = {
     ["togri", "Toʻgʻri burchak", ik(ramaIk())],
     ["arka_yarim", "Arka: yarim doira", ik('<path d="M4 21V12a8 8 0 0 1 16 0v9z"/>')],
     ["arka", "Arka: pologiy", ik('<path d="M4 21V9q8-6 16 0v12z"/>')],
+    ["aylana", "Yarim aylana (yon devorsiz)", ik('<path d="M3 18a9 9 0 0 1 18 0z"/>')],
   ],
 };
 const BOLIMLAR = [
@@ -558,26 +559,34 @@ const QISQA = {
   tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", portal: "Portal", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", shtulp: "Shtulp", ochir: "Oʻchirish",
   tab_chap: "Chap", tab_ong: "Oʻng", dv_chap: "Dvaynoy chap", dv_ong: "Dvaynoy oʻng", fortochka: "Fortochka ↓", fortochka_tepa: "Fortochka ↑", gluxoy: "Gluxoy",
   esh1_chap: "1 tab. chap", esh1_ong: "1 tab. oʻng", esh2_ong: "2 tab. ruchka oʻng", esh2_chap: "2 tab. ruchka chap",
-  togri: "Toʻgʻri", arka_yarim: "Yarim doira", arka: "Pologiy arka",
+  togri: "Toʻgʻri", arka_yarim: "Yarim doira", arka: "Pologiy arka", aylana: "Yarim aylana",
 };
 
 // Shakl butun konstruksiyaga qoʻllanadi (boʻlakka emas)
 function shaklId(k) {
   if (!k.arka) return "togri";
+  if (Number(k.arka.balandlik) >= Number(k.H) - 0.05) return "aylana";
   return Number(k.arka.balandlik) >= Number(k.L) / 2 - 0.05 ? "arka_yarim" : "arka";
 }
 function shaklniQolla(id) {
   if (id !== "togri" && tahrir.tur === "lapshali") { xabar("Lapshali vitrajda arka boʻlmaydi: ⚙ da lapshani oʻchiring"); return; }
   saqlaTarix();
   const L = Number(tahrir.L), H = Number(tahrir.H);
-  if (id === "togri") delete tahrir.arka;
-  else {
+  if (id === "togri") {
+    // yarim aylanadan toʻgʻriga: boʻy oʻzgarmaydi
+    delete tahrir.arka;
+  } else if (id === "aylana") {
+    // Yarim aylana (foydalanuvchi, 2026-11-07): yon devor yoʻq, H = arka balandligi = L/2
+    tahrir.H = yaxlit(L / 2);
+    tahrir.arka = { balandlik: tahrir.H };
+  } else {
     const a = id === "arka_yarim" ? L / 2 : yaxlit(L * 0.2);
-    if (a >= H) { orqaga.pop(); xabar("Arka uchun boʻy yetmaydi: H arka balandligidan katta boʻlishi kerak"); return; }
+    if (a >= H) { orqaga.pop(); xabar("Arka uchun boʻy yetmaydi: H arka balandligidan katta boʻlishi kerak (yon devorsiz — Yarim aylana)"); return; }
     tahrir.arka = { balandlik: yaxlit(a) };
   }
   yangila();
-  if (id !== "togri") xabar("Arka balandligini oʻngdagi raqamga bosib oʻzgartiring. H — choʻqqigacha umumiy boʻy.");
+  if (id === "aylana") xabar("Yarim aylana: yon devor yoʻq, boʻyi = L/2. Eni oʻzgarsa boʻyi ham oʻzgaradi.");
+  else if (id !== "togri") xabar("Arka balandligini oʻngdagi raqamga bosib oʻzgartiring. H — choʻqqigacha umumiy boʻy.");
 }
 
 function asboblarniChiz() {
@@ -725,7 +734,7 @@ async function olchamniOzgartir(kalit) {
     const j = await soraSon(`Arka balandligi, sm (yarim doira = ${yx(Number(tahrir.L) / 2)})`, tahrir.arka.balandlik, false);
     if (!j) return;
     const a = Math.min(j.son, Number(tahrir.L) / 2);
-    if (a >= Number(tahrir.H)) { xabar("Arka balandligi H dan kichik boʻlishi kerak"); return; }
+    if (a > Number(tahrir.H)) { xabar("Arka balandligi H dan katta boʻlmaydi"); return; }
     saqlaTarix();
     tahrir.arka = { balandlik: yaxlit(a) };
     if (a < j.son) { yangila(); xabar("Arka L/2 dan baland boʻlmaydi: yarim doira qilindi"); return; }
@@ -734,7 +743,10 @@ async function olchamniOzgartir(kalit) {
     const j = await soraSon(nom, tahrir[kalit], false);
     if (!j) return;
     saqlaTarix();
+    const aylana = shaklId(tahrir) === "aylana";
     tahrir[kalit] = j.son;
+    if (aylana && kalit === "L") { tahrir.H = yaxlit(j.son / 2); tahrir.arka = { balandlik: tahrir.H }; }
+    if (tahrir.arka && kalit === "H" && Number(tahrir.arka.balandlik) > j.son) tahrir.arka = { balandlik: yaxlit(j.son) };
     if (tahrir.arka && Number(tahrir.arka.balandlik) > Number(tahrir.L) / 2) tahrir.arka = { balandlik: yaxlit(Number(tahrir.L) / 2) };
   } else {
     const [p, i] = kalit.split("|");
