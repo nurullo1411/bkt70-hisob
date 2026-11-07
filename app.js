@@ -402,12 +402,14 @@ except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
 _kn`));
   } catch (e) { return { xato: e.message.split("\n").slice(-2).join(" ") }; }
 }
+// "DIQQAT: …" qismi qizil (shtapik +0,4 sm zapas)
+const kesimMatn = (t) => { const i = String(t).indexOf("DIQQAT"); return i < 0 ? esc(t) : esc(t.slice(0, i)) + `<b class="kesim-ogoh">${esc(t.slice(i))}</b>`; };
 function kesishHtml(r) {
   const leg = r.konstruksiyalar.map((k, i) => `<span class="kl"><i style="background:${KRANG[i % KRANG.length]}"></i>${i + 1}. ${esc(k.nom)} × ${k.soni}</span>`).join("");
   return `<div class="k-leg">${leg}</div>` + r.profillar.map((p) => `<div class="kp">
     <div class="kp-bosh"><b>${esc(p.nom)}</b><span>${p.hivich_sm} sm × ${p.hivichlar.length} dona</span></div>
     <div class="kp-stat"><span>Samaradorlik <b>${son(p.samaradorlik, 1)}%</b></span><span>Kesimlar <b>${p.kesimlar}</b></span><span>Qoldiq <b>${son(p.qoldiq_sm, 1)} sm</b></span></div>
-    <div class="xira kp-kesim">${esc(p.kesim)}${p.otxod_chegara ? ` · ${p.otxod_chegara} sm dan kichik qoldiq otxod` : ""}</div>
+    <div class="xira kp-kesim">${kesimMatn(p.kesim)}${p.otxod_chegara ? ` · ${p.otxod_chegara} sm dan kichik qoldiq otxod` : ""}</div>
     ${p.hivichlar.map((h, i) => `<div class="kb-qator"><span class="kb-n">#${i + 1}</span><div class="kb">${h.bolaklar.map((b) =>
       `<div style="flex:${b.uzunlik} 0 0;background:${KRANG[b.k % KRANG.length]}">${son(b.uzunlik, 1)}</div>`).join("")}${h.qoldiq > 0 ?
       `<div class="kb-q${p.otxod_chegara && h.qoldiq < p.otxod_chegara ? " otx" : ""}" style="flex:${h.qoldiq} 0 0">${son(h.qoldiq, 1)}</div>` : ""}</div></div>`).join("")}
@@ -780,7 +782,7 @@ function skladPdfHtml(r, p) {
   return `<div class="sp">
     <div class="p-sarlavha">${esc(p.nom)} — kesish rejasi</div>
     <div>Zakaz: ${esc(nom)} · Rang: ${esc(r.rang)} · Hivich ${son(r.hivich_sm / 100, 1)} m · ${new Date().toISOString().slice(0, 10)}</div>
-    <div class="xira">${esc(p.kesim)}${p.togri ? " · □ — gradusga kesilmaydi (90°)" : ""}</div>
+    <div class="xira">${kesimMatn(p.kesim)}${p.togri ? " · □ — gradusga kesilmaydi (90°)" : ""}</div>
     <div class="sp-kartalar">${p.kartalar.map(karta).join("")}</div>
     <div class="sp-jami"><b>Jami yangi ${son(r.hivich_sm / 100, 1)} m hivich: ${p.yangi_soni} dona</b><br>Skladdan: ${p.sklad_soni} boʻlak · Jami detal: ${p.jami_detal} dona</div>
     <div class="sp-sar">Qaysi konstruksiyaga</div>

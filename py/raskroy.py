@@ -41,6 +41,17 @@ def _k(x):
     return f"{x / 100:.2f}".rstrip("0").rstrip(".").replace(".", ",")
 
 
+# Shtapik raskroydan oldin +0,4 sm uzun kesiladi: yasashda 1–2 mm xato boʻlsa kalta qolmasin,
+# joyida aniq oʻlchab kaltalanadi (foydalanuvchi, 2026-11-07)
+SHTAPIK_ZAPAS = 0.4
+
+
+def _zapas(d):
+    if str(d["profil"]).startswith("G"):
+        return {**d, "uzunlik": round(d["uzunlik"] + SHTAPIK_ZAPAS, 2)}
+    return d
+
+
 def detallarni_yig(zakaz):
     """(konstruksiya roʻyxati, {profil: Counter({uzunlik_b: soni})})."""
     umumiy = zakaz.get("umumiy", {})
@@ -53,8 +64,9 @@ def detallarni_yig(zakaz):
             n = hisobla(k)
         except (HisobXato, KeyError) as e:
             raise HisobXato(f"{nom}: {e}") from e
-        royxat.append({"nom": nom, "soni": soni, "L": k["L"], "H": k["H"], "detallar": n["profillar"]})
-        for d in n["profillar"]:
+        detallar = [_zapas(d) for d in n["profillar"]]
+        royxat.append({"nom": nom, "soni": soni, "L": k["L"], "H": k["H"], "detallar": detallar})
+        for d in detallar:
             jami.setdefault(d["profil"], Counter())[_b(d["uzunlik"])] += d["soni"] * soni
     if not royxat:
         raise HisobXato("Zakazda konstruksiya yoʻq")
@@ -492,6 +504,9 @@ def sklad_rejasi(zakaz, sklad_qatorlari, rang, guruh=None):
 
 
 def _kesim_matni(profil):
+    if str(profil).startswith("G"):
+        return (f"45°, aylantirilmaydi · Arra {_k(_b(ARRA))} sm · DIQQAT: har shtapik +{_k(_b(SHTAPIK_ZAPAS))} sm uzun "
+                "kesilgan, joyida aniq oʻlchab kaltalang")
     if profil in AYLANTIRISH:
         return f"45°, aylantirib: har detalga +{_k(_b(AYLANTIRISH[profil]))} sm"
     if profil in TOGRI_KESIM:
@@ -567,7 +582,11 @@ def pdf_yoz(reja, r, yol, sarlavha):
     matn(f"{toliq_nom(r['profil'])} — kesish rejasi", "AB", 20, koʻk)
     matn(f"Zakaz: {sarlavha} · Rang: {reja['rang']} · Hivich {HIVICH / 100:g} m", olcham=11)
     belgi_izoh = " · □ — gradusga kesilmaydi (90°)" if r["profil"] in TOGRI_KESIM else ""
-    matn(_kesim_matni(r["profil"]) + belgi_izoh, olcham=10, rang=kulrang)
+    km = _kesim_matni(r["profil"])
+    asos, _, ogoh = km.partition(" · DIQQAT")
+    matn(asos + belgi_izoh, olcham=10, rang=kulrang)
+    if ogoh:
+        matn("DIQQAT" + ogoh, "AB", 11, HexColor("#D00000"))
     y[0] -= 6
 
     ustun_w = (W - 2 * M - 12) / 2
