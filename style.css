@@ -422,3 +422,46 @@ img.m-rasm { cursor: zoom-in; }
 
 .kesim-ogoh { color: #d00000; font-weight: 700; }
 @media print { .kesim-ogoh { color: #d00000 !important; } }
+
+/* ---------- bosh sahifa (2026-11-07 dizayn) ---------- */
+header { background: linear-gradient(135deg, #0d47a1, #1565c0 60%, #1e88e5); box-shadow: 0 2px 10px rgba(13,71,161,.25); }
+header h1 { letter-spacing: .2px; }
+.holat { background: rgba(255,255,255,.16); padding: 3px 10px; border-radius: 999px; }
+.bosh-hero { background: var(--karta); border: 1px solid var(--chiziq); border-radius: 20px; padding: 14px; margin-bottom: 18px;
+             box-shadow: 0 6px 20px rgba(16,24,40,.06); }
+.hero-tugma { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; border: 0; border-radius: 16px; cursor: pointer;
+              background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; text-align: left; font: inherit;
+              box-shadow: 0 6px 16px rgba(13,71,161,.35); }
+.hero-tugma:active { transform: scale(.985); }
+.hero-plus { flex: 0 0 48px; height: 48px; border-radius: 14px; background: rgba(255,255,255,.18); display: flex; align-items: center;
+             justify-content: center; font-size: 30px; font-weight: 300; line-height: 1; }
+.hero-tugma b { display: block; font-size: 19px; }
+.hero-tugma small { display: block; font-size: 13px; opacity: .85; margin-top: 2px; }
+.hero-plitka { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.plitka { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px; border-radius: 14px; cursor: pointer;
+          background: var(--fon); border: 1px solid var(--chiziq); font-size: 14px; font-weight: 600; color: var(--matn); }
+.plitka span { font-size: 24px; }
+.plitka:active { background: color-mix(in srgb, var(--asosiy) 12%, var(--fon)); }
+.hero-pastki { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.kurs-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--xira); background: var(--fon);
+             border: 1px solid var(--chiziq); border-radius: 999px; padding: 2px 12px 2px 12px; }
+.kurs-pill input { width: 86px; padding: 6px 4px; border: 0; background: none; font-weight: 700; font-size: 16px; text-align: center; color: var(--matn); }
+.hero-havola { font-size: 13px; color: var(--xira); }
+.havola { border: 0; background: none; color: var(--asosiy); font: inherit; padding: 6px 2px; cursor: pointer; }
+.bosh-sarlavha { font-size: 13px; font-weight: 700; color: var(--xira); text-transform: uppercase; letter-spacing: .6px; margin: 4px 2px 8px; }
+.bosh-bolimlar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bosh-bolimlar .bolim-k { flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border-radius: 18px; position: relative; overflow: hidden; }
+.bosh-bolimlar .bolim-k::after { content: ""; position: absolute; right: -18px; top: -18px; width: 70px; height: 70px; border-radius: 50%;
+                                 background: var(--b-fon); opacity: .55; }
+.bolim-yuqori { display: flex; justify-content: space-between; align-items: center; width: 100%; position: relative; z-index: 1; }
+.bosh-bolimlar .bolim-belgi { flex: 0 0 38px; width: 38px; height: 38px; border-radius: 11px; font-size: 18px; background: var(--b-fon); color: var(--b-rang); }
+.bolim-son { font-size: 28px; font-weight: 800; color: var(--b-rang); line-height: 1; }
+.bosh-bolimlar .bolim-k b { font-size: 15px; margin-top: 6px; }
+.bolim-summa { font-size: 13px; color: var(--xira); }
+.davom { border-left: 4px solid var(--asosiy) !important; }
+@media (prefers-color-scheme: dark) {
+  header { background: linear-gradient(135deg, #0b2a5e, #123a7a); }
+  .hero-tugma { background: linear-gradient(135deg, #2f6fe0, #1a4fb8); }
+  .bosh-bolimlar .bolim-k::after { background: var(--b-rang); opacity: .1; }
+  .bosh-bolimlar .bolim-belgi { background: color-mix(in srgb, var(--b-rang) 18%, transparent); }
+}

@@ -207,8 +207,8 @@ function arxivniChiz() {
   $("arxiv-tablar").innerHTML = HOLATLAR.map(([k, y]) => {
     const t = a.filter((z) => (z.holat || "yangi") === k);
     const [b, fon, rang] = BELGI[k];
-    return `<button data-tab="${k}" class="bolim-k"><span class="bolim-belgi" style="background:${fon};color:${rang}">${b}</span>
-      <span class="bolim-matn"><b>${y}</b><span>${t.length} ta${t.length ? " · " + som(t.reduce((s, z) => s + narxi(z), 0)) : ""}</span></span><span class="bolim-oq">›</span></button>`;
+    return `<button data-tab="${k}" class="bolim-k" style="--b-rang:${rang};--b-fon:${fon}"><span class="bolim-yuqori"><span class="bolim-belgi">${b}</span><span class="bolim-son">${t.length}</span></span>
+      <b>${y}</b><span class="bolim-summa">${t.length ? som(t.reduce((s, z) => s + narxi(z), 0)) : "—"}</span></button>`;
   }).join("");
   const dv = $("davom");
   dv.hidden = !(zakaz && zakaz.konstruksiyalar && zakaz.konstruksiyalar.length);
