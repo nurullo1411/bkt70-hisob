@@ -296,11 +296,13 @@ function chizmaSVG(k, opts = {}) {
   function shakl(x, y, w, h, dT, tY = null, pY = null, dB = dT) {
     w = Math.max(0, w); h = Math.max(0, h);
     if (!tY && !pY) return `M${f(x)} ${f(y)}h${f(w)}v${f(h)}h${f(-w)}Z`;
-    const n = Math.max(8, Math.ceil((w / L) * 64));
+    const n = Math.max(16, Math.ceil((w / L) * 128));
     const yt = (xx) => tepaY(tY, xx, y, dT), yb = (xx) => pastY(pY, xx, y + h, dB);
     let p = "";
-    for (let j = 0; j <= n; j++) { const xx = x + (w * j) / n; p += (j ? "L" : "M") + f(xx) + " " + f(Math.min(yt(xx), yb(xx))); }
-    for (let j = n; j >= 0; j--) { const xx = x + (w * j) / n; p += "L" + f(xx) + " " + f(Math.max(yt(xx), yb(xx))); }
+    // chetlarda zichroq nuqta: tik yoy (yarim aylana burchagi) siniq chiqmasin
+    const nx = (j) => x + (w * (1 - Math.cos((Math.PI * j) / n))) / 2;
+    for (let j = 0; j <= n; j++) { const xx = nx(j); p += (j ? "L" : "M") + f(xx) + " " + f(Math.min(yt(xx), yb(xx))); }
+    for (let j = n; j >= 0; j--) { const xx = nx(j); p += "L" + f(xx) + " " + f(Math.max(yt(xx), yb(xx))); }
     return p + "Z";
   }
   const yuza = (x, y, w, h, d, cls, qosh = "", tY = null, pY = null, dB = d) => `<path d="${shakl(x, y, w, h, d, tY, pY, dB)}" class="${cls}" ${qosh}/>`;
