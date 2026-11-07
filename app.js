@@ -1104,6 +1104,12 @@ $("ai-boshla").addEventListener("click", async () => {
     `<p class="xira">Sarf: ${r.dollar.toFixed(3)} $</p>`;
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+// Yangi versiya chiqsa: yangi service worker oʻrnashgach sahifa bir marta oʻzi yangilanadi
+if ("serviceWorker" in navigator) {
+  const birinchi = !navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((r) => r.update()).catch(() => {});
+  let qayta = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (!birinchi && !qayta) { qayta = true; location.reload(); } });
+}
 window.addEventListener("DOMContentLoaded", arxivniChiz);
 yukla();
