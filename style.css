@@ -478,8 +478,14 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .bosh-bolimlar .bolim-k .bolim-matn2 { flex: 1; display: flex; flex-direction: column; }
 .bosh-bolimlar .bolim-k b { margin-top: 0; font-size: 16px; }
 .bolim-katta { font-size: 26px; font-weight: 800; color: var(--b-rang); position: relative; z-index: 1; }
-.holat-ot { grid-column: 1 / -1; margin: 4px 0 0; background: color-mix(in srgb, var(--asosiy) 10%, var(--karta)); color: var(--asosiy); border-color: var(--asosiy); font-weight: 700; }
-.holat-ot.yashil { background: color-mix(in srgb, var(--yaxshi) 12%, var(--karta)); color: var(--yaxshi); border-color: var(--yaxshi); }
+.holat-ot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; margin-top: 2px; }
+.kichik-t { min-height: 30px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--asosiy); background: transparent;
+  color: var(--asosiy); font: 600 12px/1.2 system-ui, sans-serif; cursor: pointer; }
+.kichik-t.yashil { border-color: var(--yaxshi); color: var(--yaxshi); }
+.kichik-t.orqa { border-color: var(--chiziq); color: var(--xira); }
+.kichik-t.ha { background: var(--asosiy); color: var(--asosiy-matn); }
+.holat-tasdiq { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; font-size: 13px; font-weight: 600;
+  padding: 6px 8px; border-radius: 12px; background: color-mix(in srgb, var(--urgu) 12%, var(--karta)); width: 100%; }
 
 /* ---------- zakaz sahifasi (2026-11-07 dizayn) ---------- */
 #zakaz-nomi { margin: 0 2px 8px; font-size: 13px; }

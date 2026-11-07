@@ -205,11 +205,19 @@ function arxivga(matn) {
 }
 let arxivTab = "yangi";
 // Roʻyxatdan keyingi boʻlimga oʻtkazish (foydalanuvchi, 2026-11-07)
+let holatTasdiq = null; // "id|holat" — tasdiq kutilayotgan oʻtkazish
 function keyingiHolat(z) {
   const h = z.holat || "yangi";
-  if (h === "yangi") return `<button data-holatga="${z.id}|jarayonda" class="tugma keng holat-ot">Ishga tushirish →</button>`;
-  if (h === "jarayonda") return `<button data-holatga="${z.id}|tugatilgan" class="tugma keng holat-ot yashil">Tugatildi ✓</button>`;
-  return "";
+  const OT = { yangi: [["jarayonda", "Ishga tushirish →", ""]],
+    jarayonda: [["yangi", "← Hisoblanganga qaytarish", "orqa"], ["tugatilgan", "Tugatildi ✓", "yashil"]],
+    tugatilgan: [["jarayonda", "← Boshlanganga qaytarish", "orqa"]], qarzdor: [["jarayonda", "← Boshlanganga qaytarish", "orqa"]] };
+  const tugmalar = (OT[h] || []).map(([yangi, y, kl]) => {
+    const kalit = `${z.id}|${yangi}`;
+    if (holatTasdiq === kalit) return `<span class="holat-tasdiq">${esc(y)} — tasdiqlaysizmi?
+      <button data-holatga="${kalit}" class="kichik-t ha">Ha</button><button data-holat-yoq="1" class="kichik-t">Yoʻq</button></span>`;
+    return `<button data-holat-sora="${kalit}" class="kichik-t ${kl}">${esc(y)}</button>`;
+  });
+  return tugmalar.length ? `<div class="holat-ot">${tugmalar.join("")}</div>` : "";
 }
 function arxivniChiz() {
   const a = arxivOl();
@@ -632,14 +640,17 @@ $("arxiv").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   const a = arxivOl(), d = b.dataset;
+  if (d.holatSora) { holatTasdiq = d.holatSora; arxivniChiz(); return; }
+  if (d.holatYoq) { holatTasdiq = null; arxivniChiz(); return; }
   if (d.holatga) {
+    holatTasdiq = null;
     const [id, h] = d.holatga.split("|");
     const z = a.find((x) => x.id === id);
     if (!z) return;
     z.holat = h;
     arxivYoz(a);
     if (zakaz && zakaz.id === id) { zakaz.holat = h; saqla("oxirgi_zakaz", JSON.stringify(zakaz)); }
-    holat(h === "jarayonda" ? "Boshlangan ishlarga oʻtdi" : "Tugallangan ishlarga oʻtdi");
+    holat(h === "jarayonda" ? "Boshlangan ishlarga oʻtdi" : h === "yangi" ? "Hisoblanganga qaytdi" : "Tugallangan ishlarga oʻtdi");
     arxivniChiz();
     return;
   }
