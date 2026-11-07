@@ -16,6 +16,14 @@ let tanlangan = "";     // tanlangan boʻlak yoʻli: "" ildiz, "1.0" ...
 let bolim = "impost";   // asboblar boʻlimi
 let asbob = null;       // tanlangan asbob yoki null (tanlash rejimi)
 let eshikOchilish = "ichkariga";
+// Konstruksiyadagi hamma eshik (ochilishi ⚙ dagi eshik profilidan: Balkon Qanot — ichkariga, Balkon Oʻrta — tashqariga)
+function eshiklar(n, r = []) {
+  if (!n) return r;
+  if (n.tur === "eshik") r.push(n);
+  for (const c of n.bolaklar || []) eshiklar(c, r);
+  return r;
+}
+function joriyOchilish(k) { const e = eshiklar(k && k.bolak)[0]; return e ? e.ochilish : (k && k.tur === "lapshali" ? "tashqariga" : eshikOchilish); }
 let orqaga = [], oldinga = [];
 let oldindanTaymer = null;
 
@@ -421,7 +429,6 @@ function chizmaSVG(k, opts = {}) {
       // eshik belgisi yuqoriroqda: oʻrtada ruchka (shtulp) bor
       const cy = o.b.tur === "eshik" ? yt + (yb - yt) * 0.3 : (yt + yb) / 2;
       s += nishon(cx, cy, belgi[o.p]);
-      if (o.b.tur === "eshik") s += matn(cx, cy + shrift * 1.5, o.b.ochilish === "tashqariga" ? "tashqariga" : "ichkariga", 0.62, "yoz fon xira-yoz");
       const bosCls = "bos" + (o.p === opts.tanlangan ? " tanl" : "");
       s += o.u ? `<path d="${uYol(o, 0)}" class="${bosCls}" data-p="${o.p}"/>` : yuza(o.x, o.y, o.w, o.h, 0, bosCls, `data-p="${o.p}"`, o.tY, o.pY);
     }
@@ -578,8 +585,7 @@ function asboblarniChiz() {
   $("k-bolimlar").innerHTML = BOLIMLAR.map(([id, nom, i]) => `<button data-bolim="${id}" class="${id === bolim ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("") +
     `<span class="bosh"></span><button data-tarix="orqaga" ${orqaga.length ? "" : "disabled"} aria-label="Orqaga">↶</button><button data-tarix="oldinga" ${oldinga.length ? "" : "disabled"} aria-label="Oldinga">↷</button>`;
   const faolId = bolim === "shakl" ? shaklId(tahrir) : asbob;
-  let html = ASBOBLAR[bolim].map(([id, nom, i]) => `<button data-asbob="${id}" class="nomli${id === faolId ? " faol" : ""}" title="${nom}" aria-label="${nom}">${i}<small>${QISQA[id] || ""}</small></button>`).join("");
-  if (bolim === "eshik" || (bolim === "impost" && asbob === "shtulp")) html += `<button data-ochilish class="matnli">${eshikOchilish === "tashqariga" ? "Tashqariga" : "Ichkariga"} ⇄</button>`;
+  let html = ASBOBLAR[bolim].map(([id, nom, i]) => `<button data-asbob="${id}" class="nomli${id === faolId ? " faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("");
   $("k-asboblar").innerHTML = html;
   const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
@@ -641,7 +647,7 @@ function asbobniQolla(p) {
       break;
     }
     case "shtulp":
-      almashtir(p, { tur: "eshik", tabaqa_soni: 2, ochilish: b.tur === "eshik" ? b.ochilish : eshikOchilish, aktiv: b.aktiv || "ong" }); break;
+      almashtir(p, { tur: "eshik", tabaqa_soni: 2, ochilish: b.tur === "eshik" ? b.ochilish : joriyOchilish(tahrir), aktiv: b.aktiv || "ong" }); break;
     case "ochir": if (!ochir(p)) { orqaga.pop(); xabar("Bitta boʻlakni oʻchirib boʻlmaydi"); return; } break;
     case "tab_chap": almashtir(p, tabaqa("chap")); break;
     case "tab_ong": almashtir(p, tabaqa("ong")); break;
@@ -651,9 +657,9 @@ function asbobniQolla(p) {
     case "fortochka_tepa": almashtir(p, { tur: "tabaqa", fortochka: true, petlya_tomoni: "tepa" }); break;
     case "gluxoy": almashtir(p, { tur: "gluxoy" }); break;
     case "esh1_chap": case "esh1_ong":
-      almashtir(p, { tur: "eshik", tabaqa_soni: 1, ochilish: eshikOchilish, petlya_tomoni: asbob.endsWith("chap") ? "chap" : "ong" }); break;
+      almashtir(p, { tur: "eshik", tabaqa_soni: 1, ochilish: joriyOchilish(tahrir), petlya_tomoni: asbob.endsWith("chap") ? "chap" : "ong" }); break;
     case "esh2_chap": case "esh2_ong":
-      almashtir(p, { tur: "eshik", tabaqa_soni: 2, ochilish: eshikOchilish, aktiv: asbob.endsWith("chap") ? "chap" : "ong" }); break;
+      almashtir(p, { tur: "eshik", tabaqa_soni: 2, ochilish: joriyOchilish(tahrir), aktiv: asbob.endsWith("chap") ? "chap" : "ong" }); break;
     default: orqaga.pop(); return;
   }
   if (asbob !== "ochir") tanlangan = tugun(tahrir.bolak, p) ? p : "";
@@ -887,20 +893,11 @@ function panelniChiz() {
     p += b.fortochka
       ? `<div class="sarlavha">Petlya</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "past", [["past", "Pastda"], ["tepa", "Tepada"]])}
          <div class="sarlavha">Yopilishi</div>${tugmalar("ruchka", !!b.ruchka, [[false, "Chit-chit"], [true, "Ruchka"]])}`
-      : `<div class="sarlavha">Petlya tomoni</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "chap", [["chap", "Chap"], ["ong", "Oʻng"]])}`;
+      : "";
   } else if (b.tur === "eshik") {
-    p += `<div class="sarlavha">Ochilishi</div>${tugmalar("ochilish", b.ochilish, [["ichkariga", "Ichkariga"], ["tashqariga", "Tashqariga"]])}
-      <div class="sarlavha">Tabaqa soni</div>${tugmalar("tabaqa_soni", b.tabaqa_soni, [[1, "1 tabaqa"], [2, "2 tabaqa"]])}`;
-    p += b.tabaqa_soni === 2
-      ? `<div class="sarlavha">Ruchkali (aktiv) tabaqa</div>${tugmalar("aktiv", b.aktiv || "ong", [["chap", "Chap"], ["ong", "Oʻng"]])}`
-      : `<div class="sarlavha">Petlya tomoni</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "chap", [["chap", "Chap"], ["ong", "Oʻng"]])}`;
+    p += `<div class="xira">${b.ochilish === "tashqariga" ? "Balkon Oʻrta V707 (tashqariga)" : "Balkon Qanot V708 (ichkariga)"} — ⚙ sozlamada almashtiriladi. Tabaqa soni va ruchka tomoni tepadagi asboblarda.</div>`;
   } else p += `<div class="xira">Turini almashtirish uchun tepadan asbob tanlab, boʻlakka bosing.</div>`;
-  // Maydon oynasi (Romchi "Maydon sozlamalari"): boʻsh — konstruksiyaning oynasi
-  const asosiyOyna = (tahrir.tanlov || {}).oyna_turi || zakaz.umumiy.tanlov.oyna_turi;
-  p += `<div class="sarlavha">Oyna</div><select data-maydon-oyna>
-    <option value="">Konstruksiyadagi (${esc(asosiyOyna || "")})</option>
-    ${oynaTurlari().map((t) => `<option value="${esc(t)}"${b.oyna_turi === t ? " selected" : ""}>${esc(t)}</option>`).join("")}
-  </select>`;
+  // Oyna turi ⚙ sozlamada (foydalanuvchi, 2026-11-07: panelda ortiqcha)
   $("k-panel").innerHTML = p;
 }
 
@@ -996,6 +993,9 @@ function sozlamaOynasi() {
     <div class="sz-bolim">Podokonnik <span class="xira">(uzunligi L + 15 sm, rangi rom rangida)</span></div>
     <div class="sz-seg sz-pod">${[[null, "Yoʻq"], ...[15, 20, 25, 30, 35, 40, 45].map((v) => [v, String(v)])].map(([v, y]) => `<button data-sz="t:podokonnik" data-v="${JSON.stringify(v)}" class="${faol(j.pod === v)}">${y}</button>`).join("")}</div>
 
+    <div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
+    <div class="sz-seg">${[["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]].map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>
+
     <div class="sz-bolim">Konstruksiya</div>
     <div class="panjara">
       <label>Nomi<input data-m="nom" value="${esc(k.nom)}"></label>
@@ -1014,7 +1014,11 @@ function sozlamaOynasi() {
 $("k-maydon").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b || b.disabled) return;
-  if (b.dataset.szAsosiy != null) {
+  if (b.dataset.szEsh) {
+    saqlaTarix();
+    eshikOchilish = b.dataset.szEsh;
+    for (const e of eshiklar(tahrir.bolak)) e.ochilish = eshikOchilish;
+  } else if (b.dataset.szAsosiy != null) {
     // Shu konstruksiya tanlovini umumiyga koʻchiramiz, boshqalardagi bir xil qiymatlarni tozalaymiz
     const k = tahrir, u = zakaz.umumiy;
     for (const kalit of ["rama", "oyna_qalinligi"]) if (k[kalit] != null) { u[kalit] = k[kalit]; delete k[kalit]; }

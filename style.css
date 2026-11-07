@@ -400,3 +400,8 @@ header h1 { flex: 1; }
 .hujjat small { color: var(--xira); font-size: 13px; }
 .hujjat:active { background: color-mix(in srgb, var(--asosiy) 12%, var(--fon)); }
 .jami-qator b, td.son { font-weight: 650; white-space: nowrap; }
+
+/* asboblar: yozuvsiz ikonka, sigʻmasa 2-qatorga (foydalanuvchi, 2026-11-07) */
+#k-asboblar { flex-wrap: wrap; overflow: visible; }
+#k-asboblar button.nomli { width: 52px; height: 52px; padding: 6px; }
+#k-asboblar button.nomli .ik, #k-asboblar button.nomli svg { width: 34px; height: 34px; }
