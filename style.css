@@ -8,7 +8,8 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--fon); color: var(--matn);
-       font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+       font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+       font-variant-numeric: tabular-nums; -webkit-text-size-adjust: 100%; }
 header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between;
          gap: 8px; padding: 12px 16px; background: var(--asosiy); color: var(--asosiy-matn); }
 header h1 { margin: 0; font-size: 18px; }
@@ -46,7 +47,7 @@ textarea { margin: 10px 0 8px; font-family: ui-monospace, monospace; font-size: 
                background: var(--fon); color: var(--matn); font-size: 20px; }
 .soni span { min-width: 28px; text-align: center; font-weight: 600; }
 .konstr.nol { opacity: .45; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
 th, td { padding: 6px 4px; border-bottom: 1px solid var(--chiziq); text-align: left; vertical-align: top; }
 td.son, th.son { text-align: right; white-space: nowrap; }
 .bolim { margin: 12px 0 4px; font-weight: 600; color: var(--xira); font-size: 13px; text-transform: uppercase; }
@@ -63,6 +64,7 @@ footer { text-align: center; padding: 0 16px 24px; }
 .chizma { width: 100%; height: auto; max-height: 60vh; display: block; touch-action: manipulation; }
 .chizma .ra, .chizma .tb { fill: var(--g-ra, var(--rama)); stroke: var(--rama-chiziq); stroke-width: .35; stroke-linejoin: round; }
 .chizma .im { stroke-width: .3; }
+.chizma .gul { stroke: none; pointer-events: none; }
 .chizma .oy { fill: var(--g-oy, var(--oyna)); stroke: var(--oyna-chiziq); stroke-width: .25; }
 .chizma .nur { stroke: #fff; stroke-opacity: .7; stroke-width: .9; stroke-linecap: round; }
 .chizma .ch { stroke: var(--rama-chiziq); stroke-width: .3; stroke-linecap: round; }
@@ -369,3 +371,32 @@ header h1 { flex: 1; }
 .ikon-t span { font-size: 18px; line-height: 1; }
 .ikon-t:active { background: var(--chiziq); }
 .kichik-tugmalar .ikon-t { flex: 0 0 76px; width: 76px; margin: 0; font-size: 11px; font-weight: 400; color: var(--xira); text-align: center; }
+
+/* dillerga roʻyxat va oyna roʻyxati */
+.dl-jadval { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.dl-jadval th, .dl-jadval td { border: 1px solid #999; padding: 3px 6px; text-align: left; }
+.dl-jadval td.son { text-align: right; white-space: nowrap; }
+.dl-izoh { color: #777; font-size: 10px; }
+.dl-eslatma { color: #d00000; margin-top: 10px; }
+.dl-eslatma ul { margin: 4px 0 0 18px; padding: 0; }
+
+/* zakaz tablari (2026-11-07) */
+#e-zakaz { padding-bottom: 72px; }
+#e-zakaz [data-t] { display: none; }
+#e-zakaz[data-tab="k"] [data-t="k"], #e-zakaz[data-tab="h"] [data-t="h"],
+#e-zakaz[data-tab="s"] [data-t="s"], #e-zakaz[data-tab="d"] [data-t="d"] { display: block; }
+#e-zakaz[data-tab="k"] .xulosa[data-t="k"] { display: flex; }
+.tablar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 3; display: flex; justify-content: center;
+          background: var(--karta); border-top: 1px solid var(--chiziq); padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
+.tablar button { flex: 1; max-width: 180px; display: flex; flex-direction: column; align-items: center; gap: 1px;
+                 min-height: 52px; border: 0; background: none; color: var(--xira); font: 600 12px/1.2 system-ui, sans-serif; border-radius: 10px; }
+.tablar button span { font-size: 20px; filter: grayscale(1); opacity: .7; }
+.tablar button.faol { color: var(--asosiy); background: color-mix(in srgb, var(--asosiy) 12%, transparent); }
+.tablar button.faol span { filter: none; opacity: 1; }
+.hujjatlar .hujjat { display: grid; grid-template-columns: 40px 1fr; column-gap: 10px; width: 100%;
+                     text-align: left; padding: 12px; margin-bottom: 8px; border: 1px solid var(--chiziq); border-radius: 12px;
+                     background: var(--fon); color: var(--matn); font: inherit; cursor: pointer; }
+.hujjat span { grid-row: 1 / 3; font-size: 26px; align-self: center; text-align: center; }
+.hujjat small { color: var(--xira); font-size: 13px; }
+.hujjat:active { background: color-mix(in srgb, var(--asosiy) 12%, var(--fon)); }
+.jami-qator b, td.son { font-weight: 650; white-space: nowrap; }

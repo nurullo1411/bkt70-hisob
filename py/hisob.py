@@ -204,7 +204,8 @@ class Hisob:
                 self.egilgan("Tabaqa arka", profil, en, c)
         self.detal("Tabaqa boʻyi", profil, boy, 2)
         ayirma = TABAQA_AYIRMA[profil]
-        self.oyna(joy, en - ayirma, boy - ayirma, D(2), arka, past)
+        # fortochka oynasi qanot ichki − 1,5, boshqa tabaqalarda − 2 (foydalanuvchi, 2026-11-07)
+        self.oyna(joy, en - ayirma, boy - ayirma, D("1.5") if fortochka is not None else D(2), arka, past)
 
     def rama(self, profil, en, boy):
         self.ramalar[profil] = self.ramalar.get(profil, 0) + 1

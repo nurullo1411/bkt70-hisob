@@ -2,7 +2,7 @@
 "use strict";
 
 // narxlar.json ilovada yoʻq (ochiq repo): foydalanuvchi bir marta yuklaydi, telefonda saqlanadi.
-const PY_FAYLLAR = ["hisob.py", "hisobot.py", "zakaz.py", "raskroy.py", "tannarx.py", "narx_sheets.py"];
+const PY_FAYLLAR = ["hisob.py", "hisobot.py", "zakaz.py", "raskroy.py", "tannarx.py", "narx_sheets.py", "diller.py"];
 const $ = (id) => document.getElementById(id);
 let py = null;
 let zakaz = null;
@@ -807,7 +807,76 @@ $("kesish-pdf").addEventListener("click", () => {
   setTimeout(() => { window.print(); document.title = eski; }, 100);
 });
 
+// ---------- dillerga roʻyxat va oyna roʻyxati (foydalanuvchi, 2026-11-07) ----------
+function dillerOl(nima, sklad) {
+  py.globals.set("_zakaz", JSON.stringify(zakaz));
+  py.globals.set("_dsk", sklad ? JSON.stringify(sklad) : "null");
+  try {
+    return JSON.parse(py.runPython(`
+import diller
+try:
+    _dl = json.dumps({"ok": diller.${nima}(json.loads(_zakaz)${nima === "diller_royxati" ? ", sklad=json.loads(_dsk)" : ""})}, ensure_ascii=False)
+except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
+    _dl = json.dumps({"xato": str(_e)}, ensure_ascii=False)
+_dl`));
+  } catch (e) { return { xato: e.message.split("\n").slice(-2).join(" ") }; }
+}
+const zakazNomi = () => `${zakaz.raqam ? "№" + zakaz.raqam + " " : ""}${(zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || ""}`.trim();
+function chopEt(html, sarlavha) {
+  $("chop").innerHTML = html;
+  const eski = document.title;
+  document.title = sarlavha;
+  setTimeout(() => { window.print(); document.title = eski; }, 100);
+}
+$("diller-pdf").addEventListener("click", async () => {
+  const b = $("diller-pdf"), eskiMatn = b.textContent;
+  b.disabled = true; b.textContent = "Sklad yuklanmoqda…";
+  let sk = null, skIzoh = "";
+  try { sk = await skladYukla(); } catch (e) {
+    sk = skladSaqlangan();
+    skIzoh = sk ? "Internet yoʻq: oxirgi yuklangan sklad ishlatildi" : "Sklad yuklanmadi: profil hammasi yangi hivichda";
+  }
+  b.disabled = false; b.textContent = eskiMatn;
+  const r = dillerOl("diller_royxati", sk ? sk.qatorlar : null);
+  if (r.xato) { alert("Roʻyxat chiqmadi: " + r.xato); return; }
+  const d = r.ok;
+  const qator = d.qatorlar.map((q, i) => `<tr><td>${i + 1}</td><td>${esc(q.nomi)}${q.izoh ? ` <span class="dl-izoh">(${esc(q.izoh)})</span>` : ""}</td><td class="son">${son(q.soni, 2)} ${esc(q.birlik)}</td></tr>`).join("");
+  const izoh = [...(skIzoh ? [skIzoh] : []), ...d.izohlar];
+  chopEt(`<div class="dl">
+    <div class="p-sarlavha">Dillerga roʻyxat — ${esc(zakazNomi())}</div>
+    <div>Sana: ${new Date().toISOString().slice(0, 10)} · BKT 70 · profil sklad qoldigʻidan keyin, 6,5 m hivich</div>
+    <table class="dl-jadval"><tr><th>№</th><th>Nomi</th><th>Soni</th></tr>${qator}</table>
+    ${d.eslatmalar.length ? `<div class="dl-eslatma"><b>Eslatma: bularni ham olishingiz kerak (dillerdan olinmaydi):</b><ul>${d.eslatmalar.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>` : ""}
+    ${izoh.length ? `<div class="xira">${izoh.map(esc).join("<br>")}</div>` : ""}</div>`,
+  `Diller ${zakazNomi()}`);
+});
+$("oyna-pdf").addEventListener("click", () => {
+  const r = dillerOl("oyna_royxati");
+  if (r.xato) { alert("Oyna roʻyxati chiqmadi: " + r.xato); return; }
+  const o = r.ok;
+  const jSoni = o.reduce((s, x) => s + x.soni, 0), jM2 = o.reduce((s, x) => s + x.m2, 0);
+  chopEt(`<div class="dl">
+    <div class="p-sarlavha">Oyna (steklopaket) — ${esc(zakazNomi())}</div>
+    <div>Sana: ${new Date().toISOString().slice(0, 10)} · oʻlcham sm, 0,5 sm ga yaxlitlangan</div>
+    <table class="dl-jadval"><tr><th>№</th><th>Turi</th><th>Eni × Boʻyi</th><th>Soni</th><th>m²</th></tr>
+    ${o.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.tur)} ${x.qalinlik} mm</td><td class="son"><b>${son(x.en, 1)} × ${son(x.boy, 1)}</b></td><td class="son">${x.soni}</td><td class="son">${son(x.m2, 3)}</td></tr>`).join("")}
+    <tr><td></td><td><b>Jami</b></td><td></td><td class="son"><b>${jSoni}</b></td><td class="son"><b>${son(jM2, 3)}</b></td></tr></table></div>`,
+  `Oyna ${zakazNomi()}`);
+});
+
 $("orqaga").addEventListener("click", () => history.back());
+
+// ---------- zakaz sahifasi tablari: Konstruksiya · Hisob · Sex · Hujjatlar ----------
+function tabOch(t) {
+  $("e-zakaz").dataset.tab = t;
+  for (const b of $("z-tablar").querySelectorAll("button")) b.classList.toggle("faol", b.dataset.tab === t);
+  saqla("z_tab", t);
+  window.scrollTo(0, 0);
+  if (t === "s" && zakaz && natija) $("kesish-quti").open = true;
+}
+$("z-tablar").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) tabOch(b.dataset.tab); });
+$("d-kesish").addEventListener("click", () => { $("kesish-quti").open = true; tabOch("s"); });
+tabOch(ol("z_tab") || "k");
 $("yakunla").addEventListener("click", () => { saqla("oxirgi_zakaz", JSON.stringify(zakaz)); ekran("bosh"); holat("Zakaz saqlandi"); });
 $("yangi2").addEventListener("click", () => { ekran("bosh"); $("yangi").click(); });
 $("davom").addEventListener("click", () => { if (zakaz) ekran("zakaz"); });

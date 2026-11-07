@@ -55,31 +55,37 @@
   <div id="arxiv"></div>
  </div>
 
- <div id="e-zakaz" class="ekran" hidden>
+ <div id="e-zakaz" class="ekran" data-tab="k" hidden>
   <p id="zakaz-nomi" class="xira"></p>
 
   <section id="zakaz-ish" hidden>
-    <div class="xulosa">
+    <div class="xulosa" data-t="k">
       <div><b id="x-soni">0</b><span>soni</span></div>
       <div><b id="x-m2">0</b><span>umumiy yuzasi</span></div>
       <label class="tugma">📷 Rasmdan<input data-rasm="qosh" type="file" accept="image/*" hidden></label>
       <label class="tugma">📄 PDF<input data-rasm="qosh" type="file" accept="application/pdf,.pdf" hidden></label>
       <button id="k-qosh2" class="tugma asosiy">+ Qoʻshish</button>
     </div>
-    <section class="karta">
+    <section class="karta" data-t="k">
       <h2>Konstruksiyalar</h2>
       <div id="konstruksiyalar"></div>
       <button id="k-qosh" class="tugma asosiy keng">+ Konstruksiya qoʻshish</button>
     </section>
 
-    <details class="karta">
+    <details class="karta" data-t="k">
       <summary>Umumiy tanlovlar (rama, rang, oyna, furnitura)</summary>
       <div id="sozlama"></div>
     </details>
+    <section class="karta" data-t="k">
+      <div class="tugmalar">
+        <button id="yakunla" class="tugma asosiy">✓ Saqlash va bosh sahifa</button>
+        <button id="yangi2" class="tugma">+ Yangi zakaz</button>
+      </div>
+    </section>
   </section>
 
   <section id="natija" hidden>
-    <section class="karta jami">
+    <section class="karta jami" data-t="h">
       <div class="hk-bosh"><h2>Hisob-kitob</h2>
         <div class="seg valyuta"><button data-valyuta="som">soʻm</button><button data-valyuta="usd">USD</button></div></div>
       <div class="jami-qator"><span>Materiallar</span><b id="j-mat"></b></div>
@@ -106,7 +112,7 @@
       <div class="seg holatlar" id="holatlar"></div>
     </section>
 
-    <section class="karta">
+    <section class="karta" data-t="h">
       <h2>Buyurtmachi</h2>
       <div class="panjara mijoz">
         <label>Ism<input data-mijoz="ism" autocomplete="off" placeholder="Mijoz ismi"></label>
@@ -117,22 +123,22 @@
       <label class="keng-label">Izoh<textarea data-mijoz="izoh" rows="2"></textarea></label>
     </section>
 
-    <details class="karta">
+    <details class="karta" data-t="h">
       <summary>Materiallar</summary>
       <div id="materiallar"></div>
     </details>
 
-    <details class="karta">
+    <details class="karta" data-t="h">
       <summary>Oynalar <span id="oyna-m2" class="xira"></span></summary>
       <div id="oynalar"></div>
     </details>
 
-    <details class="karta">
+    <details class="karta" data-t="s">
       <summary>Profil raskroyi va otxod</summary>
       <div id="otxod"></div>
     </details>
 
-    <details class="karta" id="kesish-quti">
+    <details class="karta" id="kesish-quti" data-t="s">
       <summary>Kesish chizmasi (sexga)</summary>
       <div class="sklad-quti">
         <div class="sarlavha-kichik">Sklad bilan reja (sexga)</div>
@@ -147,13 +153,13 @@
       <button id="kesish-pdf" class="tugma keng">Kesish chizmasini PDF qilish</button>
     </details>
 
-    <section class="karta">
-      <div class="tugmalar">
-        <button id="yakunla" class="tugma asosiy">✓ Saqlash va bosh sahifa</button>
-        <button id="yangi2" class="tugma">+ Yangi zakaz</button>
-        <button id="pdf" class="tugma asosiy">PDF (mijozga)</button>
-        <button id="ulash" class="tugma">Natijani ulashish</button>
-      </div>
+    <section class="karta hujjatlar" data-t="d">
+      <h2>Hujjatlar</h2>
+      <button id="pdf" class="hujjat"><span>🧾</span><b>Mijozga PDF</b><small>narx, oʻlcham, chizma</small></button>
+      <button id="diller-pdf" class="hujjat"><span>📦</span><b>Dillerga roʻyxat</b><small>profil hivichda, aksessuar, furnitura</small></button>
+      <button id="oyna-pdf" class="hujjat"><span>🪟</span><b>Oyna roʻyxati</b><small>steklopaket oʻlchami, soni, m²</small></button>
+      <button id="d-kesish" class="hujjat"><span>✂️</span><b>Kesish chizmasi (sexga)</b><small>Sex boʻlimida, har profilga PDF</small></button>
+      <button id="ulash" class="hujjat"><span>📤</span><b>Natijani ulashish</b><small>matn koʻrinishida</small></button>
       <div class="kichik-tugmalar">
         <button id="narx-sheets" class="ikon-t" title="Narxni Sheets dan yangilash" aria-label="Narxni Sheets dan yangilash"><span>🔄</span>Narx</button>
         <button id="saqlash" class="ikon-t" title="Zakazni saqlash (JSON)" aria-label="Zakazni saqlash (JSON)"><span>💾</span>JSON</button>
@@ -161,6 +167,12 @@
       </div>
     </section>
   </section>
+  <nav id="z-tablar" class="tablar">
+    <button data-tab="k"><span>🪟</span>Konstruksiya</button>
+    <button data-tab="h"><span>💰</span>Hisob</button>
+    <button data-tab="s"><span>✂️</span>Sex</button>
+    <button data-tab="d"><span>📄</span>Hujjatlar</button>
+  </nav>
  </div>
   <footer class="xira" id="versiya"></footer>
 </main>

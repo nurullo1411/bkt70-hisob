@@ -212,6 +212,43 @@ function arkaGeom(k) {
   return { ...yoyYasa(L / 2, L, a, 0, true), a };
 }
 
+// ---------- rang: profil rom rangida, oyna oʻz turida (foydalanuvchi, 2026-11-07) ----------
+// Chizmaga qarab profil va oyna rangini tez anglash uchun
+function aralash(hex, bilan, p) {
+  const a = parseInt(hex.slice(1), 16), b = parseInt(bilan.slice(1), 16);
+  const k = (x, y) => Math.round(x + (y - x) * p);
+  const r = k(a >> 16, b >> 16), g = k((a >> 8) & 255, (b >> 8) & 255), bl = k(a & 255, b & 255);
+  return "#" + ((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1);
+}
+function umumiyTanlov() { return (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy && zakaz.umumiy.tanlov) || {}; }
+// Profil rangi (hex) yoki null — oq (standart och rang qoladi)
+function profilRangi(k) {
+  const t = { ...umumiyTanlov(), ...(k.tanlov || {}) };
+  const turkum = RANG_TURKUMLARI.find((r) => r[0] === t.rang);
+  if (!turkum) return null;
+  const r = turkum[2].find((x) => x[0] === t.rang_nomi) || turkum[2][0];
+  return r[0] === "oq" ? null : r[2];
+}
+// Oyna turi boʻyicha gradient (boshi, oxiri, chiziq); oddiy oq oyna — null (standart koʻk)
+function oynaTuslari(nom) {
+  const n = String(nom || "").toLowerCase();
+  if (n.includes("qora")) return ["#79828c", "#2c3137", "#22262b"];
+  if (n.includes("koʻzgu") || n.includes("kozgu")) return ["#f4f7f9", "#9eabb6", "#6d7a85"];
+  if (n.includes("yod")) return ["#f6d9a6", "#c8893c", "#9a6526"];
+  return null;
+}
+// Boʻlakning oyna turi: oʻzida yoki eng yaqin ota boʻlakda, boʻlmasa konstruksiyaniki
+function bargOynaTuri(k, p) {
+  let ot = (k.tanlov && k.tanlov.oyna_turi) || umumiyTanlov().oyna_turi || "";
+  let n = k.bolak;
+  if (n && n.oyna_turi) ot = n.oyna_turi;
+  for (const i of yolQism(p)) {
+    n = n && n.bolaklar ? n.bolaklar[i] : null;
+    if (n && n.oyna_turi) ot = n.oyna_turi;
+  }
+  return ot;
+}
+
 // ---------- SVG ----------
 let svgSanoq = 0;  // har chizmaga alohida gradient id (yashirin chizmadagi gradient boshqasida ishlamaydi)
 function chizmaSVG(k, opts = {}) {
@@ -220,6 +257,21 @@ function chizmaSVG(k, opts = {}) {
   const M = Math.max(L, H);
   const t = Math.max(2.5, Math.min(7, Math.min(L, H) * 0.045));
   const g = geometriya(k);
+  // oyna turlari: har turga oʻz gradienti; gul — ustidan naqsh
+  const turlar = [...new Set(g.barglar.map((o) => bargOynaTuri(k, o.p)))];
+  const oynaGradlar = turlar.map((tur, i) => {
+    const tus = oynaTuslari(tur);
+    return tus ? `<linearGradient id="${gid}-oy${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${tus[0]}"/><stop offset="1" stop-color="${tus[1]}"/></linearGradient>` : "";
+  }).join("");
+  let oynaUslub = "", oynaGul = false;
+  const oynaTanla = (p) => {
+    const tur = bargOynaTuri(k, p), i = turlar.indexOf(tur), tus = oynaTuslari(tur);
+    oynaUslub = tus ? `style="fill:url(#${gid}-oy${i});stroke:${tus[2]}"` : "";
+    oynaGul = String(tur).toLowerCase().includes("gul");
+  };
+  // profil rom rangida (oq — standart)
+  const pr = profilRangi(k);
+  const prUslub = pr ? `;--rama-1:${aralash(pr, "#ffffff", 0.3)};--rama-2:${aralash(pr, "#000000", 0.12)};--rama-chiziq:${aralash(pr, "#000000", 0.5)}` : "";
   const ark = g.ark;
   const shrift = M * 0.04;
   const qadam = M * 0.085;  // oʻlcham qatorlari orasidagi masofa
@@ -265,7 +317,8 @@ function chizmaSVG(k, opts = {}) {
 
   // Oyna: gradient va ikkita yaltiroq chiziq (faqat katta chizmada)
   function oyna(x, y, w, h, d, tY = null, pY = null) {
-    let q = yuza(x, y, w, h, d, "oy", "", tY, pY);
+    let q = yuza(x, y, w, h, d, "oy", oynaUslub, tY, pY);
+    if (oynaGul) q += yuza(x, y, w, h, d, "gul", `style="fill:url(#${gid}-gul)"`, tY, pY);
     if (!opts.kichik && w > t * 3 && h > t * 3) {
       const yt = tepaY(tY, x + w * 0.5, y, d), yb = pastY(pY, x + w * 0.5, y + h, d);
       const hh = yb - yt;
@@ -309,6 +362,8 @@ function chizmaSVG(k, opts = {}) {
   s += `<defs>
     <linearGradient id="${gid}-ra" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--rama-1)"/><stop offset="1" style="stop-color:var(--rama-2)"/></linearGradient>
     <linearGradient id="${gid}-oy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--oyna-1)"/><stop offset="1" style="stop-color:var(--oyna-2)"/></linearGradient>
+    ${oynaGradlar}
+    <pattern id="${gid}-gul" width="${f(t * 1.1)}" height="${f(t * 1.1)}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${f(t * 0.16)}" height="${f(t * 1.1)}" fill="rgba(255,255,255,.5)"/></pattern>
   </defs>`;
 
   const belgi = opts.kichik ? {} : belgilar(g.barglar);
@@ -325,7 +380,12 @@ function chizmaSVG(k, opts = {}) {
     const d = t * 0.5;
     const x = o.x + d, y = o.y + d, w = o.w - 2 * d, h = o.h - 2 * d;
     const b = o.b, tY = o.tY, pY = o.pY;
-    if (o.u) { s += `<path d="${uYol(o, d + t * 0.3)}" class="oy"/>`; continue; }
+    oynaTanla(o.p);
+    if (o.u) {
+      s += `<path d="${uYol(o, d + t * 0.3)}" class="oy" ${oynaUslub}/>`;
+      if (oynaGul) s += `<path d="${uYol(o, d + t * 0.3)}" class="gul" style="fill:url(#${gid}-gul)"/>`;
+      continue;
+    }
     if (b.tur === "gluxoy") s += oyna(x + t * 0.3, y + t * 0.3, w - t * 0.6, h - t * 0.6, d + t * 0.3, tY, pY);
     else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka, d, tY, pY);
     else if (b.tur === "eshik") {
@@ -440,7 +500,7 @@ function chizmaSVG(k, opts = {}) {
   }
   const chap = opts.kichik ? t : qadam * 1.6, tepa = opts.kichik ? t : qadam * 0.6;
   const vb = `${f(-chap)} ${f(-tepa)} ${f(L + chap + (opts.kichik ? t : qadam * (ongQator + 0.7)))} ${f(H + tepa + (opts.kichik ? t : qadam * (pastQator + 0.7)))}`;
-  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" class="chizma${opts.kichik ? " kichik" : ""}" style="--g-ra:url(#${gid}-ra);--g-oy:url(#${gid}-oy)" preserveAspectRatio="xMidYMid meet">${s}</svg>`;
+  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" class="chizma${opts.kichik ? " kichik" : ""}" style="--g-ra:url(#${gid}-ra);--g-oy:url(#${gid}-oy)${prUslub}" preserveAspectRatio="xMidYMid meet">${s}</svg>`;
 }
 const yx = (v) => Math.round(v * 10) / 10;
 
