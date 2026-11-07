@@ -21,6 +21,9 @@ ESHIK_PROFILI = {"ichkariga": "V708", "tashqariga": "V707"}  # Balkon Qanot / Ba
 ROM_TABAQA_PROFILI = "V702"
 SHTAPIK_TURLARI = {24, 32}
 SHTAPIK_QALINLIGI = D("2.2")
+# Laminatsiya plyonkasi: katalog oʻlchami laminatsiz (oq, 306g, anod); laminatsiyada har profil +0,08 sm,
+# impost tanasiga nisbatan (yarmi +0,04), shtapik ham (foydalanuvchi, 2026-11-07)
+LAMINAT_QOSHIMCHA = D("0.08")
 LAPSHA_PROFILI = "H702"
 LAPSHA_ENI = D("0.5")
 ESHIK_MIN_TABAQA = D("65")
@@ -89,7 +92,9 @@ class Zona:
 
 
 class Hisob:
-    def __init__(self, oyna_qalinligi, vertikal_r=True):
+    def __init__(self, oyna_qalinligi, vertikal_r=True, lam=D(0)):
+        self.lam = lam  # laminatsiyada 0,08, aks holda 0
+        self.shtapik = SHTAPIK_QALINLIGI + lam
         if oyna_qalinligi not in SHTAPIK_TURLARI:
             raise HisobXato(f"Oyna qalinligi uchun shtapik yoʻq: {oyna_qalinligi} mm (faqat 24 yoki 32)")
         self.qalinlik = oyna_qalinligi
@@ -161,7 +166,7 @@ class Hisob:
                 self.egilgan("Shtapik arka", f"G{g}", ichki_en, c, egish=False)
         if yonlar:
             self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}",
-                       ichki_boy - 2 * SHTAPIK_QALINLIGI, yonlar)
+                       ichki_boy - 2 * self.shtapik, yonlar)
 
     def shakl_oyna(self, ichki_en, ichki_boy, tekis_gor, tekis_ver, yoylar):
         """Toʻrtburchak boʻlmagan gluxoy oyna (portal U oynasi): oʻlcham va narx eng katta eni × boʻyi boʻyicha.
@@ -182,8 +187,8 @@ class Hisob:
             self.detal("Shtapik gorizontal", f"G{g}", u, 1)
             rezina += u
         for u in tekis_ver:
-            if u > 2 * SHTAPIK_QALINLIGI:
-                self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}", u - 2 * SHTAPIK_QALINLIGI, 1)
+            if u > 2 * self.shtapik:
+                self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}", u - 2 * self.shtapik, 1)
                 rezina += u
         for e, c in yoylar:
             self.egilgan("Shtapik arka", f"G{g}", e, c, egish=False)
@@ -207,7 +212,7 @@ class Hisob:
             if c:
                 self.egilgan("Tabaqa arka", profil, en, c)
         self.detal("Tabaqa boʻyi", profil, boy, 2)
-        ayirma = TABAQA_AYIRMA[profil]
+        ayirma = TABAQA_AYIRMA[profil] + 2 * self.lam  # ikki tomon profili
         # fortochka oynasi qanot ichki − 1,5, boshqa tabaqalarda − 2 (foydalanuvchi, 2026-11-07)
         self.oyna(joy, en - ayirma, boy - ayirma, D("1.5") if fortochka is not None else D(2), arka, past)
 
@@ -438,7 +443,7 @@ def _portal(b, z, h, ctx):
             continue
         yb = D(b[kalit])
         x_ichki = z.x + z.chap if kalit == "chap_boy" else z.x + z.en - z.ong
-        if tY and z.y + yb - yarmi <= ust(x_ichki) + 2 * SHTAPIK_QALINLIGI:
+        if tY and z.y + yb - yarmi <= ust(x_ichki) + 2 * h.shtapik:
             raise HisobXato("Portal: yon yotiq impost rama arkasidan pastda boʻlishi kerak")
         if yb <= tepa + c or yb >= z.boy - z.past - yarmi:
             raise HisobXato("Portal: yon yotiq impost arka boshlanishidan pastda va boʻlak ichida boʻlishi kerak")
@@ -559,9 +564,9 @@ def _bolak_ichi(b, z, h, ctx):
 
 
 def _rama_hisobi(profil, impost, en, boy, bolak, h):
-    r = RAMA_R[profil]
+    r = RAMA_R[profil] + h.lam
     h.rama(profil, en, boy)
-    ctx = {"impost": impost, "yarmi": IMPOST_YARMI[impost], "bolinish_ichida": False}
+    ctx = {"impost": impost, "yarmi": IMPOST_YARMI[impost] + h.lam / 2, "bolinish_ichida": False}
     _bolak(bolak, Zona(en, boy, r, r, r, r, tepa_yoy=h.arka), h, ctx)
 
 
@@ -578,7 +583,8 @@ def hisobla(k):
     vertikal = (k.get("tanlov") or {}).get("vertikal_shtapik", "R")
     if vertikal not in ("R", "oddiy"):
         raise HisobXato(f"vertikal_shtapik faqat R yoki oddiy: {vertikal}")
-    h = Hisob(k.get("oyna_qalinligi", 24), vertikal_r=vertikal == "R")
+    lam = LAMINAT_QOSHIMCHA if (k.get("tanlov") or {}).get("rang") == "Laminatsiya" else D(0)
+    h = Hisob(k.get("oyna_qalinligi", 24), vertikal_r=vertikal == "R", lam=lam)
 
     # Arka (foydalanuvchi, 2026-11-06): chuqurlik L/2 dan oshmaydi, radius chegarasi yoʻq
     arka = k.get("arka")
