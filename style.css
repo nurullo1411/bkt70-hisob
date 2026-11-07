@@ -211,6 +211,7 @@ html, body { overscroll-behavior-y: contain; }
 .sz-seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .sz-seg button { flex: 1 1 0; min-height: 42px; padding: 6px 10px; border-radius: 12px; border: 1px solid var(--chiziq);
                  background: var(--fon); color: var(--matn); font: inherit; font-size: 14px; }
+.sz-pod button { flex: 1 0 44px; padding: 6px 4px; }
 .sz-seg button.faol { background: var(--asosiy); color: var(--asosiy-matn); border-color: var(--asosiy); }
 .sz-seg button:disabled { opacity: .4; }
 .sz-oynalar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }

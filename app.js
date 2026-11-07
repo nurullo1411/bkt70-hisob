@@ -305,7 +305,7 @@ function royxatniChiz() {
     const h = hisoblangan[nom];
     const soni = k.soni ?? 1;
     const u = zakaz.umumiy, t = { ...(u.tanlov || {}), ...(k.tanlov || {}) };
-    const teglar = [k.rama || u.rama, t.rang_nomi || t.rang, (t.oyna_turi || "") + " " + (k.oyna_qalinligi || u.oyna_qalinligi || 24) + " mm"];
+    const teglar = [k.rama || u.rama, t.rang_nomi || t.rang, (t.oyna_turi || "") + " " + (k.oyna_qalinligi || u.oyna_qalinligi || 24) + " mm", t.podokonnik ? "podokonnik " + t.podokonnik : null];
     return `<div class="konstr${soni === 0 ? " nol" : ""}">
       <div class="konstr-ichi">
         <button class="eskiz" data-tahrir="${i}" aria-label="Tahrirlash">${chizmaSVG(k, { kichik: true })}</button>
@@ -863,7 +863,7 @@ ProfStroy / ProfOkna PDF ("Коммерческое предложение", "�
 - Chizmasi boʻlmasa ham jadvaldan konstruksiyani tuz; boʻlinishi bilinmasa bitta boʻlak qilib, savollar ga yoz.
 Ikkala PDF uchun ham:
 - Seriya yoki Система TERMO 70 / BKT 70 boʻlmasa (masalan TRIO, ENGELBERG, Aldoks, PVX), konstruksiyani baribir oʻqi, savollar ga "N: seriya X, Termo 70 da hisoblandi" deb yoz.
-- Narx, rang, ruchka, podokonnik — oʻqima (dastur oʻzi hisoblaydi). Faqat oyna turi roʻyxatdagilardan biriga aniq mos kelsa, konstruksiyaga "tanlov": {"oyna_turi": "..."} qoʻsh. Roʻyxat: OYNA_ROYXATI.`;
+- Narx, rang, ruchka — oʻqima (dastur oʻzi hisoblaydi). Podokonnik chizmada aniq yozilgan boʻlsa (masalan "podokonnik 25"), konstruksiyaga "tanlov": {"podokonnik": 25} qoʻsh (faqat 15, 20, 25, 30, 35, 40, 45). Faqat oyna turi roʻyxatdagilardan biriga aniq mos kelsa, konstruksiyaga "tanlov": {"oyna_turi": "..."} qoʻsh. Roʻyxat: OYNA_ROYXATI.`;
 
 function aiKalit() { return ol("ai_kalit"); }
 async function aiKalitniOl() {

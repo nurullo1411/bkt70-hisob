@@ -895,6 +895,7 @@ function joriy(k) {
   return {
     rama: k.rama ?? u.rama, qal: Number(k.oyna_qalinligi ?? u.oyna_qalinligi ?? 24),
     rang: t.rang ?? ut.rang, rangNomi: t.rang_nomi ?? ut.rang_nomi, oyna: t.oyna_turi ?? ut.oyna_turi,
+    pod: t.podokonnik ?? ut.podokonnik ?? null,
   };
 }
 
@@ -931,6 +932,9 @@ function sozlamaOynasi() {
     <div class="sz-bolim">Rang</div>
     <div class="sz-seg">${RANG_TURKUMLARI.map(([v, y]) => `<button data-sz="t:rang" data-v="${esc(JSON.stringify(v))}" class="${faol(j.rang === v)}">${y}</button>`).join("")}</div>
     <div class="sz-ranglar">${turkum[2].map(([v, y, c]) => `<button data-sz="t:rang_nomi" data-v="${esc(JSON.stringify(v))}" class="sz-rang${faol((j.rangNomi ?? turkum[2][0][0]) === v)}"><span class="namuna" style="background:${c}"></span>${y}</button>`).join("")}</div>
+
+    <div class="sz-bolim">Podokonnik <span class="xira">(uzunligi L + 15 sm, rangi rom rangida)</span></div>
+    <div class="sz-seg sz-pod">${[[null, "Yoʻq"], ...[15, 20, 25, 30, 35, 40, 45].map((v) => [v, String(v)])].map(([v, y]) => `<button data-sz="t:podokonnik" data-v="${JSON.stringify(v)}" class="${faol(j.pod === v)}">${y}</button>`).join("")}</div>
 
     <div class="sz-bolim">Konstruksiya</div>
     <div class="panjara">

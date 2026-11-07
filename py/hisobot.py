@@ -42,6 +42,9 @@ IMPOST_J = "J01+J05"  # tanlov: katalog 9-12
 TIJ_AYIRMA_ESHIK ={"Stublina 1177": D(50), "Stublina 1177 (Uz)": D(50)}  # foydalanuvchi tasdiqlagan, 2026-11-02
 
 
+PODOKONNIK_ENLARI = (15, 20, 25, 30, 35, 40, 45)  # sm, Romchidagidek tanlov (foydalanuvchi, 2026-11-06)
+PODOKONNIK_ZAPAS = D(15)                          # uzunlik = L + 15 sm
+PODOKONNIK_KRISHKA = "Krishka Podokonnik"         # har podokonnikka 2 dona
 ARKA_EGISH = "Arka egish"        # $ / m egiladigan profil
 ARKA_OYNA = "Arka oyna soʻm"     # soʻm / m² arkali oyna ustamasi (narx soʻmda, kursga boʻlinadi)
 
@@ -285,6 +288,14 @@ def hisobot(k, narxlar):
         m2 = D(str(s["arka_oyna_m2"]))
         som = r.narx.get(ARKA_OYNA)
         r.summa_bilan("Arka", ARKA_OYNA, m2, "m²", None if som is None else m2 * D(som) / kurs, ARKA_OYNA)
+    # Podokonnik: L + 15 sm, metr narxi rom rangi turkumi boʻyicha (Narxlar: "Podokonnik 25 | Oq"), uchiga 2 qopqoq
+    pod = tanlov.get("podokonnik")
+    if pod:
+        if int(pod) not in PODOKONNIK_ENLARI:
+            raise HisobXato(f"Podokonnik eni {pod} sm boʻlmaydi: {', '.join(map(str, PODOKONNIK_ENLARI))}")
+        metr = (D(str(k["L"])) + PODOKONNIK_ZAPAS) / 100
+        r.qosh("Podokonnik", f"Podokonnik {int(pod)} | {rang}", metr, "m")  # nomi = narx kaliti (zakaz, tannarx)
+        r.qosh("Podokonnik", PODOKONNIK_KRISHKA, 2, "dona")
     if tanlov.get("montaj"):
         r.qosh("Montaj", "MK 01", D(s["rama_perimetri"]) / 100 * PENA_METRGA, "ballon")
 
