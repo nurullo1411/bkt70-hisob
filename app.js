@@ -39,6 +39,7 @@ async function yukla() {
     jonliNarx();
     const oxirgi = ol("oxirgi_zakaz");
     if (oxirgi) zakazniOch(oxirgi, true);
+    zakazlarniOl();
     if (zakaz) qoralamaniTikla();
   } catch (e) {
     holat("Xato");
@@ -155,7 +156,7 @@ function ekran(nom, push = true) {
   const bolim = BOSH_BOLIMLAR.find((h) => h[0] === arxivTab) || HOLATLAR.find((h) => h[0] === arxivTab);
   $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : nom === "kassa" ? "Kassa" : "Buyurtma maʼlumotlari";
   if (nom === "kassa") kassaYangila();
-  else if (nom !== "zakaz") arxivniChiz();
+  else if (nom !== "zakaz") { arxivniChiz(); zakazlarniOl(); }
   window.scrollTo(0, 0);
 }
 let ichkiOrqaga = false, chiqishTasdiq = false;
@@ -179,11 +180,24 @@ window.addEventListener("popstate", (e) => {
 history.replaceState({ ekran: "bosh" }, "");
 
 // ---------- zakazlar arxivi (Romchi "Buyurtmalar"): telefonda saqlanadi ----------
-const HOLATLAR = [["yangi", "Hisoblangan"], ["jarayonda", "Boshlangan"], ["qarzdor", "Qarzdor"], ["tugatilgan", "Tugallangan"]];
+// Zakaz holatlari (foydalanuvchi, 2026-11-08). Montajsiz zakaz "Sex tugallangan" da tugaydi.
+const HOLATLAR = [["hisoblangan", "Hisoblangan"], ["shartnoma", "Shartnoma tuzildi"], ["sex_jarayon", "Sex jarayonda"],
+  ["sex_tugadi", "Sex tugallangan"], ["montaj_jarayon", "Montaj jarayonda"], ["montaj_tugadi", "Montaj tugallangan"]];
+const HOLAT_ZANJIR = HOLATLAR.map((h) => h[0]);
+const ESKI_HOLAT = { yangi: "hisoblangan", jarayonda: "sex_jarayon", qarzdor: "montaj_tugadi", tugatilgan: "montaj_tugadi" };
+const holatOl = (z) => ESKI_HOLAT[z.holat] || z.holat || "hisoblangan";
+const holatNomi = (h) => (HOLATLAR.find((x) => x[0] === h) || [h, h])[1];
+const montajBor = (z) => z.montaj !== false;
+// Bosh sahifa boʻlimi: Hisoblangan · Boshlangan (shartnomadan montaj tugaguncha) · Tugallangan
+function bolimi(z) {
+  const h = holatOl(z);
+  if (h === "hisoblangan") return "yangi";
+  if (h === "montaj_tugadi" || (h === "sex_tugadi" && !montajBor(z))) return "tugatilgan";
+  return "jarayonda";
+}
 // Bosh sahifa boʻlimlari (foydalanuvchi, 2026-11-07); qarzdor hozircha tugallanganlar ichida
 const BOSH_BOLIMLAR = [["yangi", "Hisoblangan buyurtmalar", ["yangi"]], ["jarayonda", "Boshlangan ishlar", ["jarayonda"]],
   ["tugatilgan", "Tugallangan ishlar", ["tugatilgan", "qarzdor"]]];
-const bolimHolatlari = (tab) => (BOSH_BOLIMLAR.find((b) => b[0] === tab) || [0, 0, [tab]])[2];
 function arxivOl() { try { return JSON.parse(ol("zakazlar") || "[]"); } catch (e) { return []; } }
 function arxivYoz(a) { try { localStorage.setItem("zakazlar", JSON.stringify(a)); } catch (e) {} }
 function belgila(z) {
@@ -193,14 +207,14 @@ function belgila(z) {
   z.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   z.raqam = raqam;
   z.sana = new Date().toISOString().slice(0, 10);
-  z.holat = "yangi";
+  z.holat = "hisoblangan";
 }
 function arxivga(matn) {
   let z;
   try { z = JSON.parse(matn); } catch (e) { return; }
   if (!z || !z.id) return;
   const a = arxivOl().filter((x) => x.id !== z.id);
-  if (z.konstruksiyalar && z.konstruksiyalar.length) a.unshift(z);
+  if (z.konstruksiyalar && z.konstruksiyalar.length) { a.unshift(z); zakazNavbatga(z.id); }
   arxivYoz(a);
   arxivniChiz();
 }
@@ -208,11 +222,15 @@ let arxivTab = "yangi";
 // Roʻyxatdan keyingi boʻlimga oʻtkazish (foydalanuvchi, 2026-11-07)
 let holatTasdiq = null; // "id|holat" — tasdiq kutilayotgan oʻtkazish
 function keyingiHolat(z) {
-  const h = z.holat || "yangi";
-  const OT = { yangi: [["jarayonda", "Ishga tushirish →", ""]],
-    jarayonda: [["yangi", "← Hisoblanganga qaytarish", "orqa"], ["tugatilgan", "Tugatildi ✓", "yashil"]],
-    tugatilgan: [["jarayonda", "← Boshlanganga qaytarish", "orqa"]], qarzdor: [["jarayonda", "← Boshlanganga qaytarish", "orqa"]] };
-  const tugmalar = (OT[h] || []).map(([yangi, y, kl]) => {
+  const h = holatOl(z), i = HOLAT_ZANJIR.indexOf(h);
+  const OT = [];
+  if (i > 0) OT.push([HOLAT_ZANJIR[i - 1], "← " + holatNomi(HOLAT_ZANJIR[i - 1]), "orqa"]);
+  const oxiri = h === "montaj_tugadi" || (h === "sex_tugadi" && !montajBor(z));
+  if (!oxiri) {
+    const k = HOLAT_ZANJIR[i + 1];
+    OT.push([k, holatNomi(k) + (k === "montaj_tugadi" || (k === "sex_tugadi" && !montajBor(z)) ? " ✓" : " →"), k.endsWith("tugadi") ? "yashil" : ""]);
+  }
+  const tugmalar = OT.map(([yangi, y, kl]) => {
     const kalit = `${z.id}|${yangi}`;
     if (holatTasdiq === kalit) return `<span class="holat-tasdiq">${esc(y)} — tasdiqlaysizmi?
       <button data-holatga="${kalit}" class="kichik-t ha">Ha</button><button data-holat-yoq="1" class="kichik-t">Yoʻq</button></span>`;
@@ -220,12 +238,20 @@ function keyingiHolat(z) {
   });
   return tugmalar.length ? `<div class="holat-ot">${tugmalar.join("")}</div>` : "";
 }
+// Zakaz pul holati: shartnoma summasi, kassadan toʻlangan (bazadan), qarz
+function pulHolati(z) {
+  const sh = shartnomaSumma(z);
+  const p = (x) => (sh.valyuta === "USD" ? usd(x) : som(x));
+  if (z.tolangan == null || !z.baza_id) return sh.summa ? p(sh.summa) : "—";
+  const qarz = sh.summa - z.tolangan;
+  return `${p(sh.summa)} · toʻlangan ${p(z.tolangan)}${Math.abs(qarz) > 0.009 ? ` · <b class="${qarz > 0 ? "qarz" : "ortiq"}">${qarz > 0 ? "qarz" : "ortiqcha"} ${p(Math.abs(qarz))}</b>` : " ✓"}`;
+}
 function arxivniChiz() {
   const a = arxivOl();
-  const narxi = (z) => Number(z.narx_som) || 0;
+  const narxi = (z) => { const sh = shartnomaSumma(z); return sh.valyuta === "USD" ? sh.summa * (Number(ol("kurs")) || 0) : sh.summa; };
   const BELGI = { yangi: ["🧮", "#e3f2fd", "#1e88e5"], jarayonda: ["🛠", "#fff8e1", "#f9a825"], qarzdor: ["⏰", "#ffebee", "#e53935"], tugatilgan: ["✔", "#e8f5e9", "#43a047"] };
   $("arxiv-tablar").innerHTML = BOSH_BOLIMLAR.map(([k, y, hl]) => {
-    const t = a.filter((z) => hl.includes(z.holat || "yangi"));
+    const t = a.filter((z) => bolimi(z) === k);
     const [b, fon, rang] = BELGI[k];
     return `<button data-tab="${k}" class="bolim-k" style="--b-rang:${rang};--b-fon:${fon}"><span class="bolim-yuqori"><span class="bolim-belgi">${b}</span></span>
       <span class="bolim-matn2"><b>${y}</b><span class="bolim-summa">${t.length ? som(t.reduce((s, z) => s + narxi(z), 0)) : "—"}</span></span><span class="bolim-katta">${t.length}</span></button>`;
@@ -233,12 +259,23 @@ function arxivniChiz() {
   const dv = $("davom");
   dv.hidden = !(zakaz && zakaz.konstruksiyalar && zakaz.konstruksiyalar.length);
   if (!dv.hidden) dv.innerHTML = `<span class="xira">Oxirgi ochilgan</span><b>№${esc(zakaz.raqam ?? "")} · ${esc((zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "")}</b><span class="bolim-oq">›</span>`;
-  const t = a.filter((z) => bolimHolatlari(arxivTab).includes(z.holat || "yangi"));
-  $("arxiv").innerHTML = t.map((z) => `<div class="arxiv-k${zakaz && zakaz.id === z.id ? " joriy" : ""}">
+  let t = a.filter((z) => bolimi(z) === arxivTab);
+  // BTB ustalar: hamma zakazi bitta guruhda, ism ostida (foydalanuvchi, 2026-11-08)
+  const btbNom = (z) => (z.mijoz && z.mijoz.btb && z.mijoz.ism ? z.mijoz.ism.trim() : "");
+  const tartib = [];
+  for (const z of t) {
+    const g = btbNom(z);
+    if (!g) { tartib.push(z); continue; }
+    if (tartib.some((x) => x.guruh === g)) continue;
+    const ich = t.filter((x) => btbNom(x) === g);
+    tartib.push({ guruh: g, soni: ich.length, summa: ich.reduce((s2, x) => s2 + narxi(x), 0) }, ...ich);
+  }
+  t = tartib;
+  $("arxiv").innerHTML = t.map((z) => z.guruh ? `<div class="btb-guruh"><b>BTB · ${esc(z.guruh)}</b><span>${z.soni} ta · ${som(z.summa)}</span></div>` : `<div class="arxiv-k${zakaz && zakaz.id === z.id ? " joriy" : ""}${btbNom(z) ? " btb" : ""}">
       <div class="arxiv-eskiz">${z.konstruksiyalar[0] ? chizmaSVG(z.konstruksiyalar[0], { kichik: true }) : ""}</div>
-      <div class="arxiv-matn"><span class="xira">№${esc(z.raqam ?? "")} · ${esc(z.sana || "")}</span>
+      <div class="arxiv-matn"><span class="xira">${z.baza_id ? `<b class="id-teg">ID ${z.baza_id}</b> ` : `№${esc(z.raqam ?? "")} · `}${esc(z.sana || "")} · ${esc(holatNomi(holatOl(z)))}${montajBor(z) ? "" : " · montajsiz"}</span>
         <b>${esc((z.mijoz && z.mijoz.ism) || z.nom || "Mijoz")}</b>
-        <span>${narxi(z) ? som(narxi(z)) : "—"}</span></div>
+        <span class="pul-holat">${pulHolati(z)}</span></div>
       ${keyingiHolat(z)}<div class="arxiv-tugma"><button data-och="${z.id}" class="tugma asosiy">Ochish</button><button data-dub="${z.id}" class="tugma">Dublikat</button><button data-arx-ochir="${z.id}" class="tugma">Oʻchirish</button></div>
     </div>`).join("") || '<p class="xira">Bu boʻlimda zakaz yoʻq.</p>';
 }
@@ -373,7 +410,15 @@ function hisobKitobniChiz() {
   $("j-qoldiq").textContent = pul(mijozga - chegirma - avans);
   const narxSom = Math.round((mijozga - chegirma) * kurs);
   if (zakaz.narx_som !== narxSom) { zakaz.narx_som = narxSom; saqla("oxirgi_zakaz", JSON.stringify(zakaz)); }
-  $("holatlar").innerHTML = HOLATLAR.map(([k, y]) => `<button data-holat="${k}" class="${(zakaz.holat || "yangi") === k ? "faol" : ""}">${y}</button>`).join("");
+  const sh = shartnomaSumma(zakaz);
+  if (document.activeElement !== $("sh-summa")) $("sh-summa").value = zakaz.shartnoma && zakaz.shartnoma.summa ? zakaz.shartnoma.summa : "";
+  $("sh-summa").placeholder = zakaz.narx_som ? String(zakaz.narx_som) + " (mijozga narx)" : "";
+  document.querySelectorAll("[data-shv]").forEach((b) => b.classList.toggle("faol", b.dataset.shv === sh.valyuta));
+  document.querySelectorAll("[data-montaj]").forEach((b) => b.classList.toggle("faol", (b.dataset.montaj === "1") === montajBor(zakaz)));
+  $("sh-holat").innerHTML = `${zakaz.baza_id ? `<b class="id-teg">ID ${zakaz.baza_id}</b> · ` : ""}${esc(holatNomi(holatOl(zakaz)))}<br>${pulHolati(zakaz)}` +
+    (bazaUlangan() ? "" : `<br><span class="xira">Bazaga ulanmagan: ID va toʻlov chiqmaydi</span>`);
+  $("holatlar").innerHTML = keyingiHolat(zakaz);
+  $("m-btb").checked = !!(zakaz.mijoz && zakaz.mijoz.btb);
   if (document.activeElement !== $("hk-ustama")) $("hk-ustama").value = h.ustama_foiz ?? "";
   const korsat = (s) => (s ? (v === "usd" ? Math.round(s / kurs * 100) / 100 : s) : "");
   if (document.activeElement !== $("hk-chegirma")) $("hk-chegirma").value = korsat(h.chegirma_som);
@@ -625,46 +670,69 @@ $("ulash").addEventListener("click", async () => {
 });
 $("saqlash").addEventListener("click", () => faylBer((zakaz.nom || "zakaz") + ".json", JSON.stringify(zakaz, null, 1)));
 
-$("holatlar").addEventListener("click", (e) => {
-  const b = e.target.closest("[data-holat]");
+// Holat tugmalari (roʻyxat kartochkasi va Hisob tabi): tasdiq bilan, bazada oʻzgaradi
+async function holatTugma(d) {
+  if (d.holatSora) { holatTasdiq = d.holatSora; return true; }
+  if (d.holatYoq) { holatTasdiq = null; return true; }
+  if (d.holatga) {
+    holatTasdiq = null;
+    const [id, h] = d.holatga.split("|");
+    await holatniOzgartir(id, h);
+    return true;
+  }
+  return false;
+}
+$("holatlar").addEventListener("click", async (e) => {
+  const b = e.target.closest("button");
   if (!b) return;
-  zakaz.holat = b.dataset.holat;
-  arxivTab = zakaz.holat === "qarzdor" ? "tugatilgan" : zakaz.holat;
+  if (await holatTugma(b.dataset)) { if (natija) hisobKitobniChiz(); arxivniChiz(); }
+});
+$("sh-summa").addEventListener("input", () => {
+  const x = Number($("sh-summa").value);
+  zakaz.shartnoma = { ...(zakaz.shartnoma || {}), summa: x > 0 ? x : undefined };
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   hisobKitobniChiz();
+});
+document.querySelectorAll("[data-shv]").forEach((b) => b.addEventListener("click", () => {
+  zakaz.shartnoma = { ...(zakaz.shartnoma || {}), valyuta: b.dataset.shv };
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz)); hisobKitobniChiz();
+}));
+document.querySelectorAll("[data-montaj]").forEach((b) => b.addEventListener("click", () => {
+  const yangi = b.dataset.montaj === "1";
+  if (!yangi && ["montaj_jarayon", "montaj_tugadi"].includes(holatOl(zakaz))) { holat("Montaj boshlangan — montajsiz qilib boʻlmaydi"); return; }
+  zakaz.montaj = yangi;
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz)); hisobKitobniChiz();
+}));
+$("m-btb").addEventListener("change", () => {
+  zakaz.mijoz = zakaz.mijoz || {};
+  if ($("m-btb").checked) zakaz.mijoz.btb = true; else delete zakaz.mijoz.btb;
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz));
 });
 $("arxiv-tablar").addEventListener("click", (e) => {
   const b = e.target.closest("[data-tab]");
   if (b) { arxivTab = b.dataset.tab; ekran("royxat"); }
 });
-$("arxiv").addEventListener("click", (e) => {
+$("arxiv").addEventListener("click", async (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   const a = arxivOl(), d = b.dataset;
-  if (d.holatSora) { holatTasdiq = d.holatSora; arxivniChiz(); return; }
-  if (d.holatYoq) { holatTasdiq = null; arxivniChiz(); return; }
-  if (d.holatga) {
-    holatTasdiq = null;
-    const [id, h] = d.holatga.split("|");
-    const z = a.find((x) => x.id === id);
-    if (!z) return;
-    z.holat = h;
-    arxivYoz(a);
-    if (zakaz && zakaz.id === id) { zakaz.holat = h; saqla("oxirgi_zakaz", JSON.stringify(zakaz)); }
-    holat(h === "jarayonda" ? "Boshlangan ishlarga oʻtdi" : h === "yangi" ? "Hisoblanganga qaytdi" : "Tugallangan ishlarga oʻtdi");
-    arxivniChiz();
-    return;
-  }
+  if (await holatTugma(d)) { arxivniChiz(); return; }
   if (d.och) {
     const z = a.find((x) => x.id === d.och);
     if (z) zakazniOch(JSON.stringify(z));
   } else if (d.dub) {
     const z = JSON.parse(JSON.stringify(a.find((x) => x.id === d.dub)));
-    for (const k of ["id", "raqam", "sana", "holat", "hisob_kitob", "narx_som"]) delete z[k];
+    for (const k of ["id", "raqam", "sana", "holat", "hisob_kitob", "narx_som", "versiya", "baza_id", "tolangan", "shartnoma", "montaj", "ochirilgan"]) delete z[k];
     arxivTab = "yangi";
     zakazniOch(JSON.stringify(z));
   } else if (d.arxOchir) {
+    const oz = a.find((x) => x.id === d.arxOchir);
+    if (oz && oz.baza_id) { holat("Shartnoma tuzilgan zakaz oʻchirilmaydi (ID " + oz.baza_id + ")"); return; }
     if (!b.classList.contains("tasdiq")) { b.classList.add("tasdiq"); b.textContent = "Rostdanmi?"; return; }
+    if (oz && oz.versiya && bazaUlangan()) {
+      try { oz.ochirilgan = true; await baza("zakaz_yoz", { zakaz: { uid: oz.id, versiya: oz.versiya, summa: 0, valyuta: "UZS", zakaz: oz } }); }
+      catch (x) { holat("Oʻchirilmadi: bazaga ulanib boʻlmadi"); return; }
+    }
     arxivYoz(a.filter((x) => x.id !== d.arxOchir));
     if (zakaz && zakaz.id === d.arxOchir) { zakaz = null; natija = null; try { localStorage.removeItem("oxirgi_zakaz"); } catch (e2) {} $("zakaz-ish").hidden = true; $("natija").hidden = true; }
     arxivniChiz();

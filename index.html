@@ -122,8 +122,12 @@
       <div class="jami-qator"><span>Toʻlanadi (chegirmadan keyin)</span><b id="j-tolov"></b></div>
       <div class="jami-qator katta"><span>QOLDIQ</span><b id="j-qoldiq"></b></div>
       <p id="j-holat"></p>
-      <div class="sarlavha-kichik">Zakaz holati</div>
-      <div class="seg holatlar" id="holatlar"></div>
+      <div class="sarlavha-kichik">Shartnoma</div>
+      <div class="hk-maydon"><label>Shartnoma summasi<input id="sh-summa" type="number" inputmode="decimal" min="0" step="any"></label>
+        <div class="seg sh-valyuta"><button data-shv="UZS">soʻm</button><button data-shv="USD">$</button></div></div>
+      <div class="seg sh-montaj"><button data-montaj="1">Montaj bilan</button><button data-montaj="0">Montajsiz</button></div>
+      <p id="sh-holat" class="sh-holat"></p>
+      <div id="holatlar"></div>
     </section>
 
     <section class="karta" data-t="h">
@@ -135,6 +139,7 @@
         <label>Muddat<input data-mijoz="muddat" type="date"></label>
       </div>
       <label class="keng-label">Izoh<textarea data-mijoz="izoh" rows="2"></textarea></label>
+      <label class="btb-label"><input id="m-btb" type="checkbox"> BTB mijoz (usta: Gʻayrat aka, Tamos…) — zakazlari bitta guruhda</label>
     </section>
 
     <details class="karta" data-t="h">
@@ -269,5 +274,6 @@
 <script src="app.js"></script>
 <script src="konstruktor.js"></script>
 <script src="kassa.js"></script>
+<script src="zakaz_baza.js"></script>
 </body>
 </html>

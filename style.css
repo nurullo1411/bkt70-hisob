@@ -647,3 +647,15 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .kassa-s { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .kassa-h2 { font-size: 12px; margin: 2px 0 4px; overflow-wrap: anywhere; }
 .kassa-h.ayir { border-left-color: var(--asosiy); }
+
+/* ---------- zakaz bazada: holat, shartnoma, BTB (2026-11-08) ---------- */
+.id-teg { background: var(--asosiy); color: var(--asosiy-matn); border-radius: 6px; padding: 0 6px; font-size: 12px; }
+.pul-holat { font-size: 13px; font-variant-numeric: tabular-nums; }
+.pul-holat .qarz, .sh-holat .qarz { color: var(--xato); } .pul-holat .ortiq, .sh-holat .ortiq { color: var(--urgu); }
+.sh-holat { margin: 6px 0; font-size: 14px; line-height: 1.5; }
+.sh-valyuta, .sh-montaj { margin: 6px 0; }
+.btb-label { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; }
+.btb-label input { width: auto; }
+.btb-guruh { display: flex; justify-content: space-between; gap: 8px; margin: 12px 0 4px; padding: 6px 10px; border-radius: 10px;
+  background: color-mix(in srgb, var(--asosiy) 14%, transparent); font-size: 14px; }
+.arxiv-k.btb { margin-left: 10px; border-left: 3px solid var(--asosiy); }

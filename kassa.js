@@ -14,12 +14,13 @@ let kassaForma = null; // "kirim" | "chiqim" | "ayirboshlash" | null
 let kassaBekor = null; // bekor qilinayotgan uuid
 
 // Kirish havolasi: …/#b=<kalit>&u=<deployment id>. Kalit telefonda qoladi, havoladan oʻchiriladi.
-(function bazaHavola() {
-  const m = location.hash.match(/b=([0-9a-f]{20,})&u=([A-Za-z0-9_-]{20,})/);
-  if (!m) return;
+function bazaHavola(matn) {
+  const m = String(matn).match(/b=([0-9a-f]{20,})&u=([A-Za-z0-9_-]{20,})/);
+  if (!m) return false;
   try { localStorage.setItem("baza_kalit", m[1]); localStorage.setItem("baza_url", `https://script.google.com/macros/s/${m[2]}/exec`); } catch (e) {}
-  history.replaceState(null, "", location.pathname);
-})();
+  return true;
+}
+if (bazaHavola(location.hash)) history.replaceState(null, "", location.pathname);
 function kXabar(m) { const e = $("kassa-xabar"); if (!e) return; e.textContent = m; e.hidden = !m; clearTimeout(kXabar.t); kXabar.t = setTimeout(() => { e.hidden = true; }, 4000); }
 const bazaUlangan = () => !!(ol("baza_kalit") && ol("baza_url"));
 const kassaPul = (x, v) => v === "USD" ? usd(x) : som(x);
@@ -65,7 +66,8 @@ async function kassaYangila() {
 function kassaniChiz() {
   const q = $("kassa-ich");
   if (!bazaUlangan()) {
-    q.innerHTML = `<section class="karta"><h2>Bazaga ulanmagan</h2><p class="xira">Rahbar bergan kirish havolasini shu telefonda bir marta oching.</p></section>`;
+    q.innerHTML = `<section class="karta"><h2>Bazaga ulanmagan</h2><p class="xira">Rahbar bergan kirish havolasini shu yerga qoʻying (yoki ilova oʻrnatilgan brauzerda oching).</p>
+      <div class="kassa-qator"><input id="kb-havola" type="text" autocomplete="off" placeholder="https://…#b=…"><button id="kb-ulash" class="tugma asosiy">Ulash</button></div></section>`;
     return;
   }
   if (!kassaHolat) { q.innerHTML = `<p class="xira">Yuklanmoqda…</p>`; return; }
@@ -181,6 +183,11 @@ document.addEventListener("click", async (e) => {
   if (b.dataset.kforma) { kassaForma = kassaForma === b.dataset.kforma ? null : b.dataset.kforma; kassaniChiz(); return; }
   if (b.id === "kf-saqla") { kassaSaqla(); return; }
   if (b.id === "kassa-yangila") { kassaYangila(); return; }
+  if (b.id === "kb-ulash") {
+    if (!bazaHavola($("kb-havola").value)) return kXabar("Havola notoʻgʻri");
+    kassaYangila();
+    return;
+  }
   if (b.dataset.kbekor) { kassaBekor = b.dataset.kbekor; kassaniChiz(); return; }
   if (b.dataset.kbekorYoq) { kassaBekor = null; kassaniChiz(); return; }
   if (b.dataset.kbekorHa) {
