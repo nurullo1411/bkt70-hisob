@@ -159,7 +159,7 @@ def _aksessuar(s, narxlar, r, tanlov=None):
 # Engelberg 7000 aksessuari (foydalanuvchi, 2026-11-08). Burchak payvand — soedinitel va kley yoʻq.
 ENG_SOEDINITEL = "Soedinitel 7000 (150sht) (Uz)"   # ProfStroy OKT 7000, impostning har uchiga 1 ta
 ENG_SOEDINITEL_SAMOREZ = "3,9×25 YHBM"              # har soedinitelga 8 ta
-ENG_DRENAJ = "Drenaj qopqogʻi"                       # har oyna ostiga 1 ta
+ENG_DRENAJ = "Vadasliv krishka"                     # har oyna ostiga 1 ta
 
 
 def _eng_aksessuar(s, k, r):
