@@ -70,6 +70,8 @@ footer { text-align: center; padding: 0 16px 24px; }
 .chizma .ch { stroke: var(--rama-chiziq); stroke-width: .3; stroke-linecap: round; }
 .chizma .uz { stroke-dasharray: 2 1.5; }
 .chizma .ru { fill: var(--rama-chiziq); }
+.chizma .sht { fill: var(--g-ra, var(--rama)); stroke: var(--rama-chiziq); stroke-width: .25; filter: brightness(.93); }
+.chizma .pt { fill: var(--rama-chiziq); stroke: var(--rama-chiziq); stroke-width: .15; }
 .chizma .xt { fill: none; stroke: red; }
 .chizma .yoz { fill: var(--matn); font-family: system-ui, sans-serif; }
 .chizma .xira-yoz { fill: var(--xira); }

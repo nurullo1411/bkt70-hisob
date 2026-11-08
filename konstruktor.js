@@ -328,7 +328,9 @@ function chizmaSVG(k, opts = {}) {
 
   // Oyna: gradient va ikkita yaltiroq chiziq (faqat katta chizmada)
   function oyna(x, y, w, h, d, tY = null, pY = null) {
-    let q = yuza(x, y, w, h, d, "oy", oynaUslub, tY, pY);
+    const sh = opts.kichik ? 0 : t * 0.22;
+    let q = sh ? yuza(x - sh, y - sh, w + 2 * sh, h + 2 * sh, d - sh, "sht", "", tY, pY) : "";
+    q += yuza(x, y, w, h, d, "oy", oynaUslub, tY, pY);
     if (oynaGul) q += yuza(x, y, w, h, d, "gul", `style="fill:url(#${gid}-gul)"`, tY, pY);
     if (!opts.kichik && w > t * 3 && h > t * 3) {
       const yt = tepaY(tY, x + w * 0.5, y, d), yb = pastY(pY, x + w * 0.5, y + h, d);
@@ -341,12 +343,26 @@ function chizmaSVG(k, opts = {}) {
   }
 
   // d0 — boʻlak katagi chetidan tabaqa chetigacha masofa (arka chegarasi uchun)
-  function tabaqa(x, y, w, h, petlya, dvaynoy, ruchkaBor, fortochka, d0, tY = null, pY = null) {
-    const i = t * 0.35, ic = i + t * 0.8;
+  function tabaqa(x, y, w, h, petlya, dvaynoy, ruchkaBor, fortochka, d0, tY = null, pY = null, eshik = false) {
+    // tabaqa rama/impost ichki chetidan kattaroq — ustiga kirib turadi (foydalanuvchi, 2026-11-08)
+    const i = -t * 0.15, ic = i + t * 0.8;
     let q = yuza(x + i, y + i, w - 2 * i, h - 2 * i, d0 + i, "tb", "", tY, pY) + oyna(x + ic, y + ic, w - 2 * ic, h - 2 * ic, d0 + ic, tY, pY);
     const x1 = x + ic, x2 = x + w - ic, xo = (x1 + x2) / 2;
     const tepa = (xx) => tepaY(tY, xx, y + ic, d0 + ic);  // oyna tepasi shu nuqtada
     const past = (xx) => pastY(pY, xx, y + h - ic, d0 + ic);  // oyna pasti
+    if (!opts.kichik) {
+      const pt = (px, py, pw, ph) => rect(px, py, pw, ph, "pt", `rx="${f(Math.min(pw, ph) * 0.3)}"`);
+      const a = t * 0.32, b = t * 1.5;  // petlya qalinligi va uzunligi
+      const joylar = (n, u1, u2) => Array.from({ length: n }, (_, j) => u1 + ((u2 - u1) * (n === 1 ? 0.5 : 0.1 + (0.8 * j) / (n - 1))));
+      if (fortochka) {
+        const n = w > 100 ? 3 : 2, yy = petlya === "tepa" ? tepa(xo) - ic + i - a / 2 : past(xo) + ic - i - a / 2;
+        for (const px of joylar(n, x1, x2)) q += pt(px - b / 2, yy, b, a);
+      } else {
+        const n = eshik ? (h > 260 ? 4 : 3) : h < 90 ? 2 : 3;
+        const xx = petlya === "ong" ? x + w - i - a / 2 : x + i - a / 2, ex = petlya === "ong" ? x2 : x1;
+        for (const py of joylar(n, tepa(ex), past(ex))) q += pt(xx, py - b / 2, a, b);
+      }
+    }
     const ru = (rx, ry, rw, rh) => rect(rx, ry, rw, rh, "ru", `rx="${f(Math.min(rw, rh) / 2)}"`);
     if (fortochka) {
       // uchburchak uchi ruchka (chit-chit) tomonida, petlya qarama-qarshi tomonda (foydalanuvchi, 2026-11-05)
@@ -407,25 +423,7 @@ function chizmaSVG(k, opts = {}) {
     s += rect(r.x, 0, r.w, H, "ra");
     if (!r.asosiy) s += oyna(r.x + t, t, r.w - 2 * t, H - 2 * t, t);
   }
-  for (const o of g.barglar) {
-    const d = t * 0.5;
-    const x = o.x + d, y = o.y + d, w = o.w - 2 * d, h = o.h - 2 * d;
-    const b = o.b, tY = o.tY, pY = o.pY;
-    oynaTanla(o.p);
-    if (o.u) {
-      s += `<path d="${uYol(o, d + t * 0.3)}" class="oy" ${oynaUslub}/>`;
-      if (oynaGul) s += `<path d="${uYol(o, d + t * 0.3)}" class="gul" style="fill:url(#${gid}-gul)"/>`;
-      continue;
-    }
-    if (b.tur === "gluxoy") s += oyna(x + t * 0.3, y + t * 0.3, w - t * 0.6, h - t * 0.6, d + t * 0.3, tY, pY);
-    else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka, d, tY, pY);
-    else if (b.tur === "eshik") {
-      if (b.tabaqa_soni === 2) {
-        const aktiv = b.aktiv || "ong";
-        s += tabaqa(x, y, w / 2, h, "chap", false, aktiv === "chap", false, d, tY, pY) + tabaqa(x + w / 2, y, w / 2, h, "ong", false, aktiv === "ong", false, d, tY, pY);
-      } else s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", false, true, false, d, tY, pY);
-    } else s += rect(x, y, w, h, "xt");
-  }
+  // impostlar tabaqadan oldin: tabaqa impost ustiga kirib turadi, petlya koʻrinadi
   // impost uchi: rama yoyidan t, impost yoyidan t/2 ichkarida
   const ichOf = (yo) => (yo ? (yo.rama ? t : t / 2) : t);
   for (const c of g.impostlar) {
@@ -444,6 +442,26 @@ function chizmaSVG(k, opts = {}) {
     s += c.x1 === c.x2
       ? yuza(c.x1 - t / 2, c.y1 + t, t, c.y2 - c.y1 - 2 * t, ichOf(c.tY), "ra im", "", c.tY, c.pY, ichOf(c.pY))
       : yuza(c.x1 + t, c.y1 - t / 2, c.x2 - c.x1 - 2 * t, t, ichOf(c.tY), "ra im", "", c.tY, null);
+  }
+  for (const o of g.barglar) {
+    const d = t * 0.5;
+    const x = o.x + d, y = o.y + d, w = o.w - 2 * d, h = o.h - 2 * d;
+    const b = o.b, tY = o.tY, pY = o.pY;
+    oynaTanla(o.p);
+    if (o.u) {
+      if (!opts.kichik) s += `<path d="${uYol(o, d + t * 0.08)}" class="sht"/>`;
+      s += `<path d="${uYol(o, d + t * 0.3)}" class="oy" ${oynaUslub}/>`;
+      if (oynaGul) s += `<path d="${uYol(o, d + t * 0.3)}" class="gul" style="fill:url(#${gid}-gul)"/>`;
+      continue;
+    }
+    if (b.tur === "gluxoy") s += oyna(x + t * 0.3, y + t * 0.3, w - t * 0.6, h - t * 0.6, d + t * 0.3, tY, pY);
+    else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka, d, tY, pY);
+    else if (b.tur === "eshik") {
+      if (b.tabaqa_soni === 2) {
+        const aktiv = b.aktiv || "ong";
+        s += tabaqa(x, y, w / 2, h, "chap", false, aktiv === "chap", false, d, tY, pY, true) + tabaqa(x + w / 2, y, w / 2, h, "ong", false, aktiv === "ong", false, d, tY, pY, true);
+      } else s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", false, true, false, d, tY, pY, true);
+    } else s += rect(x, y, w, h, "xt");
   }
   if (!opts.kichik) {
     for (const o of g.barglar) {
