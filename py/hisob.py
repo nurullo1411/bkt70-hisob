@@ -668,7 +668,7 @@ def hisobla(k):
     lam = LAMINAT_QOSHIMCHA if (k.get("tanlov") or {}).get("rang") == "Laminatsiya" else D(0)
     h = Hisob(k.get("oyna_qalinligi", 24), vertikal_r=vertikal == "R", lam=lam, seriya=seriya)
     if seriya is ENGELBERG:
-        h.qoida_yoq.append("Engelberg 7000: aksessuar va furnitura hali kiritilmagan")
+        h.qoida_yoq.append("Engelberg 7000: furnitura hali kiritilmagan")
     if not seriya.eshik and (k.get("arka") or k.get("tur") == "lapshali"):
         raise HisobXato(f"{seriya.nomi}: arka va lapshali vitraj hozircha yoʻq")
 

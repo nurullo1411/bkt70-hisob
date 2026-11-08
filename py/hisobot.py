@@ -156,6 +156,27 @@ def _aksessuar(s, narxlar, r, tanlov=None):
         r.qosh("Aksessuar", "CT 203", s["gluxoy_oyna_soni"] * 2, "dona")
 
 
+# Engelberg 7000 aksessuari (foydalanuvchi, 2026-11-08). Burchak payvand — soedinitel va kley yoʻq.
+ENG_SOEDINITEL = "Soedinitel 7000 (150sht) (Uz)"   # ProfStroy OKT 7000, impostning har uchiga 1 ta
+ENG_SOEDINITEL_SAMOREZ = "3,9×25 YHBM"              # har soedinitelga 8 ta
+ENG_DRENAJ = "Drenaj qopqogʻi"                       # har oyna ostiga 1 ta
+
+
+def _eng_aksessuar(s, k, r):
+    if s["impost_soni"]:
+        soed = 2 * s["impost_soni"]
+        r.qosh("Aksessuar", ENG_SOEDINITEL, soed, "dona", komplekt=150)  # narx 150 talik paketga
+        r.qosh("Aksessuar", ENG_SOEDINITEL_SAMOREZ, soed * 8, "dona")
+    # podstavka Termo 70 dagidek: gluxoyga CT 203 × 2, tabaqa oynasiga Takos (paket qalinligi boʻyicha) × 2
+    if s["gluxoy_oyna_soni"]:
+        r.qosh("Aksessuar", "CT 203", s["gluxoy_oyna_soni"] * 2, "dona")
+    if s["tabaqa_oyna_soni"]:
+        r.qosh("Aksessuar", f"Takos Regulirovichniy ({k.get('oyna_qalinligi', 24)}mm)", s["tabaqa_oyna_soni"] * 2, "dona")
+    oyna = s["gluxoy_oyna_soni"] + s["tabaqa_oyna_soni"]
+    if oyna:
+        r.qosh("Aksessuar", ENG_DRENAJ, oyna, "dona")
+
+
 def _rom_furnitura(s, tanlov, r):
     """Rom tabaqasi: ProfOkna "Akfa TERMO 70 распашная створка" roʻyxati."""
     boylar = [D(b) for b in s.get("rom_tabaqa_boylari", [])]
@@ -276,6 +297,7 @@ def hisobot(k, narxlar):
         if markaziy:
             r.qosh("Rezina", REZINA_QANOT, markaziy, "m")
         r.qosh("Rezina", REZINA_CHET, markaziy * 2 + D(s["oyna_rezinasi"]) / 100, "m")
+        _eng_aksessuar(s, k, r)
     if s.get("armatura_samorez"):
         # Engelberg 7000: armatura samorezi; rezina, aksessuar, furnitura hali oʻrgatilmagan — hisob.qoida_yoq da
         r.qosh("Aksessuar", ARMATURA_SAMOREZ, s["armatura_samorez"], "dona")
