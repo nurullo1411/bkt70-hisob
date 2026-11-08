@@ -345,7 +345,8 @@ function chizmaSVG(k, opts = {}) {
   // d0 — boʻlak katagi chetidan tabaqa chetigacha masofa (arka chegarasi uchun)
   function tabaqa(x, y, w, h, petlya, dvaynoy, ruchkaBor, fortochka, d0, tY = null, pY = null, eshik = false) {
     // tabaqa rama/impost ichki chetidan kattaroq — ustiga kirib turadi (foydalanuvchi, 2026-11-08)
-    const i = -t * 0.15, ic = i + t * 0.8;
+    // eshik tabaqasi (Balkon Oʻrta V707 / Qanot V708) rom tabaqasidan (V702) kengroq (foydalanuvchi, 2026-11-08)
+    const i = -t * 0.15, ic = i + t * (eshik ? 1.3 : 0.8);
     let q = yuza(x + i, y + i, w - 2 * i, h - 2 * i, d0 + i, "tb", "", tY, pY) + oyna(x + ic, y + ic, w - 2 * ic, h - 2 * ic, d0 + ic, tY, pY);
     const x1 = x + ic, x2 = x + w - ic, xo = (x1 + x2) / 2;
     const tepa = (xx) => tepaY(tY, xx, y + ic, d0 + ic);  // oyna tepasi shu nuqtada
