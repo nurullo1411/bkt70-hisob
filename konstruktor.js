@@ -834,7 +834,7 @@ async function olchamniOzgartir(kalit) {
       const j = await soraSon(i === "L1" ? "Ruchkali tabaqa eni L1, sm (Teng — avtomatik)" : "Ikkinchi tabaqa eni L2, sm (Teng — avtomatik)", i === "L1" ? e.L1 : e.L2, true);
       if (!j) return;
       const L1 = i === "L1" ? j.son : e.jami - j.son;
-      if (!j.bosh && !(L1 > 10 && e.jami - L1 > 10)) { xabar(`Ikki tabaqaga jami ${yx(e.jami)} sm: har biri kamida 10 sm`); return; }
+      if (!j.bosh && !(L1 > 0 && e.jami - L1 > 0)) { xabar(`Ikki tabaqaga jami ${yx(e.jami)} sm: L1 shundan kichik boʻlishi kerak`); return; }
       saqlaTarix();
       if (j.bosh) delete b.L1; else b.L1 = Math.round(L1 * 100) / 100;
       yangila();
