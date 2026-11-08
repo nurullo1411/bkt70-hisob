@@ -71,6 +71,8 @@ footer { text-align: center; padding: 0 16px 24px; }
 .chizma .uz { stroke-dasharray: 2 1.5; }
 .chizma .ru { fill: var(--rama-chiziq); }
 .chizma .sht { fill: var(--g-ra, var(--rama)); stroke: var(--rama-chiziq); stroke-width: .25; filter: brightness(.93); }
+.chizma .ru-pl { fill: var(--g-ra, var(--rama)); stroke: var(--rama-chiziq); stroke-width: .3; }
+.chizma .ru-kt { fill: var(--rama-chiziq); opacity: .8; }
 .chizma .pt { fill: var(--rama-chiziq); stroke: var(--rama-chiziq); stroke-width: .15; }
 .chizma .xt { fill: none; stroke: red; }
 .chizma .yoz { fill: var(--matn); font-family: system-ui, sans-serif; }

@@ -191,6 +191,19 @@ function geometriya(k) {
   return g;
 }
 
+// 2 tabaqali eshik: L1 (ruchkali) va L2. Eshik oʻrni: ramaga tegsa r, impostga tegsa 1,9 (laminatsiyada +0,08 / +0,04).
+function eshikTabaqalari(k, g, o) {
+  const tl = { ...umumiyTanlov(), ...(k.tanlov || {}) };
+  const rama = k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null);
+  const lam = tl.rang === "Laminatsiya" ? 0.08 : 0;
+  const rr = (rama === "F703" ? 5.8 : 3.8) + lam, im = 1.9 + lam / 2;
+  const a = g.ramalar.find((x) => x.asosiy), yaqin = (u, v) => Math.abs(u - v) < 0.01;
+  const ichki = o.w - (yaqin(o.x, a.x) ? rr : im) - (yaqin(o.x + o.w, a.x + a.w) ? rr : im);
+  const jami = Math.round((ichki + 0.5) * 100) / 100;
+  const L1 = o.b.L1 != null ? Number(o.b.L1) : Math.max(65, jami / 2);
+  return { L1, L2: jami - L1, jami, avto: o.b.L1 == null, aktiv: o.b.aktiv || "ong" };
+}
+
 function olchamTaxmin(p) {
   const g = geometriya(tahrir);
   const bor = g.barglar.find((o) => o.p === p) || g.bolinishlar.find((o) => o.p === p) || g.portallar.find((o) => o.p === p);
@@ -265,6 +278,7 @@ function chizmaSVG(k, opts = {}) {
   const M = Math.max(L, H);
   const t = Math.max(2.5, Math.min(7, Math.min(L, H) * 0.045));
   const g = geometriya(k);
+  for (const o of g.barglar) if (o.b && o.b.tur === "eshik" && o.b.tabaqa_soni === 2) o.esh = eshikTabaqalari(k, g, o);
   // oyna turlari: har turga oʻz gradienti; gul — ustidan naqsh
   const turlar = [...new Set(g.barglar.map((o) => bargOynaTuri(k, o.p)))];
   const oynaGradlar = turlar.map((tur, i) => {
@@ -380,7 +394,17 @@ function chizmaSVG(k, opts = {}) {
     else q += chiziq(x1, tepa(x1), x2, ym) + chiziq(x1, past(x1), x2, ym);
     // dvaynoy: yon uchburchak + uchi pastdagi uchburchak (foydalanuvchi namunasi, 2026-11-05)
     if (dvaynoy) q += chiziq(x1, tepa(x1), xo, past(xo), "ch uz") + chiziq(x2, tepa(x2), xo, past(xo), "ch uz");
-    if (ruchkaBor !== false) {
+    if (ruchkaBor !== false && eshik && !opts.kichik) {
+      // eshik ruchkasi (foydalanuvchi, 2026-11-08): plastina, tabaqa ichiga qaragan dastak, kalit teshigi
+      const pw = t * 0.55, ph = t * 3.4, chapda = petlya === "ong";
+      const px = chapda ? x + i + t * 0.2 : x + w - i - t * 0.2 - pw;
+      const yr = Math.min(ym, past(chapda ? x1 : x2) - ph * 0.6);
+      q += rect(px, yr - ph * 0.35, pw, ph, "ru-pl", `rx="${f(pw * 0.25)}"`);
+      const dl = t * 2.8, dh = t * 0.42, cx = px + pw / 2;
+      q += rect(chapda ? cx - dh / 2 : cx - dl + dh / 2, yr - dh / 2, dl, dh, "ru", `rx="${f(dh / 2)}"`);
+      q += `<circle cx="${f(cx)}" cy="${f(yr - dh / 2)}" r="${f(dh * 0.75)}" class="ru"/>`;
+      q += `<circle cx="${f(cx)}" cy="${f(yr + ph * 0.38)}" r="${f(pw * 0.22)}" class="ru-kt"/>` + rect(cx - pw * 0.07, yr + ph * 0.38, pw * 0.14, pw * 0.42, "ru-kt");
+    } else if (ruchkaBor !== false) {
       const rx = petlya === "ong" ? x + i + t * 0.22 : x + w - i - t * 0.6;
       q += ru(rx, ym - t * 1.1, t * 0.38, t * 2.2);
     }
@@ -459,8 +483,10 @@ function chizmaSVG(k, opts = {}) {
     else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka, d, tY, pY);
     else if (b.tur === "eshik") {
       if (b.tabaqa_soni === 2) {
-        const aktiv = b.aktiv || "ong";
-        s += tabaqa(x, y, w / 2, h, "chap", false, aktiv === "chap", false, d, tY, pY, true) + tabaqa(x + w / 2, y, w / 2, h, "ong", false, aktiv === "ong", false, d, tY, pY, true);
+        const aktiv = b.aktiv || "ong", e = o.esh;
+        // tabaqalar L1 / L2 nisbatida (ruchkali — L1)
+        const wc = e && e.jami > 0 ? w * Math.min(0.9, Math.max(0.1, (aktiv === "chap" ? e.L1 : e.L2) / e.jami)) : w / 2;
+        s += tabaqa(x, y, wc, h, "chap", false, aktiv === "chap", false, d, tY, pY, true) + tabaqa(x + wc, y, w - wc, h, "ong", false, aktiv === "ong", false, d, tY, pY, true);
       } else s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", false, true, false, d, tY, pY, true);
     } else s += rect(x, y, w, h, "xt");
   }
@@ -522,6 +548,14 @@ function chizmaSVG(k, opts = {}) {
         const x2 = L + qadam * (++ongQator);
         s += olchamChizigi(x2, b.y + b.s[0], x2, b.y + b.s[0] + b.egilgan, b.egilgan, b.parallel, `${b.p}|yoy`);
       }
+    }
+    // 2 tabaqali eshik: L1 / L2 (tabaqa eni), bosib oʻzgartiriladi
+    for (const o of g.barglar.filter((o) => o.esh)) {
+      const e = o.esh, yy = H + qadam * (++pastQator), d = t * 0.5;
+      const chap = e.aktiv === "chap" ? ["L1", e.L1] : ["L2", e.L2], ong = e.aktiv === "chap" ? ["L2", e.L2] : ["L1", e.L1];
+      const xm = o.x + d + (o.w - 2 * d) * Math.min(0.9, Math.max(0.1, chap[1] / e.jami));
+      s += olchamChizigi(o.x, yy, xm, yy, chap[1], e.avto, `${o.p}|${chap[0]}`, H + qadam * 0.2) +
+        olchamChizigi(xm, yy, o.x + o.w, yy, ong[1], e.avto, `${o.p}|${ong[0]}`, H + qadam * 0.2);
     }
     for (const pt of g.portallar) {
       const yy = H + qadam * (++pastQator);
@@ -795,6 +829,17 @@ async function olchamniOzgartir(kalit) {
     const [p, i] = kalit.split("|");
     const b = tugun(tahrir.bolak, p);
     if (b.tur === "portal") { await portalOlchami(p, b, i); return; }
+    if (b.tur === "eshik") {
+      const g = geometriya(tahrir), o = g.barglar.find((x) => x.p === p), e = eshikTabaqalari(tahrir, g, o);
+      const j = await soraSon(i === "L1" ? "Ruchkali tabaqa eni L1, sm (Teng — avtomatik)" : "Ikkinchi tabaqa eni L2, sm (Teng — avtomatik)", i === "L1" ? e.L1 : e.L2, true);
+      if (!j) return;
+      const L1 = i === "L1" ? j.son : e.jami - j.son;
+      if (!j.bosh && !(L1 > 10 && e.jami - L1 > 10)) { xabar(`Ikki tabaqaga jami ${yx(e.jami)} sm: har biri kamida 10 sm`); return; }
+      saqlaTarix();
+      if (j.bosh) delete b.L1; else b.L1 = Math.round(L1 * 100) / 100;
+      yangila();
+      return;
+    }
     if (i === "yoy") {
       const bo = geometriya(tahrir).bolinishlar.find((x) => x.p === p);
       const j = await soraSon(bo.tY ? "Yoy impost chuqurligi, sm (Teng — arkaga parallel)" : "Yoy impost chuqurligi, sm", b.egilgan.chuqurlik ?? bo.egilgan, !!bo.tY);

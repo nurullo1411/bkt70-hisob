@@ -504,9 +504,15 @@ def _eshik(b, z, h, arka=D(0)):
         h.eshiklar.append(1)
     elif soni == 2:
         jami = z.ichki_en + D("0.5")
-        L1 = jami / 2
-        if L1 < ESHIK_MIN_TABAQA:
-            L1 = ESHIK_MIN_TABAQA
+        if b.get("L1") is not None:
+            # ruchkali tabaqa eni qoʻlda berilgan (foydalanuvchi, 2026-11-08, Romchi kabi); L2 = qolgani
+            L1 = D(str(b["L1"]))
+            if L1 <= 0 or L1 >= jami:
+                raise HisobXato(f"L1 = {L1} boʻlmaydi: ikki tabaqaga {jami} sm")
+        else:
+            L1 = jami / 2
+            if L1 < ESHIK_MIN_TABAQA:
+                L1 = ESHIK_MIN_TABAQA
         L2 = jami - L1
         if L2 <= 0:
             raise HisobXato(f"Ikki tabaqa uchun joy yetmaydi: eshik oʻrni {z.ichki_en}")
