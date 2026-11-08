@@ -177,6 +177,67 @@ def _eng_aksessuar(s, k, r):
         r.qosh("Aksessuar", ENG_DRENAJ, oyna, "dona")
 
 
+# Engelberg 7000 rom tabaqasi furniturasi (foydalanuvchi, 2026-11-08). Ispanilet va zatsep — ProfOkna
+# toʻplamlaridan: "Akfa 7000 Eco распашная створка (Fornax 13)" va "Akfa 7000 распашная створка (Roto)".
+# Oʻlcham = tayyor qanot boʻyi − 2 quloq (2 × 2,2) = qanot kesish − 0,5 − 4,4, mm da. Konnektor va tij yoʻq.
+ENG_QULOQ = D("2.2")
+ENG_ISPANILET = {
+    "fornax": [  # (dan, gacha mm, kod, zatsep)
+        (221, 320, "F 180", 2), (321, 440, "F 280", 2), (441, 640, "F 400", 2), (641, 840, "F 600", 2),
+        (841, 1040, "F 800", 2), (1041, 1140, "F 1000", 3), (1141, 1240, "F 1100", 3), (1241, 1440, "F 1200", 3),
+        (1441, 1640, "F 1400", 4), (1641, 1840, "F 1600", 4), (1841, 2040, "F 1800", 4), (2041, 2200, "F 2000", 4)],
+    "roto": [
+        (251, 540, "R 251-500", 2), (541, 840, "R 501-800", 2), (841, 1140, "R 801-1100", 3),
+        (1141, 1440, "R 1101-1400", 3), (1441, 1840, "R 1401-1800", 3), (1841, 2400, "R 1801-2400", 4)],
+}
+ENG_ISPANILET_NOMI = {"fornax": "Ispanilet Fornax", "roto": "Ispanilet Roto"}
+ENG_ZATSEP = {"fornax": "(13) Zatsepka (Rehau) (FORNAX)", "roto": "Zatsepka (ROTO)"}
+ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Uz)", "Ruchka Okon (ROTO LUX) (Tr)", "Ruchka Okon HOPPE NY (OQ) (Tr)",
+                 "Ruchka Okon HOPPE NY (Seriy) (Tr)", "Ruchka Okon HOPPE NY (Bronza) (Tr)"]
+ENG_PETLYA_PROSTOE = "(Prostoe Otkr) Petli Komplekt (FORNAX)"
+ENG_PETLYA_100 = "Petlya 100 mm (Uz)"
+ENG_BLOKIRATOR = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)"]
+
+
+def eng_ispanilet(boy_kesish, mexanizm):
+    """Qanot kesish boʻyi (sm) → (ispanilet kodi, zatsep soni)."""
+    mm = (D(str(boy_kesish)) - D("0.5") - 2 * ENG_QULOQ) * 10
+    for dan, gacha, kod, zatsep in ENG_ISPANILET[mexanizm]:
+        if dan <= mm <= gacha + D("0.99"):
+            return kod, zatsep
+    raise HisobXato(f"{mexanizm.title()} ispaniletiga mos oʻlcham yoʻq: tabaqa {boy_kesish} sm ({mm} mm)")
+
+
+def _eng_furnitura(s, tanlov, r):
+    boylar = [D(str(b)) for b in s.get("rom_tabaqa_boylari", [])]
+    if not boylar:
+        return
+    mexanizm = tanlov.get("eng_mexanizm") or "fornax"
+    if mexanizm not in ENG_ISPANILET:
+        raise HisobXato(f"Mexanizm faqat fornax yoki roto: {mexanizm}")
+    petlya = tanlov.get("eng_petlya") or "prostoe"
+    if petlya not in ("prostoe", "100"):
+        raise HisobXato(f"Petlya faqat prostoe yoki 100: {petlya}")
+    soni = len(boylar)
+    r.qosh("Furnitura", tanlov.get("eng_ruchka") or ENG_RUCHKALAR[0], soni, "dona")
+    if petlya == "prostoe":
+        r.qosh("Furnitura", ENG_PETLYA_PROSTOE, soni, "komplekt")
+    else:
+        # 100 sm dan baland tabaqaga 3 ta, qolganiga 2 ta (foydalanuvchi)
+        r.qosh("Furnitura", ENG_PETLYA_100, sum(3 if b > 100 else 2 for b in boylar), "dona")
+    isp = {}
+    zatsep = 0
+    for b in boylar:
+        kod, z = eng_ispanilet(b, mexanizm)
+        isp[kod] = isp.get(kod, 0) + 1
+        zatsep += z
+    for kod, n in isp.items():
+        r.qosh("Furnitura", f"{ENG_ISPANILET_NOMI[mexanizm]} {kod}", n, "dona")
+    r.qosh("Furnitura", ENG_ZATSEP[mexanizm], zatsep, "dona")
+    for nomi in ENG_BLOKIRATOR:
+        r.qosh("Furnitura", nomi, soni, "dona")
+
+
 def _rom_furnitura(s, tanlov, r):
     """Rom tabaqasi: ProfOkna "Akfa TERMO 70 распашная створка" roʻyxati."""
     boylar = [D(b) for b in s.get("rom_tabaqa_boylari", [])]
@@ -298,6 +359,7 @@ def hisobot(k, narxlar):
             r.qosh("Rezina", REZINA_QANOT, markaziy, "m")
         r.qosh("Rezina", REZINA_CHET, markaziy * 2 + D(s["oyna_rezinasi"]) / 100, "m")
         _eng_aksessuar(s, k, r)
+        _eng_furnitura(s, tanlov, r)
     if s.get("armatura_samorez"):
         # Engelberg 7000: armatura samorezi; rezina, aksessuar, furnitura hali oʻrgatilmagan — hisob.qoida_yoq da
         r.qosh("Aksessuar", ARMATURA_SAMOREZ, s["armatura_samorez"], "dona")

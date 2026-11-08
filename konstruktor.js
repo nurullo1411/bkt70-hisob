@@ -1049,6 +1049,19 @@ function oynaRangi(nom) {
   return "#5bd3f7";
 }
 
+// Engelberg rom tabaqasi furniturasi (hisobot.py: eng_mexanizm, eng_petlya, eng_ruchka)
+const ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Uz)", "Ruchka Okon (ROTO LUX) (Tr)", "Ruchka Okon HOPPE NY (OQ) (Tr)",
+  "Ruchka Okon HOPPE NY (Seriy) (Tr)", "Ruchka Okon HOPPE NY (Bronza) (Tr)"];
+function engFurnituraHtml(k, faol) {
+  const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
+  const v = (kalit, std) => t[kalit] ?? ut[kalit] ?? std;
+  const seg = (kalit, std, royxat) => `<div class="sz-seg">${royxat.map(([q, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(q))}" class="${faol(v(kalit, std) === q)}">${esc(y)}</button>`).join("")}</div>`;
+  return `<div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Engelberg)</span></div>
+    ${seg("eng_mexanizm", "fornax", [["fornax", "Fornax"], ["roto", "Roto"]])}
+    ${seg("eng_petlya", "prostoe", [["prostoe", "Prostoe Otkr komplekt"], ["100", "Petlya 100 mm (2–3 ta)"]])}
+    ${seg("eng_ruchka", ENG_RUCHKALAR[0], ENG_RUCHKALAR.map((r, i) => [r, ["Roto Lux Uz", "Roto Lux Tr", "Hoppe oq", "Hoppe kulrang", "Hoppe bronza"][i]]))}`;
+}
+
 function joriy(k) {
   const u = zakaz.umumiy, t = k.tanlov || {}, ut = u.tanlov || {};
   return {
@@ -1111,6 +1124,7 @@ function sozlamaOynasi() {
     <div class="sz-bolim">Podokonnik <span class="xira">(uzunligi L + 15 sm, rangi rom rangida)</span></div>
     <div class="sz-seg sz-pod">${[[null, "Yoʻq"], ...[15, 20, 25, 30, 35, 40, 45].map((v) => [v, String(v)])].map(([v, y]) => `<button data-sz="t:podokonnik" data-v="${JSON.stringify(v)}" class="${faol(j.pod === v)}">${y}</button>`).join("")}</div>
 
+    ${pvxmi(j.rama) ? engFurnituraHtml(k, faol) : ""}
     ${pvxmi(j.rama) ? "" : `<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
     <div class="sz-seg">${[["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]].map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>
     ${eshiklar(k.bolak).length ? eshikFurnitura(k) : ""}`}
