@@ -376,6 +376,17 @@ function chizmaSVG(k, opts = {}) {
     <pattern id="${gid}-gul" width="${f(t * 1.1)}" height="${f(t * 1.1)}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${f(t * 0.16)}" height="${f(t * 1.1)}" fill="rgba(255,255,255,.5)"/></pattern>
   </defs>`;
 
+  const rama = k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null);
+  if (rama === "F703") {
+    const e = t * 0.45, a = g.ramalar.find((r) => r.asosiy), yaqin = (u, v) => Math.abs(u - v) < 0.01;
+    for (const o of g.barglar) {
+      if (o.u) continue;
+      if (yaqin(o.x, a.x)) { o.x += e; o.w -= e; }
+      if (yaqin(o.x + o.w, a.x + a.w)) o.w -= e;
+      if (!o.tY && yaqin(o.y, 0)) { o.y += e; o.h -= e; }
+      if (!o.pY && yaqin(o.y + o.h, H)) o.h -= e;
+    }
+  }
   const belgi = opts.kichik ? {} : belgilar(g.barglar);
   for (const r of g.ramalar) {
     if (r.asosiy && ark) {
@@ -524,7 +535,7 @@ const ASBOBLAR = {
     ["yoy", "Yoy impost (arkaga parallel yoki oʻz chuqurligi)", ik('<path d="M3 15q9-9 18 0" class="q"/>')],
     ["portal", "Portal: arkali oʻrta, atrofida U oyna", ik('<path d="M3 3h18v18H3z" class="q"/><path d="M8 21v-9a4 4 0 0 1 8 0v9"/>')],
     // "Shtulp" asbobi olib tashlandi (foydalanuvchi, 2026-11-08): 2 tabaqali eshik — Eshik boʻlimida
-    ["ochir", "Boʻlakni oʻchirish", ik(ramaIk() + '<path d="M8 8l8 8M16 8l-8 8" class="x"/>')],
+    ["ochir", "Impostni olib tashlash (yonidagi boʻlak bilan)", ik(ramaIk() + '<path d="M8 8l8 8M16 8l-8 8" class="x"/>')],
   ],
   tabaqa: [
     ["tab_chap", "Tabaqa, petlya chapda", ik(ramaIk() + '<path d="M6 5l12 7-12 7"/>')],
@@ -558,7 +569,7 @@ const BOLIMLAR = [
 
 // Tugma ostidagi qisqa nom (belgining oʻzi tushunarsiz boʻlmasin)
 const QISQA = {
-  tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", portal: "Portal", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", shtulp: "Shtulp", ochir: "Oʻchirish",
+  tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", portal: "Portal", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", ochir: "Impostni olish",
   tab_chap: "Chap", tab_ong: "Oʻng", dv_chap: "Dvaynoy chap", dv_ong: "Dvaynoy oʻng", fortochka: "Fortochka ↓", fortochka_tepa: "Fortochka ↑", gluxoy: "Gluxoy",
   esh1_chap: "1 tab. chap", esh1_ong: "1 tab. oʻng", esh2_ong: "2 tab. ruchka oʻng", esh2_chap: "2 tab. ruchka chap",
   togri: "Toʻgʻri", arka_yarim: "Yarim doira", arka: "Pologiy arka", aylana: "Yarim aylana",
@@ -599,7 +610,8 @@ function asboblarniChiz() {
   $("k-asboblar").innerHTML = html;
   const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
-  $("k-maslahat").textContent = nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbob tanlang yoki boʻlakka bosib sozlang. Oʻlchamni oʻzgartirish uchun raqamga bosing.";
+  $("k-maslahat").textContent = asbob === "ochir" ? "Impostni olib tashlash: impost yonidagi boʻlakka bosing — shu boʻlak va uning chap/tepa impost(i) olinadi, joyi qoʻshnisiga oʻtadi"
+    : nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbob tanlang yoki boʻlakka bosib sozlang. Oʻlchamni oʻzgartirish uchun raqamga bosing.";
 }
 
 function saqlaTarix() { orqaga.push(nusxa(tahrir)); if (orqaga.length > 50) orqaga.shift(); oldinga = []; }
