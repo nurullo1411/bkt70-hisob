@@ -13,7 +13,7 @@ tabaqada 2 sm dan, gluxoy va fortochkada 1,5 sm dan koʻp kichik boʻlsa — yuq
 
 from math import ceil, floor
 
-from hisob import ENGELBERG, SERIYA_RAMA, HisobXato
+from hisob import ENGELBERG, ENGELBERG_PROFILLARI, SERIYA_RAMA, HisobXato
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
@@ -87,6 +87,12 @@ def _son(x):
 def profil_nomi(profil, rang):
     """Diller roʻyxatidagi hivich nomi. rang — sklad rangi (grey, z/d, …, 306g, oq, anod) yoki None."""
     kod = profil.replace("-", "")
+    if profil in ENGELBERG_PROFILLARI:
+        # Engelberg 7000: diller qogʻozidagi aniq nom hali olinmagan (2026-11-08)
+        nom = {"7051": "Kosa", "7052": "Kanat", "7053": "Urta", "7056": "Shtapik 24", "7057": "Shtapik 32",
+               "0701": "Armatura Kosa-Qanot", "0703": "Armatura Urta"}.get(profil, "")
+        r = "Oq" if rang in (None, "oq") else DILLER_RANGI.get(rang, rang)
+        return f"PVX Engelberg 7000 {nom} {kod} ({r}) (6m)".replace("  ", " ")
     if rang in ("oq", "306g", "anod"):
         r = DILLER_RANGI.get(rang, "anod rangi?")
         return f"TERMO BKT 70 {kod} {TERMO_NOM.get(profil, '')} ({r}) (6.5m)".replace("  ", " ")

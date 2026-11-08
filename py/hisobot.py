@@ -7,7 +7,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import ARMATURA_SAMOREZ, D, HisobXato, hisobla, hivich_metr, narx_kaliti
+from hisob import ARMATURA_SAMOREZ, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti
 
 PETLYA_CHEGARA = 260
 K188_BURCHAKKA_G = 7
@@ -271,7 +271,12 @@ def hisobot(k, narxlar):
         _rom_furnitura(s, tanlov, r)
         _dvaynoy_furnitura(s, r)
         _fortochka_furnitura(s, tanlov, r)
-    elif s.get("armatura_samorez"):
+    else:
+        if s.get("rezina_chet"):
+            r.qosh("Rezina", REZINA_CHET, D(str(s["rezina_chet"])) / 100, "m")
+        if s.get("rezina_qanot"):
+            r.qosh("Rezina", REZINA_QANOT, D(str(s["rezina_qanot"])) / 100, "m")
+    if s.get("armatura_samorez"):
         # Engelberg 7000: armatura samorezi; rezina, aksessuar, furnitura hali oʻrgatilmagan — hisob.qoida_yoq da
         r.qosh("Aksessuar", ARMATURA_SAMOREZ, s["armatura_samorez"], "dona")
 
