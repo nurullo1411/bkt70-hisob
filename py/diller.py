@@ -117,7 +117,7 @@ def diller_royxati(zakaz, narxlar=None, sklad=None):
 
     t = tannarx(zakaz, narxlar, kurs=(narxlar or {}).get("kurs") or 1)
     qatorlar, izohlar = _profil_qatorlari(zakaz, sklad)
-    eslatma = {}
+    eslatma, rezina = {}, []
     for m in t["materiallar"]:
         bolim, art, birlik, jami = m["bolim"], m["artikul"], m["birlik"], m["jami"]
         if bolim in TASHLANADI or not jami:
@@ -133,6 +133,7 @@ def diller_royxati(zakaz, narxlar=None, sklad=None):
             kg = REZINA_KG_M.get(art)
             if kg:
                 qatorlar.append({"nomi": art, "soni": round(jami * kg, 2), "birlik": "kg"})
+                rezina.append({"nomi": art, "kg": round(jami * kg, 2), "metr": round(jami, 1)})
             else:
                 qatorlar.append({"nomi": art, "soni": round(jami, 2), "birlik": "m", "izoh": "kg — 1 metr vazni kiritilmagan"})
             continue
@@ -141,7 +142,9 @@ def diller_royxati(zakaz, narxlar=None, sklad=None):
             continue
         qatorlar.append({"nomi": DILLER_NOMI.get(art, art), "soni": ceil(jami - 1e-9), "birlik": birlik})
     eslatmalar = [f"{nom} — {_son(v)} {eslatma[nom + chr(0)]}" for nom, v in eslatma.items() if not nom.endswith("\0")]
-    return {"qatorlar": qatorlar, "eslatmalar": eslatmalar, "izohlar": izohlar}
+    # Rezina kilosi eslatmada ham (foydalanuvchi, 2026-11-08): diller karobka (5/10/15 kg) bilan beradi
+    return {"qatorlar": qatorlar, "eslatmalar": eslatmalar, "izohlar": izohlar, "rezina": rezina,
+            "rezina_jami": round(sum(r["kg"] for r in rezina), 2)}
 
 
 # ---------- oyna ----------
@@ -199,6 +202,8 @@ if __name__ == "__main__":
         print(f"{i:2d}. {q['nomi']} — {_son(q['soni'])} {q['birlik']}")
     for e in d["eslatmalar"]:
         print("!", e)
+    for r in d["rezina"]:
+        print(f"! Rezina {r['nomi']} — {_son(r['kg'])} kg ({_son(r['metr'])} m)")
     for o in oyna_royxati(z):
         print(f"{o['tur']} {o['qalinlik']} mm  {_son(o['en'])} × {_son(o['boy'])}  × {o['soni']}  {o['m2']} m²")
     if not d["qatorlar"]:

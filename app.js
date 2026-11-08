@@ -993,6 +993,7 @@ $("diller-pdf").addEventListener("click", async () => {
     <div>Sana: ${new Date().toISOString().slice(0, 10)} · BKT 70 · profil sklad qoldigʻidan keyin, 6,5 m hivich</div>
     <table class="dl-jadval"><tr><th>№</th><th>Nomi</th><th>Soni</th></tr>${qator}</table>
     ${d.eslatmalar.length ? `<div class="dl-eslatma"><b>Eslatma: bularni ham olishingiz kerak (dillerdan olinmaydi):</b><ul>${d.eslatmalar.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>` : ""}
+    ${d.rezina && d.rezina.length ? `<div class="dl-eslatma"><b>Eslatma: rezina kilosi (jami ${son(d.rezina_jami, 2)} kg) — diller karobka (5 / 10 / 15 kg) bilan beradi, skladdagi qoldiqqa qarab oling:</b><ul>${d.rezina.map((x) => `<li>${esc(x.nomi)} — ${son(x.kg, 2)} kg (${son(x.metr, 1)} m)</li>`).join("")}</ul></div>` : ""}
     ${izoh.length ? `<div class="xira">${izoh.map(esc).join("<br>")}</div>` : ""}</div>`,
   `Diller ${zakazNomi()}`);
 });
