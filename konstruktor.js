@@ -377,13 +377,16 @@ function chizmaSVG(k, opts = {}) {
   </defs>`;
 
   const rama = k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null);
-  if (rama === "F703") {
-    const e = t * 0.45, a = g.ramalar.find((r) => r.asosiy), yaqin = (u, v) => Math.abs(u - v) < 0.01;
+  const eF = rama === "F703" ? t * 0.45 : 0;
+  if (eF) {
+    const e = eF, a = g.ramalar.find((r) => r.asosiy), yaqin = (u, v) => Math.abs(u - v) < 0.01;
     for (const o of g.barglar) {
       if (o.u) continue;
       if (yaqin(o.x, a.x)) { o.x += e; o.w -= e; }
       if (yaqin(o.x + o.w, a.x + a.w)) o.w -= e;
       if (!o.tY && yaqin(o.y, 0)) { o.y += e; o.h -= e; }
+      // rama arkasiga tegsa: yoy e ichkariga (konsentrik) — yoyY(yangi, x, d) = yoyY(eski, x, d + e)
+      if (o.tY && o.tY === g.ark) o.tY = { ...o.tY, R: o.tY.R - e, y0: o.tY.y0 + e };
       if (!o.pY && yaqin(o.y + o.h, H)) o.h -= e;
     }
   }
@@ -391,7 +394,7 @@ function chizmaSVG(k, opts = {}) {
   for (const r of g.ramalar) {
     if (r.asosiy && ark) {
       // arkali rama: tashqi va ichki chegara orasidagi tasma
-      s += `<path d="${shakl(0, 0, L, H, 0, ark)} ${shakl(t, t, L - 2 * t, H - 2 * t, t, ark)}" class="ra" fill-rule="evenodd"/>`;
+      s += `<path d="${shakl(0, 0, L, H, 0, ark)} ${shakl(t + eF, t + eF, L - 2 * (t + eF), H - 2 * (t + eF), t + eF, ark)}" class="ra" fill-rule="evenodd"/>`;
       continue;
     }
     s += rect(r.x, 0, r.w, H, "ra");
