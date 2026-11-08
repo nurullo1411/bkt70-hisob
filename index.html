@@ -39,7 +39,7 @@
   </section>
 
   <button id="davom" class="davom karta" hidden></button>
-  <button id="kassa-och" class="davom karta kassa-och"><span class="xira">Hisobot</span><b>💰 Kassa</b><span class="bolim-oq">›</span></button>
+  <button id="kassa-och" class="davom karta kassa-och"><span class="xira">Kassa · qarzdorlar · foyda</span><b>📊 Hisobot</b><span class="bolim-oq">›</span></button>
   <div class="bosh-sarlavha">Buyurtmalar</div>
   <div id="arxiv-tablar" class="bosh-bolimlar"></div>
   <details class="boshqa">
@@ -58,8 +58,10 @@
 
  <div id="e-kassa" class="ekran" hidden>
   <div class="kassa-tepa"><span id="kassa-holat" class="xira"></span><button id="kassa-yangila" class="kichik-t">↻ Yangilash</button></div>
+  <div id="hb-tablar" class="seg hb-tablar"></div>
   <p id="kassa-xabar" class="kassa-xabar" hidden></p>
   <div id="kassa-ich"></div>
+  <div id="hb-ich" hidden></div>
  </div>
 
  <div id="e-royxat" class="ekran" hidden>
@@ -127,6 +129,17 @@
         <div class="seg sh-valyuta"><button data-shv="UZS">soʻm</button><button data-shv="USD">$</button></div></div>
       <div class="seg sh-montaj"><button data-montaj="1">Montaj bilan</button><button data-montaj="0">Montajsiz</button></div>
       <p id="sh-holat" class="sh-holat"></p>
+      <div class="sarlavha-kichik">Ish (Nachalnik)</div>
+      <div class="panjara ish">
+        <label>Termo m²<input id="ish-termo" data-ish="m2_termo" type="number" inputmode="decimal" step="any"></label>
+        <label>PVX m²<input data-ish="m2_pvx" type="number" inputmode="decimal" step="any"></label>
+        <label>Aldoks m²<input data-ish="m2_aldoks" type="number" inputmode="decimal" step="any"></label>
+        <label>Exclusive m²<input data-ish="m2_exclusive" type="number" inputmode="decimal" step="any"></label>
+        <label>Dona<input data-ish="dona" type="number" inputmode="numeric" step="1"></label>
+        <label>Sex guruhi<select data-ish="grux"><option value="">—</option><option>Grux 1</option><option>Grux 2</option><option>Grux 3</option><option>Grux 4</option><option>Grux 5</option><option>Grux 6</option></select></label>
+        <label>Montajchi<select data-ish="mantajchi"><option value="">—</option><option>Mantaj 1</option><option>Mantaj 2</option><option>Mantaj 3</option><option>Mantaj 4</option></select></label>
+      </div>
+      <p class="xira">Bitish sanasi — Buyurtmachidagi "Muddat".</p>
       <div id="holatlar"></div>
     </section>
 
@@ -136,7 +149,7 @@
         <label>Ism<input data-mijoz="ism" autocomplete="off" placeholder="Mijoz ismi"></label>
         <label>Telefon<input data-mijoz="telefon" type="tel" inputmode="tel" autocomplete="off" placeholder="+998"></label>
         <label>Manzil<input data-mijoz="manzil" autocomplete="off"></label>
-        <label>Muddat<input data-mijoz="muddat" type="date"></label>
+        <label>Muddat (bitish)<input data-mijoz="muddat" type="date"></label>
       </div>
       <label class="keng-label">Izoh<textarea data-mijoz="izoh" rows="2"></textarea></label>
       <label class="btb-label"><input id="m-btb" type="checkbox"> BTB mijoz (usta: Gʻayrat aka, Tamos…) — zakazlari bitta guruhda</label>
@@ -275,5 +288,7 @@
 <script src="konstruktor.js"></script>
 <script src="kassa.js"></script>
 <script src="zakaz_baza.js"></script>
+<script src="hisobot.js"></script>
+<script src="hisobot_ekran.js"></script>
 </body>
 </html>

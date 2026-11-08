@@ -154,8 +154,8 @@ function ekran(nom, push = true) {
   joriyEkran = nom;
   $("orqaga").hidden = nom === "bosh";
   const bolim = BOSH_BOLIMLAR.find((h) => h[0] === arxivTab) || HOLATLAR.find((h) => h[0] === arxivTab);
-  $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : nom === "kassa" ? "Kassa" : "Buyurtma maʼlumotlari";
-  if (nom === "kassa") kassaYangila();
+  $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : nom === "kassa" ? "Hisobot" : "Buyurtma maʼlumotlari";
+  if (nom === "kassa") { hbChiz(); kassaYangila(); }
   else if (nom !== "zakaz") { arxivniChiz(); zakazlarniOl(); }
   window.scrollTo(0, 0);
 }
@@ -419,6 +419,9 @@ function hisobKitobniChiz() {
     (bazaUlangan() ? "" : `<br><span class="xira">Bazaga ulanmagan: ID va toʻlov chiqmaydi</span>`);
   $("holatlar").innerHTML = keyingiHolat(zakaz);
   $("m-btb").checked = !!(zakaz.mijoz && zakaz.mijoz.btb);
+  const ish = zakaz.ish || {};
+  document.querySelectorAll("[data-ish]").forEach((el) => { if (document.activeElement !== el) el.value = ish[el.dataset.ish] ?? ""; });
+  $("ish-termo").placeholder = son(zakazM2(zakaz), 2) + " (avto)";
   if (document.activeElement !== $("hk-ustama")) $("hk-ustama").value = h.ustama_foiz ?? "";
   const korsat = (s) => (s ? (v === "usd" ? Math.round(s / kurs * 100) / 100 : s) : "");
   if (document.activeElement !== $("hk-chegirma")) $("hk-chegirma").value = korsat(h.chegirma_som);
@@ -703,6 +706,13 @@ document.querySelectorAll("[data-montaj]").forEach((b) => b.addEventListener("cl
   zakaz.montaj = yangi;
   saqla("oxirgi_zakaz", JSON.stringify(zakaz)); hisobKitobniChiz();
 }));
+document.querySelectorAll("[data-ish]").forEach((el) => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+  zakaz.ish = zakaz.ish || {};
+  const k = el.dataset.ish, v = el.value.trim();
+  if (!v) delete zakaz.ish[k];
+  else zakaz.ish[k] = el.tagName === "SELECT" ? v : Number(v.replace(",", "."));
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+}));
 $("m-btb").addEventListener("change", () => {
   zakaz.mijoz = zakaz.mijoz || {};
   if ($("m-btb").checked) zakaz.mijoz.btb = true; else delete zakaz.mijoz.btb;
@@ -722,7 +732,7 @@ $("arxiv").addEventListener("click", async (e) => {
     if (z) zakazniOch(JSON.stringify(z));
   } else if (d.dub) {
     const z = JSON.parse(JSON.stringify(a.find((x) => x.id === d.dub)));
-    for (const k of ["id", "raqam", "sana", "holat", "hisob_kitob", "narx_som", "versiya", "baza_id", "tolangan", "shartnoma", "montaj", "ochirilgan"]) delete z[k];
+    for (const k of ["id", "raqam", "sana", "holat", "hisob_kitob", "narx_som", "versiya", "baza_id", "tolangan", "shartnoma", "montaj", "ochirilgan", "ish"]) delete z[k];
     arxivTab = "yangi";
     zakazniOch(JSON.stringify(z));
   } else if (d.arxOchir) {

@@ -1,8 +1,8 @@
 // Oflayn ishlash: ilova fayllari va Pyodide kesh qilinadi.
 // Ilova fayllari: avval tarmoq (yangilanish keladi), boʻlmasa kesh. Pyodide: avval kesh.
-const KESH = "bkt70-4149cfbb";
+const KESH = "bkt70-0c6028b6";
 const ASOS = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
-  "konstruktor.js", "kassa.js", "zakaz_baza.js", "namuna_z002.json", "py/versiya.txt", "py/hisob.py", "py/hisobot.py", "py/zakaz.py", "py/raskroy.py",
+  "konstruktor.js", "kassa.js", "zakaz_baza.js", "hisobot.js", "hisobot_ekran.js", "namuna_z002.json", "py/versiya.txt", "py/hisob.py", "py/hisobot.py", "py/zakaz.py", "py/raskroy.py",
   "py/tannarx.py", "py/narx_sheets.py", "py/diller.py", "narxlar.enc",
   "rasm/A01-002.webp", "rasm/A01-003.webp", "rasm/A01-005.webp", "rasm/A10-001.webp", "rasm/A10-002.webp", "rasm/A10-003.webp", "rasm/A1501_5.webp", "rasm/A701.webp", "rasm/A8060.webp", "rasm/EPD001.webp", "rasm/F702.webp", "rasm/F703.webp", "rasm/G24.webp", "rasm/G32.webp", "rasm/H702.webp", "rasm/M702.webp", "rasm/V702.webp", "rasm/V707.webp", "rasm/V708.webp"];
 

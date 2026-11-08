@@ -659,3 +659,39 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .btb-guruh { display: flex; justify-content: space-between; gap: 8px; margin: 12px 0 4px; padding: 6px 10px; border-radius: 10px;
   background: color-mix(in srgb, var(--asosiy) 14%, transparent); font-size: 14px; }
 .arxiv-k.btb { margin-left: 10px; border-left: 3px solid var(--asosiy); }
+
+/* ---------- hisobot ekrani (2026-11-08) ---------- */
+.hb-tablar { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 4px; margin: 0 0 10px; scrollbar-width: none; }
+.hb-tablar button { flex: 0 0 auto; }
+.hb-davr { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 14px; }
+.hb-davr select, .panjara.ish select { flex: 1; font: inherit; color: var(--matn); background: var(--fon); border: 1px solid var(--chiziq); border-radius: 8px; padding: 8px; }
+.hb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.hb-k { background: var(--karta); border: 1px solid var(--chiziq); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hb-k span { font-size: 12px; color: var(--xira); }
+.hb-k b { font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.hb-k small { font-size: 11px; color: var(--xira); overflow-wrap: anywhere; }
+.hb-k.ogoh b { color: var(--xato); }
+.hb-sar { margin: 16px 0 6px; font-size: 15px; } .hb-sar small { color: var(--xira); font-weight: 400; }
+.hb-jad { width: 100%; border-collapse: collapse; background: var(--karta); border-radius: 12px; overflow: hidden; font-size: 13px; }
+.hb-jad td { padding: 7px 8px; border-bottom: 1px solid var(--chiziq); }
+.hb-jad .son { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hb-jad tr.qalin td { font-weight: 700; } .hb-jad tr.manfiy td { color: var(--xato); }
+.hb-jad.bosiladi tr[data-rkod] { cursor: pointer; } .hb-jad tr.faol td { background: color-mix(in srgb, var(--asosiy) 14%, transparent); }
+.hb-jad tr.kechikdi td { color: var(--xato); }
+.hb-scroll { overflow-x: auto; } .hb-jad.keng { min-width: 620px; }
+.hb-izoh { font-size: 12px; margin-top: 10px; }
+.hb-filtr { margin-bottom: 10px; }
+.hb-q { background: var(--karta); border: 1px solid var(--chiziq); border-radius: 12px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer; }
+.hb-q.btb { border-left: 3px solid var(--asosiy); }
+.hb-q1 { font-size: 14px; } .hb-q2 { display: flex; justify-content: space-between; gap: 6px; margin-top: 4px; font-size: 13px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.hb-q2 .qarz { color: var(--xato); } .hb-q2 .ortiq { color: var(--urgu); }
+.teg-btb { font-size: 11px; background: var(--asosiy); color: var(--asosiy-matn); border-radius: 5px; padding: 0 5px; }
+.hb-tarix { margin-top: 8px; border-top: 1px dashed var(--chiziq); padding-top: 6px; font-size: 13px; }
+.hb-tarix > div { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; } .hb-tarix b { display: block; margin-top: 4px; }
+.hb-tarix .qalin { font-weight: 700; }
+.hb-yoz { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--chiziq); font-size: 13px; }
+.hb-yoz b { white-space: nowrap; }
+.kassa-amal { grid-template-columns: repeat(4, 1fr); } .kassa-amal .tugma { font-size: 13px; }
+.kassa-h.yuk { border-left-color: var(--urgu); }
+.panjara.ish { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.panjara.ish label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--xira); }

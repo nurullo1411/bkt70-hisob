@@ -23,6 +23,12 @@ function shartnomaSumma(z) {
   if (Number(s.summa) > 0) return { summa: Number(s.summa), valyuta: s.valyuta === "USD" ? "USD" : "UZS" };
   return { summa: Number(z.narx_som) || 0, valyuta: "UZS" };
 }
+// Nachalnik maydonlari: m² 5 tur (Termo — qoʻlda kiritilmasa konstruktordan), guruh, montajchi, bitish (Muddat)
+function ishMaydonlari(z) {
+  const i = z.ish || {};
+  return { m2_termo: i.m2_termo ?? Math.round(zakazM2(z) * 100) / 100, m2_pvx: i.m2_pvx, m2_aldoks: i.m2_aldoks, m2_exclusive: i.m2_exclusive,
+    dona: i.dona, grux: i.grux || "", mantajchi: i.mantajchi || "", bitish: (z.mijoz && z.mijoz.muddat) || "" };
+}
 function zakazM2(z) {
   return (z.konstruksiyalar || []).reduce((a, k) => a + (Number(k.L) || 0) * (Number(k.H) || 0) / 10000 * (k.soni ?? 1), 0);
 }
@@ -38,7 +44,8 @@ async function zakazlarniYubor() {
       if (!z) { zNavbatYoz(zNavbat().filter((x) => x !== id)); continue; }
       const sh = shartnomaSumma(z);
       const r = await baza("zakaz_yoz", { zakaz: { uid: z.id, versiya: z.versiya || 0, summa: sh.summa, valyuta: sh.valyuta,
-        holat: holatOl(z), kurs: Number(ol("kurs")) || "", m2: Math.round(zakazM2(z) * 100) / 100, montaj: montajBor(z), zakaz: z } });
+        holat: holatOl(z), kurs: Number(ol("kurs")) || "", m2: Math.round(zakazM2(z) * 100) / 100, montaj: montajBor(z),
+        ...ishMaydonlari(z), zakaz: z } });
       if (r.ziddiyat) bazadanQoy(r.server, true);
       else zakazgaYoz(id, { versiya: r.versiya, baza_id: r.id, holat: r.holat });
       zNavbatYoz(zNavbat().filter((x) => x !== id));
