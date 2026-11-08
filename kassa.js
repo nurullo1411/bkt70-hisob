@@ -144,7 +144,7 @@ function kassaFormaHtml(kurs) {
 
 function kassaRoyxat(yoz) {
   const bekorQilingan = new Set(kassaHarakat.filter((h) => h.bekor_qilgan).map((h) => h.bekor_qilgan));
-  const qatorlar = kassaHarakat.filter((h) => !String(h.uuid).endsWith("#2") && !String(h.uuid).startsWith("bekor:"))
+  const qatorlar = kassaHarakat.filter((h) => h.kassa !== "eski" && !String(h.uuid).endsWith("#2") && !String(h.uuid).startsWith("bekor:"))
     .slice().reverse().slice(0, 100);
   if (!qatorlar.length) return `<p class="xira">Hali yozuv yoʻq.</p>`;
   const kodNomi = (k) => (KASSA_KODLAR.find((x) => String(x[0]) === String(k)) || [k, k])[1];

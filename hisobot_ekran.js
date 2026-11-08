@@ -81,7 +81,7 @@ function hbUmumiy() {
 let hbQarzTur = "mijoz", hbStavkaOch = false;
 const STAVKA_NOMI = [["termo", "Termo m²"], ["pvx", "PVX m²"], ["aldoks", "Aldoks m²"], ["exclusive", "Exclusive m²"], ["dona", "Dona"]];
 const hbYozuv = (sana, chap, pul) => `<div><span>${esc(sana)} · ${chap}</span><span>${pul}</span></div>`;
-const hbKassaNomi = (k) => esc(KASSA_NOMLAR[k] ? KASSA_NOMLAR[k][0] : k);
+const hbKassaNomi = (k) => esc(k === "eski" ? "Registratsiya" : KASSA_NOMLAR[k] ? KASSA_NOMLAR[k][0] : k);
 function ishxonaQarzi(h) {
   const q = h.qarzlar;
   const usdQ = Math.max(0, q.akfa1.qarz) + Math.max(0, q.akfa2.qarz);
@@ -112,7 +112,7 @@ function hbMijozlar(h, mq) {
   const tarix = (z) => `<div class="hb-tarix"><b>Toʻlovlar</b>${z.tolovlar.map((x) => hbYozuv(x.sana, hbKassaNomi(x.kassa), hbPul(x.summa, x.valyuta))).join("") || "<div class='xira'>yoʻq</div>"}</div>`;
   const zq = (z, ichki) => {
     const k = "z:" + z.id, och = hbOchiq === k;
-    return `<div class="hb-q${ichki ? " ichki" : ""}" data-qoch="${k}"><div class="hb-q1"><b class="id-teg">${z.id}</b> ${ichki ? "" : `<b>${esc(z.mijoz || "—")}</b>`}<span class="xira"> ${esc(holatNomi(z.holat))}</span></div>
+    return `<div class="hb-q${ichki ? " ichki" : ""}" data-qoch="${k}"><div class="hb-q1"><b class="id-teg">${z.id}</b> ${ichki ? (z.izoh && z.izoh !== z.mijoz ? esc(z.izoh) : "") : `<b>${esc(z.mijoz || "—")}</b>`}<span class="xira"> ${esc(holatNomi(z.holat))}</span></div>
       <div class="hb-q2"><span>${hbPul(z.summa, z.valyuta)}</span><span>berdi ${hbPul(z.tolangan, z.valyuta)}</span><b class="${z.qarz > 0 ? "qarz" : "ortiq"}">${z.qarz > 0 ? "" : "ortiq "}${hbPul(Math.abs(z.qarz), z.valyuta)}</b></div>${och ? tarix(z) : ""}</div>`;
   };
   // BTB — usta boʻyicha bitta qator; BTC — zakaz boʻyicha
@@ -169,7 +169,7 @@ function hbRasxod() {
   const yozuvlar = hbRasxodKod ? (hbMalumot.harakatlar || []).filter((x) => x.tur === "chiqim" && String(x.kod) === hbRasxodKod && String(x.sana).startsWith(hbDavr)) : [];
   return hbDavrTanlov() + `<table class="hb-jad bosiladi">${rasxod.map(([k, x]) => `<tr data-rkod="${esc(k)}" class="${hbRasxodKod === k ? "faol" : ""}"><td>${esc(HB_KODLAR[k] || k)} (${esc(k)})</td><td class="son">${som(x)}</td><td class="son">${hbFoiz(x / h.kassa.rasxod_jami)}</td></tr>`).join("")}
       <tr class="qalin"><td>Jami rasxod</td><td class="son">${som(h.kassa.rasxod_jami)}</td><td></td></tr></table>
-    ${hbRasxodKod ? `<h3 class="hb-sar">${esc(HB_KODLAR[hbRasxodKod] || hbRasxodKod)}</h3>` + yozuvlar.map((x) => `<div class="hb-yoz"><span>${esc(x.sana)} · ${esc(KASSA_NOMLAR[x.kassa] ? KASSA_NOMLAR[x.kassa][0] : x.kassa)}${x.zakaz ? " · ID " + esc(x.zakaz) : ""}${x.kimga ? " · " + esc(x.kimga) : ""}${x.izoh ? " · " + esc(x.izoh) : ""}</span><b>${hbPul(-x.summa, x.valyuta)}</b></div>`).join("") : '<p class="xira">Kodni bossangiz, yozuvlari chiqadi.</p>'}`;
+    ${hbRasxodKod ? `<h3 class="hb-sar">${esc(HB_KODLAR[hbRasxodKod] || hbRasxodKod)}</h3>` + yozuvlar.map((x) => `<div class="hb-yoz"><span>${esc(x.sana)} · ${hbKassaNomi(x.kassa)}${x.zakaz ? " · ID " + esc(x.zakaz) : ""}${x.kimga ? " · " + esc(x.kimga) : ""}${x.izoh ? " · " + esc(x.izoh) : ""}</span><b>${hbPul(-x.summa, x.valyuta)}</b></div>`).join("") : '<p class="xira">Kodni bossangiz, yozuvlari chiqadi.</p>'}`;
 }
 
 function hbOylik() {

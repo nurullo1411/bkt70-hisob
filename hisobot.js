@@ -4,10 +4,11 @@
 // - Toʻlangan = kassa kod 1 kirim (zakaz ID bilan). Kod 1 chiqim + zakaz ID = shu zakaz rasxodi.
 // - Zakaz materiali = yuklar (Akfa 1, Akfa 2, oyna) shu zakaz ID bilan + kod 1 chiqim (bozor, boshqa joy). Kassadan Akfa (5, Kimga: Akfa 1/2) / oyna (6) toʻlovi faqat qarzni kamaytiradi.
 // - Foyda faqat BITGAN ishlar boʻyicha, tugash oyiga yoziladi. Sof foyda = bitgan foyda − xodim m² (kod 8) − korxona rasxodlari.
+// - Registratsiyadan koʻchgan maʼlumot: kassa "eski", yuk manba "eski" — hisobotda bor, lekin kassa qoldigʻi, Akfa/oyna qarzi va xodim qarziga kirmaydi.
 // - Hayriya fondi (sherik, kod 40) = sof foydaning 10% (sozlanadi).
 "use strict";
 
-const HB_KODLAR = { 1: "Mijozlar uchun", 2: "Ishxona uchun", 3: "Shovroom", 4: "Rahbar", 5: "Akfa diller", 6: "Oyna", 7: "Bank",
+const HB_KODLAR = { 0: "Boshqa kirim / boshlangʻich qoldiq", 1: "Mijozlar uchun", 2: "Ishxona uchun", 3: "Shovroom", 4: "Rahbar", 5: "Akfa diller", 6: "Oyna", 7: "Bank",
   8: "Xodim m²", 9: "Sklad boʻlimi", 10: "Savdo boʻlimi", 11: "Mijozlar uchun qarz", 15: "Akfa qarz", 16: "Oyna qarz", 20: "Servis",
   30: "Marketing", 40: "Sherik (hayriya)", 44: "Rahbar investitsiya", 80: "Boʻlim boshligʻi", 85: "Zapas 1", 90: "Zapas 2" };
 // Korxona rasxodi (zakazga bogʻlanmagan, sof foydadan ayriladi)
@@ -78,13 +79,13 @@ function hisobotTuz(d, o = {}) {
   const qarzlar = {};
   for (const [k, [nom, val, kod]] of Object.entries(YETKAZUVCHILAR)) {
     let olindi = 0;
-    for (const y of yuk) if (y.yetkazuvchi === k) olindi += hbValyutaga(y.summa, y.valyuta, y.kurs, val);
+    for (const y of yuk) if (y.yetkazuvchi === k && y.manba !== "eski") olindi += hbValyutaga(y.summa, y.valyuta, y.kurs, val);
     qarzlar[k] = { nom, valyuta: val, kod, olindi };
   }
   // Kassadan toʻlov: kod 5 → "Kimga" boʻyicha Akfa 1 yoki Akfa 2; kod 6 → Oyna
   for (const q of Object.values(qarzlar)) q.tolandi = 0;
   for (const h of har) {
-    if (h.tur !== "chiqim") continue;
+    if (h.tur !== "chiqim" || h.kassa === "eski") continue; // Registratsiyadan koʻchgan: eski yuk toʻlangan deb olingan
     const kod = String(h.kod);
     const k = kod === "5" ? (String(h.kimga || "").trim() === "Akfa 2" ? "akfa2" : "akfa1") : kod === "6" ? "oyna" : null;
     if (k) qarzlar[k].tolandi += -hbValyutaga(h.summa, h.valyuta, h.kurs, qarzlar[k].valyuta);
@@ -149,7 +150,7 @@ function xodimHaqi(d, zakazlar) {
     }
   }
   for (const h of d.harakatlar || []) {
-    if (h.tur !== "chiqim" || String(h.kod) !== "8") continue;
+    if (h.tur !== "chiqim" || String(h.kod) !== "8" || h.kassa === "eski") continue;
     const g = kim(String(h.kimga || "").trim() || "Kimga yozilmagan", "");
     g.tolandi += -hbSom(h.summa, h.valyuta, h.kurs);
     g.tolovlar.push(h);
