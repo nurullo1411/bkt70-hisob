@@ -615,3 +615,35 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
   #chop .p-izoh { margin-top: 10px; padding: 8px 10px; border-left: 3px solid #0d47a1; background: #f4f7fb !important; }
 }
 .yashirin-kalit { -webkit-text-security: disc; }
+
+/* ---------- kassa (2026-11-08) ---------- */
+.kassa-och { margin-top: 8px; }
+.kassa-tepa { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0 10px; }
+.kassa-xabar { background: var(--asosiy); color: var(--asosiy-matn); padding: 8px 12px; border-radius: 10px; margin: 0 0 10px; }
+.kassa-plitkalar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kassa-p { background: var(--karta); border: 1px solid var(--chiziq); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kassa-p span { font-size: 12px; color: var(--xira); }
+.kassa-p b { font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kassa-p.manfiy b { color: var(--xato); }
+.kassa-jami { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 8px 0; padding: 10px 12px;
+  background: var(--asosiy); color: var(--asosiy-matn); border-radius: 14px; }
+.kassa-jami span { font-size: 12px; opacity: .85; } .kassa-jami b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.kassa-navbat { color: var(--urgu); margin: 4px 0; font-size: 14px; }
+.kassa-amal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.kassa-amal .tugma { padding: 10px 4px; font-size: 14px; }
+.kassa-forma { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kassa-forma label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--xira); min-width: 0; }
+.kassa-forma .keng { grid-column: 1 / -1; }
+.kassa-forma select { width: 100%; font: inherit; color: var(--matn); background: var(--fon); border: 1px solid var(--chiziq); border-radius: 8px; padding: 8px; }
+.kassa-kurs summary { cursor: pointer; font-weight: 600; }
+.kassa-qator { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+.kassa-qator input { flex: 1; }
+.kassa-sar { margin: 14px 0 6px; font-size: 15px; }
+.kassa-h { background: var(--karta); border: 1px solid var(--chiziq); border-left: 4px solid var(--yaxshi); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; }
+.kassa-h.chiqim { border-left-color: var(--xato); }
+.kassa-h.bekor { opacity: .5; } .kassa-h.bekor .kassa-s { text-decoration: line-through; }
+.kassa-h1 { display: flex; justify-content: space-between; gap: 8px; }
+.kassa-h1 b { font-size: 14px; min-width: 0; }
+.kassa-s { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.kassa-h2 { font-size: 12px; margin: 2px 0 4px; overflow-wrap: anywhere; }
+.kassa-h.ayir { border-left-color: var(--asosiy); }

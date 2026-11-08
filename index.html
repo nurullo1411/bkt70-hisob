@@ -39,6 +39,7 @@
   </section>
 
   <button id="davom" class="davom karta" hidden></button>
+  <button id="kassa-och" class="davom karta kassa-och"><span class="xira">Hisobot</span><b>💰 Kassa</b><span class="bolim-oq">›</span></button>
   <div class="bosh-sarlavha">Buyurtmalar</div>
   <div id="arxiv-tablar" class="bosh-bolimlar"></div>
   <details class="boshqa">
@@ -53,6 +54,12 @@
       <button id="matn-hisobla" class="tugma asosiy">Hisobla</button>
     </div>
   </details>
+ </div>
+
+ <div id="e-kassa" class="ekran" hidden>
+  <div class="kassa-tepa"><span id="kassa-holat" class="xira"></span><button id="kassa-yangila" class="kichik-t">↻ Yangilash</button></div>
+  <p id="kassa-xabar" class="kassa-xabar" hidden></p>
+  <div id="kassa-ich"></div>
  </div>
 
  <div id="e-royxat" class="ekran" hidden>
@@ -261,5 +268,6 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script src="app.js"></script>
 <script src="konstruktor.js"></script>
+<script src="kassa.js"></script>
 </body>
 </html>

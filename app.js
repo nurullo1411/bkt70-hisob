@@ -148,13 +148,14 @@ function zakazniOch(matn, jim) {
 // ---------- ekranlar: bosh sahifa → boʻlim roʻyxati → zakaz (telefonning ← tugmasi ham ishlaydi) ----------
 let joriyEkran = "bosh";
 function ekran(nom, push = true) {
-  for (const e of ["bosh", "royxat", "zakaz"]) $("e-" + e).hidden = e !== nom;
+  for (const e of ["bosh", "royxat", "zakaz", "kassa"]) $("e-" + e).hidden = e !== nom;
   if (push && nom !== joriyEkran) history.pushState({ ekran: nom }, "");
   joriyEkran = nom;
   $("orqaga").hidden = nom === "bosh";
   const bolim = BOSH_BOLIMLAR.find((h) => h[0] === arxivTab) || HOLATLAR.find((h) => h[0] === arxivTab);
-  $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : "Buyurtma maʼlumotlari";
-  if (nom !== "zakaz") arxivniChiz();
+  $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : nom === "kassa" ? "Kassa" : "Buyurtma maʼlumotlari";
+  if (nom === "kassa") kassaYangila();
+  else if (nom !== "zakaz") arxivniChiz();
   window.scrollTo(0, 0);
 }
 let ichkiOrqaga = false, chiqishTasdiq = false;
@@ -947,6 +948,7 @@ tabOch(ol("z_tab") || "k");
 $("yakunla").addEventListener("click", () => { saqla("oxirgi_zakaz", JSON.stringify(zakaz)); ekran("bosh"); holat("Zakaz saqlandi"); });
 $("yangi2").addEventListener("click", () => { ekran("bosh"); $("yangi").click(); });
 $("davom").addEventListener("click", () => { if (zakaz) ekran("zakaz"); });
+$("kassa-och").addEventListener("click", () => ekran("kassa"));
 
 // ---------- rasmdan konstruksiya (Claude API, toʻgʻridan telefondan) ----------
 // AI faqat oʻlcham va fasonni oʻqiydi; hisobni dastur qiladi. Natija hisob.py tekshiruvidan oʻtadi.
