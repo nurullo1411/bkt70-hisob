@@ -612,8 +612,8 @@ def _bolak_ichi(b, z, h, ctx):
     if z.ichki_en <= 0 or z.ichki_boy <= 0:
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
     tur = b.get("tur")
-    if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("fortochka") or b.get("dvaynoy") or b.get("egilgan") is not None):
-        raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, impost) hisoblanadi")
+    if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("dvaynoy") or b.get("egilgan") is not None):
+        raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, fortochka, impost) hisoblanadi")
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas
     past = h.yoy_chuqurligi(z.past_yoy, z)
     if tur == "gluxoy":
@@ -624,8 +624,9 @@ def _bolak_ichi(b, z, h, ctx):
         h.oyna("Gluxoy", z.ichki_en, z.ichki_boy, D("1.5"), arka, past, yonlar=yonlar)
     elif tur == "tabaqa" and b.get("fortochka"):
         # Fortochka (foydalanuvchi, 2026-11-05): qanot, shtapik, oyna rom tabaqasidagidek, faqat furnitura boshqa
-        ruchka = bool(b.get("ruchka"))
-        h.tabaqa("Fortochka", ROM_TABAQA_PROFILI, z.ichki_en + D("1.1"), z.ichki_boy + D("1.1"), rom=True,
+        ruchka = bool(b.get("ruchka")) or not h.seriya.eshik  # Engelberg fortochkasida doim ruchka
+        q = h.seriya.tabaqa_qoshimcha
+        h.tabaqa("Fortochka", h.seriya.rom_tabaqa, z.ichki_en + q, z.ichki_boy + q, rom=True,
                  fortochka=ruchka, arka=arka, past=past)
     elif tur == "tabaqa":
         q = h.seriya.tabaqa_qoshimcha

@@ -191,6 +191,13 @@ ENG_ISPANILET = {
         (251, 540, "R 251-500", 2, 8), (541, 840, "R 501-800", 2, 8), (841, 1140, "R 801-1100", 3, 10),
         (1141, 1440, "R 1101-1400", 3, 12), (1441, 1840, "R 1401-1800", 3, 14), (1841, 2400, "R 1801-2400", 4, 14)],
 }
+# Fortochka (ProfOkna "откидная створка"): ispanilet tabaqa ENIGA qarab; F 180 da zatsep 1, Roto 291 dan
+ENG_ISPANILET_FORT = {
+    "fornax": [(a, b, k, 1 if k == "F 180" else z, s) for a, b, k, z, s in ENG_ISPANILET["fornax"] if a <= 1641],
+    "roto": [(291 if k == "R 251-500" else a, b, k, z, 12 if k == "R 801-1100" else s)
+             for a, b, k, z, s in ENG_ISPANILET["roto"] if a <= 1441],
+}
+ENG_OGRANICHITEL = {"Uz": "Ogranichitel Dlya Fortochki (Uz)", "Kinglong": "Ogranichitel Dlya Fortochki (Kinglong)"}
 ENG_ISPANILET_NOMI = {"fornax": "Ispanilet Fornax", "roto": "Ispanilet Roto"}
 ENG_ZATSEP = {"fornax": "(13) Zatsepka (Rehau) (FORNAX)", "roto": "Zatsepka (ROTO)"}
 ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Uz)", "Ruchka Okon (ROTO LUX) (Tr)", "Ruchka Okon HOPPE NY (OQ) (Tr)",
@@ -202,10 +209,10 @@ ENG_ISPANILET_SAMOREZ = "3,9×25 YHB S"  # ProfOkna: har ispaniletga jadvaldagic
 ENG_PRIJIM = "(13) Sredniy Prijim Skritiy (FORNAX)"  # framujniy; Prostoe Otkr bilan, qanot 100 sm dan baland
 
 
-def eng_ispanilet(boy_kesish, mexanizm):
-    """Qanot kesish boʻyi (sm) → (ispanilet kodi, zatsep soni, samorez soni)."""
+def eng_ispanilet(boy_kesish, mexanizm, jadval=None):
+    """Qanot kesish boʻyi (fortochkada eni) sm → (ispanilet kodi, zatsep soni, samorez soni)."""
     mm = (D(str(boy_kesish)) - D("0.5") - 2 * ENG_QULOQ) * 10
-    for dan, gacha, kod, zatsep, samorez in ENG_ISPANILET[mexanizm]:
+    for dan, gacha, kod, zatsep, samorez in (jadval or ENG_ISPANILET)[mexanizm]:
         if dan <= mm <= gacha + D("0.99"):
             return kod, zatsep, samorez
     raise HisobXato(f"{mexanizm.title()} ispaniletiga mos oʻlcham yoʻq: tabaqa {boy_kesish} sm ({mm} mm)")
@@ -213,7 +220,8 @@ def eng_ispanilet(boy_kesish, mexanizm):
 
 def _eng_furnitura(s, tanlov, r):
     boylar = [D(str(b)) for b in s.get("rom_tabaqa_boylari", [])]
-    if not boylar:
+    fortochkalar = [D(str(f[0])) for f in s.get("fortochkalar", [])]  # eni (kesish)
+    if not boylar and not fortochkalar:
         return
     mexanizm = tanlov.get("eng_mexanizm") or "fornax"
     if mexanizm not in ENG_ISPANILET:
@@ -222,9 +230,11 @@ def _eng_furnitura(s, tanlov, r):
     if petlya not in ("prostoe", "100"):
         raise HisobXato(f"Petlya faqat prostoe yoki 100: {petlya}")
     soni = len(boylar)
-    r.qosh("Furnitura", tanlov.get("eng_ruchka") or ENG_RUCHKALAR[0], soni, "dona")
+    r.qosh("Furnitura", tanlov.get("eng_ruchka") or ENG_RUCHKALAR[0], soni + len(fortochkalar), "dona")
     samorez = 0
-    if petlya == "prostoe":
+    if not soni:
+        pass
+    elif petlya == "prostoe":
         r.qosh("Furnitura", ENG_PETLYA_PROSTOE, soni, "komplekt")
         # framujniy prijim: Prostoe Otkr bilan, qanot 100 sm dan baland (foydalanuvchi, 2026-11-08)
         prijim = sum(1 for b in boylar if b > 100)
@@ -234,18 +244,27 @@ def _eng_furnitura(s, tanlov, r):
     else:
         # 100 sm dan baland tabaqaga 3 ta, qolganiga 2 ta (foydalanuvchi)
         r.qosh("Furnitura", ENG_PETLYA_100, sum(3 if b > 100 else 2 for b in boylar), "dona")
+    if fortochkalar:
+        # fortochka (foydalanuvchi, 2026-11-08): har biriga Ogranichitel Dlya Fortochki (Uz / Kinglong);
+        # "100" tanlansa ustiga Petlya 100 mm × 2. Blokirator yoʻq.
+        fp = tanlov.get("eng_fortochka_petlya") or "ogranichitel"
+        og = tanlov.get("eng_ogranichitel") or "Uz"
+        if fp not in ("ogranichitel", "100") or og not in ENG_OGRANICHITEL:
+            raise HisobXato(f"Fortochka petlyasi notoʻgʻri: {fp} / {og}")
+        r.qosh("Furnitura", ENG_OGRANICHITEL[og], len(fortochkalar), "dona")
+        if fp == "100":
+            r.qosh("Furnitura", ENG_PETLYA_100, 2 * len(fortochkalar), "dona")
     isp = {}
     zatsep = 0
-    for b in boylar:
-        kod, z, sam = eng_ispanilet(b, mexanizm)
+    for o, jadval in [(b, None) for b in boylar] + [(e, ENG_ISPANILET_FORT) for e in fortochkalar]:
+        kod, z, sam = eng_ispanilet(o, mexanizm, jadval)
         isp[kod] = isp.get(kod, 0) + 1
         zatsep += z
         samorez += sam
     for kod, n in isp.items():
         r.qosh("Furnitura", f"{ENG_ISPANILET_NOMI[mexanizm]} {kod}", n, "dona")
     r.qosh("Furnitura", ENG_ZATSEP[mexanizm], zatsep, "dona")
-    for nomi in ENG_BLOKIRATOR:
-        r.qosh("Furnitura", nomi, soni, "dona")
+    # blokirator: oddiy tabaqa va fortochkada yoʻq (komplekt ichida), dvaynoyda boʻladi — dvaynoy hali yoʻq
     r.qosh("Furnitura", ENG_ISPANILET_SAMOREZ, samorez, "dona")
 
 

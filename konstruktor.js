@@ -991,7 +991,7 @@ function panelniChiz() {
     p += `<div class="sarlavha">Turi</div>${tugmalar("turi", turi, [["oddiy", "Oddiy"], ["dvaynoy", "Dvaynoy"], ["fortochka", "Fortochka"]])}`;
     p += b.fortochka
       ? `<div class="sarlavha">Petlya</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "past", [["past", "Pastda"], ["tepa", "Tepada"]])}
-         <div class="sarlavha">Yopilishi</div>${tugmalar("ruchka", !!b.ruchka, [[false, "Chit-chit"], [true, "Ruchka"]])}`
+         ${pvxmi(joriy(tahrir).rama) ? "" : `<div class="sarlavha">Yopilishi</div>${tugmalar("ruchka", !!b.ruchka, [[false, "Chit-chit"], [true, "Ruchka"]])}`}`
       : "";
   } else if (b.tur === "eshik") {
     p += `<div class="xira">${b.ochilish === "tashqariga" ? "Balkon Oʻrta V707 (tashqariga)" : "Balkon Qanot V708 (ichkariga)"} — ⚙ sozlamada almashtiriladi. Tabaqa soni va ruchka tomoni tepadagi asboblarda.</div>`;
@@ -1059,6 +1059,10 @@ function engFurnituraHtml(k, faol) {
   return `<div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Engelberg)</span></div>
     ${seg("eng_mexanizm", "fornax", [["fornax", "Fornax"], ["roto", "Roto"]])}
     ${seg("eng_petlya", "prostoe", [["prostoe", "Prostoe Otkr komplekt"], ["100", "Petlya 100 mm (2–3 ta)"]])}
+    <div class="sz-bolim">Fortochka <span class="xira">(doim ruchka bilan)</span></div>
+    ${seg("eng_fortochka_petlya", "ogranichitel", [["ogranichitel", "Ogranichitel"], ["100", "Petlya 100 mm × 2 + ogranichitel"]])}
+    ${seg("eng_ogranichitel", "Uz", [["Uz", "Ogranichitel Uz"], ["Kinglong", "Ogranichitel Kinglong"]])}
+    <div class="sz-bolim">Ruchka</div>
     ${seg("eng_ruchka", ENG_RUCHKALAR[0], ENG_RUCHKALAR.map((r, i) => [r, ["Roto Lux Uz", "Roto Lux Tr", "Hoppe oq", "Hoppe kulrang", "Hoppe bronza"][i]]))}`;
 }
 
