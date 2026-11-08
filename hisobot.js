@@ -90,6 +90,7 @@ function hisobotTuz(d, o = {}) {
     if (k) qarzlar[k].tolandi += -hbValyutaga(h.summa, h.valyuta, h.kurs, qarzlar[k].valyuta);
   }
   for (const q of Object.values(qarzlar)) q.qarz = Math.round((q.olindi - q.tolandi) * 100) / 100;
+  const xodimlar = xodimHaqi(d, hammasi);
 
   // Bitgan ishlar: foyda va marja
   const bitganSumma = bitgan.reduce((a, z) => a + shartnomaSom(z), 0);
@@ -119,8 +120,42 @@ function hisobotTuz(d, o = {}) {
       hayriya_som: Math.max(0, sof) * hayriyaFoiz / 100, hayriya_berildi: rasxod["40"] || 0 },
     kassa: { qoldiq: d.qoldiq || {}, tushum_som: tushum, rasxod, rasxod_jami: rasxodJami },
     nasiya: { soni: nasiya.length, som: nasiyaSom(nasiya), bitgan_som: nasiyaSom(nasiya.filter((z) => z.bitgan)) },
-    qarzlar,
+    qarzlar, xodimlar,
   };
+}
+
+// Xodim haqi (foydalanuvchi, 2026-11-08): bitgan ish m² × stavka. Sex haqi — sex tugaganda guruhga, montaj haqi — montaj tugaganda montajchiga.
+// Stavka zakazda muzlatilgan (sex_stavka / montaj_stavka); yoʻq boʻlsa hozirgi stavka. Toʻlangan — kassa kod 8 chiqim, "Kimga" = guruh nomi.
+const STAVKA_TURI = { termo: "m2_termo", pvx: "m2_pvx", aldoks: "m2_aldoks", exclusive: "m2_exclusive", dona: "dona" };
+const SEXDAN_KEYIN = ["sex_tugadi", "montaj_jarayon", "montaj_tugadi"];
+function xodimHaqi(d, zakazlar) {
+  const hozir = d.stavkalar || {};
+  const stavka = (muz, bosqich) => {
+    let x = null;
+    try { x = muz ? JSON.parse(muz) : null; } catch (e) {}
+    return x || Object.fromEntries(Object.keys(STAVKA_TURI).map((t) => [t, (hozir[t] && hozir[t][bosqich]) || 0]));
+  };
+  const haq = (z, st) => Object.entries(STAVKA_TURI).reduce((a, [t, m]) => a + hbSon(z[m]) * hbSon(st[t]), 0);
+  const x = {};
+  const kim = (nom, tur) => (x[nom] = x[nom] || { nom, tur, hisoblandi: 0, tolandi: 0, ishlar: [], tolovlar: [] });
+  for (const z of zakazlar) {
+    if (SEXDAN_KEYIN.includes(z.holat)) {
+      const s = Math.round(haq(z, stavka(z.sex_stavka, "sex")));
+      if (s) { const g = kim(z.grux || "Guruh belgilanmagan", "sex"); g.hisoblandi += s; g.ishlar.push({ id: z.id, mijoz: z.mijoz, haq: s }); }
+    }
+    if (z.holat === "montaj_tugadi" && z.montaj) {
+      const s = Math.round(haq(z, stavka(z.montaj_stavka, "montaj")));
+      if (s) { const g = kim(z.mantajchi || "Montajchi belgilanmagan", "montaj"); g.hisoblandi += s; g.ishlar.push({ id: z.id, mijoz: z.mijoz, haq: s }); }
+    }
+  }
+  for (const h of d.harakatlar || []) {
+    if (h.tur !== "chiqim" || String(h.kod) !== "8") continue;
+    const g = kim(String(h.kimga || "").trim() || "Kimga yozilmagan", "");
+    g.tolandi += -hbSom(h.summa, h.valyuta, h.kurs);
+    g.tolovlar.push(h);
+  }
+  const royxat = Object.values(x).map((g) => ({ ...g, qarz: g.hisoblandi - g.tolandi }));
+  return royxat.sort((a, b) => a.nom.localeCompare(b.nom, "uz", { numeric: true }));
 }
 
 // Oylar boʻyicha jadval (yil): shartnoma soni, mijozlar, summa; bitgan ishlar soni, summa, m²; tushum
@@ -135,4 +170,4 @@ function oylikJadval(d, yil, kurs) {
   return oylar;
 }
 
-if (typeof module !== "undefined") module.exports = { hisobotTuz, oylikJadval, HB_KODLAR, KORXONA_KODLARI, M2_TURLARI, YETKAZUVCHILAR };
+if (typeof module !== "undefined") module.exports = { hisobotTuz, oylikJadval, xodimHaqi, HB_KODLAR, KORXONA_KODLARI, M2_TURLARI, YETKAZUVCHILAR };

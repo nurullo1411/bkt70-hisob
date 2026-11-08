@@ -695,3 +695,8 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .kassa-h.yuk { border-left-color: var(--urgu); }
 .panjara.ish { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .panjara.ish label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--xira); }
+
+.hb-q.ichki { margin-left: 14px; border-left: 3px solid var(--chiziq); }
+.hb-stavka { background: var(--karta); border: 1px solid var(--chiziq); border-radius: 12px; padding: 8px 10px; margin-bottom: 8px; font-size: 13px; }
+.hb-stavka .panjara.ish { margin: 8px 0; }
+.hb-stavka input { font: inherit; color: var(--matn); background: var(--fon); border: 1px solid var(--chiziq); border-radius: 8px; padding: 8px; }

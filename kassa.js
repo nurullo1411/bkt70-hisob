@@ -136,7 +136,7 @@ function kassaFormaHtml(kurs) {
     <label>Kurs (shu kun)<input id="kf-kurs" type="number" inputmode="decimal" value="${kurs || ""}"></label>
     <label>Zakaz ID<input id="kf-zakaz" type="number" inputmode="numeric" list="zakaz-royxat" placeholder="tanlang"></label>
     <label>Sana<input id="kf-sana" type="date" value="${bugun()}"></label>
-    <label class="keng" id="kf-diller-q" hidden>Akfa diller<select id="kf-diller"><option value="">— tanlang —</option><option>Akfa 1</option><option>Akfa 2</option></select></label>
+    <label class="keng" id="kf-diller-q" hidden><span id="kf-diller-y">Kimga</span><select id="kf-diller"></select></label>
     <label class="keng">Kimga / kimdan<input id="kf-kimga" type="text" autocomplete="off"></label>
     <label class="keng">Izoh<input id="kf-izoh" type="text" autocomplete="off"></label>
     <button id="kf-saqla" class="tugma asosiy keng">Saqlash</button></section>`;
@@ -187,8 +187,8 @@ async function kassaSaqla() {
     y.kod = Number(t("kf-kod"));
     if (t("kf-zakaz")) y.zakaz = Number(t("kf-zakaz"));
     if (t("kf-kimga")) y.kimga = t("kf-kimga");
-    if (y.kod === 5) {
-      if (!t("kf-diller")) return kXabar("Qaysi dillerga: Akfa 1 yoki Akfa 2");
+    if (KIMGA_TANLOV_F()[y.kod] && y.tur === "chiqim") {
+      if (!t("kf-diller")) return kXabar(KIMGA_TANLOV_F()[y.kod][0] + "ni tanlang");
       y.kimga = t("kf-diller");
     }
   }
@@ -287,6 +287,18 @@ document.addEventListener("click", async (e) => {
 });
 // Yuk valyutasi yetkazib beruvchiga qarab (Akfa $, oyna soʻm); kod 5 da diller tanlovi
 document.addEventListener("change", (e) => {
-  if (e.target.id === "kf-kod" && $("kf-diller-q")) $("kf-diller-q").hidden = e.target.value !== "5";
+  if (e.target.id === "kf-kod") kimgaTanlov();
   if (e.target.id === "kf-yet" && $("kf-val")) $("kf-val").value = YETKAZUVCHILAR[e.target.value][1];
 });
+
+// Kod 5 — qaysi Akfa diller, kod 8 — qaysi guruh / montajchi (xodim qarzi shundan ayriladi)
+const KIMGA_TANLOV_F = () => ({ 5: ["Diller", ["Akfa 1", "Akfa 2"]], 8: ["Guruh / montajchi", [...GRUXLAR, ...MANTAJCHILAR]] });
+function kimgaTanlov() {
+  const q = $("kf-diller-q"), kod = $("kf-kod");
+  if (!q || !kod) return;
+  const x = kassaForma === "chiqim" && KIMGA_TANLOV_F()[kod.value];
+  q.hidden = !x;
+  if (!x) return;
+  $("kf-diller-y").textContent = x[0];
+  $("kf-diller").innerHTML = `<option value="">— tanlang —</option>` + x[1].map((v) => `<option>${v}</option>`).join("");
+}
