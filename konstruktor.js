@@ -309,13 +309,14 @@ function chizmaSVG(k, opts = {}) {
 
   // Portal U oynasi: tashqi chetdan, impost oʻqlaridan va arka oʻqidan d ichkarida
   function uYol(o, d) {
-    const { xa, xb, yo, ys, ul, ur, ux: x, uw: w, yarim, cx, tY } = o.u;
-    const y = o.y, n = 40;
+    const { xa, xb, yo, ys, yarim, cx, tY, eL = 0, eR = 0, eT = 0, eBL = 0, eBR = 0 } = o.u;
+    const x = o.u.ux + eL, w = o.u.uw - eL - eR, ul = o.u.ul - eBL, ur = o.u.ur - eBR;
+    const y = o.y + eT, n = 40;
     const yoyB = (x1, x2) => { let q = ""; for (let j = 0; j <= n; j++) { const xx = x1 + ((x2 - x1) * j) / n; q += `L${f(xx)} ${f(yoyY(yo, xx, -d))}`; } return q; };
     // tepa cheti: toʻgʻri yoki rama arkasi boʻylab (x1 dan x2 gacha)
     const tepaB = (x1, x2, bosh) => {
       if (!tY) return `${bosh ? "M" : "L"}${f(x1)} ${f(y + d)}L${f(x2)} ${f(y + d)}`;
-      let q = ""; for (let j = 0; j <= n; j++) { const xx = x1 + ((x2 - x1) * j) / n; q += `${bosh && !j ? "M" : "L"}${f(xx)} ${f(tepaY(tY, xx, y, d))}`; } return q;
+      let q = ""; for (let j = 0; j <= n; j++) { const xx = x1 + ((x2 - x1) * j) / n; q += `${bosh && !j ? "M" : "L"}${f(xx)} ${f(tepaY(tY, xx, y, d + eT))}`; } return q;
     };
     if (yarim === "chap")
       return tepaB(x + d, cx - d, true) + yoyB(cx - d, xa) + `L${f(xa - d)} ${f(ys)}L${f(xa - d)} ${f(ul - d)}L${f(x + d)} ${f(ul - d)}Z`;
@@ -381,7 +382,13 @@ function chizmaSVG(k, opts = {}) {
   if (eF) {
     const e = eF, a = g.ramalar.find((r) => r.asosiy), yaqin = (u, v) => Math.abs(u - v) < 0.01;
     for (const o of g.barglar) {
-      if (o.u) continue;
+      if (o.u) {
+        // portal U oynasi: ramaga tegadigan tomonlari (chap, oʻng, tepa, past) e ichkariga
+        const u = o.u;
+        o.u = { ...u, eL: yaqin(u.ux, a.x) ? e : 0, eR: yaqin(u.ux + u.uw, a.x + a.w) ? e : 0, eT: yaqin(o.y, 0) ? e : 0,
+          eBL: yaqin(u.ul, H) ? e : 0, eBR: yaqin(u.ur, H) ? e : 0 };
+        continue;
+      }
       if (yaqin(o.x, a.x)) { o.x += e; o.w -= e; }
       if (yaqin(o.x + o.w, a.x + a.w)) o.w -= e;
       if (!o.tY && yaqin(o.y, 0)) { o.y += e; o.h -= e; }
