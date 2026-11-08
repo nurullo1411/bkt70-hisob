@@ -182,13 +182,14 @@ def _eng_aksessuar(s, k, r):
 # Oʻlcham = tayyor qanot boʻyi − 2 quloq (2 × 2,2) = qanot kesish − 0,5 − 4,4, mm da. Konnektor va tij yoʻq.
 ENG_QULOQ = D("2.2")
 ENG_ISPANILET = {
-    "fornax": [  # (dan, gacha mm, kod, zatsep)
-        (221, 320, "F 180", 2), (321, 440, "F 280", 2), (441, 640, "F 400", 2), (641, 840, "F 600", 2),
-        (841, 1040, "F 800", 2), (1041, 1140, "F 1000", 3), (1141, 1240, "F 1100", 3), (1241, 1440, "F 1200", 3),
-        (1441, 1640, "F 1400", 4), (1641, 1840, "F 1600", 4), (1841, 2040, "F 1800", 4), (2041, 2200, "F 2000", 4)],
+    "fornax": [  # (dan, gacha mm, kod, zatsep, samorez)
+        (221, 320, "F 180", 2, 6), (321, 440, "F 280", 2, 7), (441, 640, "F 400", 2, 7), (641, 840, "F 600", 2, 7),
+        (841, 1040, "F 800", 2, 8), (1041, 1140, "F 1000", 3, 8), (1141, 1240, "F 1100", 3, 8),
+        (1241, 1440, "F 1200", 3, 12), (1441, 1640, "F 1400", 4, 14), (1641, 1840, "F 1600", 4, 12),
+        (1841, 2040, "F 1800", 4, 12), (2041, 2200, "F 2000", 4, 12)],
     "roto": [
-        (251, 540, "R 251-500", 2), (541, 840, "R 501-800", 2), (841, 1140, "R 801-1100", 3),
-        (1141, 1440, "R 1101-1400", 3), (1441, 1840, "R 1401-1800", 3), (1841, 2400, "R 1801-2400", 4)],
+        (251, 540, "R 251-500", 2, 8), (541, 840, "R 501-800", 2, 8), (841, 1140, "R 801-1100", 3, 10),
+        (1141, 1440, "R 1101-1400", 3, 12), (1441, 1840, "R 1401-1800", 3, 14), (1841, 2400, "R 1801-2400", 4, 14)],
 }
 ENG_ISPANILET_NOMI = {"fornax": "Ispanilet Fornax", "roto": "Ispanilet Roto"}
 ENG_ZATSEP = {"fornax": "(13) Zatsepka (Rehau) (FORNAX)", "roto": "Zatsepka (ROTO)"}
@@ -197,14 +198,16 @@ ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Uz)", "Ruchka Okon (ROTO LUX) (Tr)", "
 ENG_PETLYA_PROSTOE = "(Prostoe Otkr) Petli Komplekt (FORNAX)"
 ENG_PETLYA_100 = "Petlya 100 mm (Uz)"
 ENG_BLOKIRATOR = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)"]
+ENG_ISPANILET_SAMOREZ = "3,9×25 YHB S"  # ProfOkna: har ispaniletga jadvaldagicha, prijimga 4
+ENG_PRIJIM = "(13) Sredniy Prijim Skritiy (FORNAX)"  # framujniy; Prostoe Otkr bilan, qanot 100 sm dan baland
 
 
 def eng_ispanilet(boy_kesish, mexanizm):
-    """Qanot kesish boʻyi (sm) → (ispanilet kodi, zatsep soni)."""
+    """Qanot kesish boʻyi (sm) → (ispanilet kodi, zatsep soni, samorez soni)."""
     mm = (D(str(boy_kesish)) - D("0.5") - 2 * ENG_QULOQ) * 10
-    for dan, gacha, kod, zatsep in ENG_ISPANILET[mexanizm]:
+    for dan, gacha, kod, zatsep, samorez in ENG_ISPANILET[mexanizm]:
         if dan <= mm <= gacha + D("0.99"):
-            return kod, zatsep
+            return kod, zatsep, samorez
     raise HisobXato(f"{mexanizm.title()} ispaniletiga mos oʻlcham yoʻq: tabaqa {boy_kesish} sm ({mm} mm)")
 
 
@@ -220,22 +223,30 @@ def _eng_furnitura(s, tanlov, r):
         raise HisobXato(f"Petlya faqat prostoe yoki 100: {petlya}")
     soni = len(boylar)
     r.qosh("Furnitura", tanlov.get("eng_ruchka") or ENG_RUCHKALAR[0], soni, "dona")
+    samorez = 0
     if petlya == "prostoe":
         r.qosh("Furnitura", ENG_PETLYA_PROSTOE, soni, "komplekt")
+        # framujniy prijim: Prostoe Otkr bilan, qanot 100 sm dan baland (foydalanuvchi, 2026-11-08)
+        prijim = sum(1 for b in boylar if b > 100)
+        if prijim:
+            r.qosh("Furnitura", ENG_PRIJIM, prijim, "dona")
+            samorez += 4 * prijim
     else:
         # 100 sm dan baland tabaqaga 3 ta, qolganiga 2 ta (foydalanuvchi)
         r.qosh("Furnitura", ENG_PETLYA_100, sum(3 if b > 100 else 2 for b in boylar), "dona")
     isp = {}
     zatsep = 0
     for b in boylar:
-        kod, z = eng_ispanilet(b, mexanizm)
+        kod, z, sam = eng_ispanilet(b, mexanizm)
         isp[kod] = isp.get(kod, 0) + 1
         zatsep += z
+        samorez += sam
     for kod, n in isp.items():
         r.qosh("Furnitura", f"{ENG_ISPANILET_NOMI[mexanizm]} {kod}", n, "dona")
     r.qosh("Furnitura", ENG_ZATSEP[mexanizm], zatsep, "dona")
     for nomi in ENG_BLOKIRATOR:
         r.qosh("Furnitura", nomi, soni, "dona")
+    r.qosh("Furnitura", ENG_ISPANILET_SAMOREZ, samorez, "dona")
 
 
 def _rom_furnitura(s, tanlov, r):
