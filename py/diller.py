@@ -70,7 +70,8 @@ DILLER_RANGI = {"grey": "Anthrazit Grey LL", "z/d": "Zol Dub", "d/m": "Dub Mokko
                 "alux": "Alyuks LL", "306g": "SW306G", "oq": "Oq"}
 
 # Rezina 1 metri vazni, kg (foydalanuvchi oʻlchab beradi; boʻsh boʻlsa metrda yoziladi)
-REZINA_KG_M = {}
+# 1 metr vazni, kg (foydalanuvchi oʻlchagan, 2026-11-08); dillerga kg da yoziladi
+REZINA_KG_M = {"A01-002": 0.064, "A01-003": 0.036, "EPDM Rezina Ю": 0.046, "A01-005": 0.180}
 REZINALAR = ("A01-005", "A01-003", "A01-002", "EPDM Rezina Ю")
 
 # Dillerdan olinmaydi — eslatma (qizil)
