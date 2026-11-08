@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from hisob import HisobXato
+from hisob import HisobXato, narx_kaliti
 from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
@@ -143,7 +143,7 @@ def _otxod_qatorlari(detallar, miqdorlar, sonlar, usul="chegara", sklad=None):
         ishlatilgan = o["ishlatilgan"] / 10000
         jami = o["sarf"] / 10000
         ortiqcha = jami - ishlatilgan
-        miqdorlar[("Profil otxod", f"BKT70 {profil}", rang, "m")] = [
+        miqdorlar[("Profil otxod", narx_kaliti(profil), rang, "m")] = [
             round(ortiqcha * u / o["ishlatilgan"] / s, 6) for u, s in zip(g["ulush"], sonlar)
         ]
         natija.append({

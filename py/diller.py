@@ -13,7 +13,7 @@ tabaqada 2 sm dan, gluxoy va fortochkada 1,5 sm dan koʻp kichik boʻlsa — yuq
 
 from math import ceil, floor
 
-from hisob import HisobXato
+from hisob import ENGELBERG, SERIYA_RAMA, HisobXato
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
@@ -152,15 +152,15 @@ OYNA_CHEGARA_TABAQA = 2.0    # rom va eshik tabaqasi: oyna ichki razmerdan koʻp
 OYNA_CHEGARA_GLUXOY = 1.5    # gluxoy va fortochka
 
 
-def _ayirma_chegara(joy):
-    if joy.startswith("Gluxoy") or joy.startswith("Fortochka"):
+def _ayirma_chegara(joy, pvx=False):
+    if pvx or joy.startswith("Gluxoy") or joy.startswith("Fortochka"):  # Engelberg: hamma oyna ichki − 1,5
         return 1.5, OYNA_CHEGARA_GLUXOY
     return 2.0, OYNA_CHEGARA_TABAQA
 
 
-def oyna_yaxlit(x, joy):
+def oyna_yaxlit(x, joy, pvx=False):
     """Oyna oʻlchami 0,5 sm ga: avval pastga; ichki razmerdan farq chegaradan oshsa — yuqoriga."""
-    ayirma, chegara = _ayirma_chegara(joy)
+    ayirma, chegara = _ayirma_chegara(joy, pvx)
     ichki = x + ayirma
     past = floor(x * 2 + 1e-9) / 2
     if ichki - past <= chegara + 1e-9:
@@ -179,7 +179,8 @@ def oyna_royxati(zakaz, narxlar=None):
     for o in t["oynalar"]:
         k = t["konstruksiyalar"][o["i"]]
         qal = int(faol[o["i"]].get("oyna_qalinligi") or umumiy.get("oyna_qalinligi") or 24)
-        en, boy = oyna_yaxlit(o["en"], o["joy"]), oyna_yaxlit(o["boy"], o["joy"])
+        pvx = SERIYA_RAMA.get(faol[o["i"]].get("rama") or umumiy.get("rama")) is ENGELBERG
+        en, boy = oyna_yaxlit(o["en"], o["joy"], pvx), oyna_yaxlit(o["boy"], o["joy"], pvx)
         kalit = (o.get("tur") or "", qal, en, boy)
         g = guruh.setdefault(kalit, {"tur": kalit[0], "qalinlik": qal, "en": en, "boy": boy, "soni": 0,
                                      "konstruksiyalar": []})

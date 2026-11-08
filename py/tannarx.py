@@ -10,7 +10,7 @@ import json
 import sys
 from pathlib import Path
 
-from hisob import HisobXato
+from hisob import HisobXato, narx_kaliti
 from hisobot import ARKA_OYNA, narxlarni_oqi
 from zakaz import hisobla_zakaz
 
@@ -19,7 +19,7 @@ def _narx(kalit, narxlar, kurs):
     """Material qatori narxi, $ (bizning birlikda). Narx yoʻq boʻlsa None."""
     bolim, artikul, izoh, _ = kalit
     if bolim in ("Profil", "Profil otxod"):
-        profil = artikul if artikul.startswith("BKT70 ") else f"BKT70 {artikul}"
+        profil = narx_kaliti(artikul)
         hivich = narxlar["profil_hivich"].get(profil, {}).get(izoh)
         return None if hivich is None else hivich / narxlar["hivich_m"]
     if bolim == "Oyna":

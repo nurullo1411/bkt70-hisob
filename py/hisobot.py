@@ -7,7 +7,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import D, HisobXato, hisobla
+from hisob import D, HisobXato, hisobla, narx_kaliti
 
 PETLYA_CHEGARA = 260
 K188_BURCHAKKA_G = 7
@@ -88,10 +88,12 @@ def _kerak(tanlov, kalit, nomi):
     return qiymat
 
 
+
+
 def _profillar(n, rang, narxlar, r):
     jami_metr = {}
     for p in n["profillar"]:
-        artikul = f"BKT70 {p['profil']}"
+        artikul = narx_kaliti(p["profil"])
         jami_metr[artikul] = jami_metr.get(artikul, D(0)) + D(p["uzunlik"]) * p["soni"] / 100
     for artikul, metr in jami_metr.items():
         hivich = narxlar["profil_hivich"].get(artikul, {}).get(rang)
@@ -262,12 +264,14 @@ def hisobot(k, narxlar):
     r = Royxat(narxlar["narx"])
 
     _profillar(n, rang, narxlar, r)
-    _rezina(s, r)
-    _aksessuar(s, narxlar, r, tanlov)
-    _furnitura(s, tanlov, r)
-    _rom_furnitura(s, tanlov, r)
-    _dvaynoy_furnitura(s, r)
-    _fortochka_furnitura(s, tanlov, r)
+    if n.get("seriya", "Termo 70") == "Termo 70":
+        _rezina(s, r)
+        _aksessuar(s, narxlar, r, tanlov)
+        _furnitura(s, tanlov, r)
+        _rom_furnitura(s, tanlov, r)
+        _dvaynoy_furnitura(s, r)
+        _fortochka_furnitura(s, tanlov, r)
+    # Engelberg 7000 (2026-11-08): rezina, armatura, aksessuar, furnitura hali oʻrgatilmagan — hisob.qoida_yoq da
 
     qalinlik = str(k.get("oyna_qalinligi", 24))
     # Oyna turi boʻlakka alohida berilishi mumkin: har tur oʻz m² qatori

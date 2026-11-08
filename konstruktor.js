@@ -196,7 +196,7 @@ function eshikTabaqalari(k, g, o) {
   const tl = { ...umumiyTanlov(), ...(k.tanlov || {}) };
   const rama = k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null);
   const lam = tl.rang === "Laminatsiya" ? 0.08 : 0;
-  const rr = (rama === "F703" ? 5.8 : 3.8) + lam, im = 1.9 + lam / 2;
+  const rr = (rama === "F703" ? 5.8 : rama === "7051" ? 5.4 : 3.8) + lam, im = (rama === "7051" ? 2.2 : 1.9) + lam / 2;
   const a = g.ramalar.find((x) => x.asosiy), yaqin = (u, v) => Math.abs(u - v) < 0.01;
   const ichki = o.w - (yaqin(o.x, a.x) ? rr : im) - (yaqin(o.x + o.w, a.x + a.w) ? rr : im);
   const jami = Math.round((ichki + 0.5) * 100) / 100;
@@ -419,7 +419,7 @@ function chizmaSVG(k, opts = {}) {
   </defs>`;
 
   const rama = k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null);
-  const eF = rama === "F703" ? t * 0.45 : 0;
+  const eF = rama === "F703" || rama === "7051" ? t * 0.45 : 0;
   if (eF) {
     const e = eF, a = g.ramalar.find((r) => r.asosiy), yaqin = (u, v) => Math.abs(u - v) < 0.01;
     for (const o of g.barglar) {
@@ -1037,6 +1037,9 @@ const RANG_TURKUMLARI = [
   ["Anod", "Anod", [["anod", "Anod", "#c3c7cc"]]],
 ];
 const RAMALAR = [["F702", "Kosa (Sredniy)", "F702 · r = 3,8"], ["F703", "Kosa Shirokaya", "F703 · r = 5,8"]];
+// PVX Engelberg 7000 (foydalanuvchi, 2026-11-08): seriya rama kodidan; hozircha faqat rom, rang Oq yoki Laminatsiya
+const PVX_RAMALAR = [["7051", "Kosa 7051", "Engelberg · r = 5,4"]];
+const pvxmi = (rama) => rama === "7051";
 
 function oynaRangi(nom) {
   const n = nom.toLowerCase();
@@ -1091,25 +1094,26 @@ function sozlamaOynasi() {
   const alohida = k.rama != null || k.oyna_qalinligi != null || (k.tanlov && Object.keys(k.tanlov).length);
   const gul = (o) => (o.toLowerCase().includes("gul") ? ";background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)" : "");
   $("k-maydon").innerHTML = `
-    <div class="sz-seg"><button class="faol">Termo 70 (BKT 70)</button><button disabled>Alumin</button><button disabled>Plast</button></div>
+    <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button></div>
+    ${pvxmi(j.rama) ? `<div class="xira">Engelberg: hozircha faqat rom (gluxoy, tabaqa, impost); rezina va furnitura hali yoʻq.</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>
     <div class="sz-seg">${[[24, "24 mm (ikki qavat)"], [32, "32 mm"]].map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
     <div class="sz-oynalar">${oynaTurlari().map((o) => `<button data-sz="t:oyna_turi" data-v="${esc(JSON.stringify(o))}" class="sz-oyna${faol(j.oyna === o)}"><span class="namuna" style="background:${oynaRangi(o)}${gul(o)}"></span>${esc(o)}</button>`).join("")}</div>
 
     <div class="sz-bolim">Rama profili</div>
-    <div class="sz-ramalar">${RAMALAR.map(([v, y, iz]) => `<button data-sz="s:rama" data-v="${esc(JSON.stringify(v))}" class="sz-rama${faol(j.rama === v)}"><svg viewBox="0 0 40 40" class="ik"><path d="M6 34V6h28" fill="none" stroke="currentColor" stroke-width="${v === "F703" ? 6 : 3.5}"/></svg><b>${y}</b><span>${iz}</span></button>`).join("")}</div>
+    <div class="sz-ramalar">${(pvxmi(j.rama) ? PVX_RAMALAR : RAMALAR).map(([v, y, iz]) => `<button data-sz="s:rama" data-v="${esc(JSON.stringify(v))}" class="sz-rama${faol(j.rama === v)}"><svg viewBox="0 0 40 40" class="ik"><path d="M6 34V6h28" fill="none" stroke="currentColor" stroke-width="${v === "F703" ? 6 : 3.5}"/></svg><b>${y}</b><span>${iz}</span></button>`).join("")}</div>
 
     <div class="sz-bolim">Rang</div>
-    <div class="sz-seg">${RANG_TURKUMLARI.map(([v, y]) => `<button data-sz="t:rang" data-v="${esc(JSON.stringify(v))}" class="${faol(j.rang === v)}">${y}</button>`).join("")}</div>
+    <div class="sz-seg">${RANG_TURKUMLARI.filter((t) => !pvxmi(j.rama) || t[0] === "Oq" || t[0] === "Laminatsiya").map(([v, y]) => `<button data-sz="t:rang" data-v="${esc(JSON.stringify(v))}" class="${faol(j.rang === v)}">${y}</button>`).join("")}</div>
     <div class="sz-ranglar">${turkum[2].map(([v, y, c]) => `<button data-sz="t:rang_nomi" data-v="${esc(JSON.stringify(v))}" class="sz-rang${faol((j.rangNomi ?? turkum[2][0][0]) === v)}"><span class="namuna" style="background:${c}"></span>${y}</button>`).join("")}</div>
 
     <div class="sz-bolim">Podokonnik <span class="xira">(uzunligi L + 15 sm, rangi rom rangida)</span></div>
     <div class="sz-seg sz-pod">${[[null, "Yoʻq"], ...[15, 20, 25, 30, 35, 40, 45].map((v) => [v, String(v)])].map(([v, y]) => `<button data-sz="t:podokonnik" data-v="${JSON.stringify(v)}" class="${faol(j.pod === v)}">${y}</button>`).join("")}</div>
 
-    <div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
+    ${pvxmi(j.rama) ? "" : `<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
     <div class="sz-seg">${[["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]].map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>
-    ${eshiklar(k.bolak).length ? eshikFurnitura(k) : ""}
+    ${eshiklar(k.bolak).length ? eshikFurnitura(k) : ""}`}
 
     <div class="sz-bolim">Konstruksiya</div>
     <div class="panjara">
@@ -1253,7 +1257,7 @@ function sozlamaniChiz() {
   const qoshib = (royxat, qiymat) => (qiymat != null && !royxat.includes(qiymat) ? [qiymat, ...royxat] : royxat).map((x) => [x, x]);
   $("sozlama").innerHTML = `<div class="panjara">
     ${qator("Zakaz nomi", `<input data-s="nom" value="${esc(zakaz.nom || "")}">`)}
-    ${qator("Rama", tanlov("s:rama", u.rama, [["F702", "F702"], ["F703", "F703"]]))}
+    ${qator("Rama", tanlov("s:rama", u.rama, [["F702", "F702"], ["F703", "F703"], ["7051", "PVX Engelberg 7051"]]))}
     ${qator("Rang", tanlov("t:rang", t.rang, qoshib(RANGLAR, t.rang)))}
     ${qator("Steklopaket", tanlov("t:oyna_turi", t.oyna_turi, qoshib(oynaTurlari(), t.oyna_turi)))}
     ${qator("Oyna qalinligi", tanlov("s:oyna_qalinligi", u.oyna_qalinligi ?? 24, [[24, "24 mm"], [32, "32 mm"]]))}
