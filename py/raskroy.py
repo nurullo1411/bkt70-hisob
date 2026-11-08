@@ -230,6 +230,8 @@ OTXOD_CHEGARA = {
     "A701": 190, "V702": 60, "F702": 70, "F703": 70, "V707": 65, "V708": 65,
     "G24": 40, "G24-R": 180, "M702": 100, "H702": 220,
     "G32": 60, "G32-R": 180,  # foydalanuvchi, 2026-11-04
+    # Engelberg 7000 (foydalanuvchi, 2026-11-08)
+    "7051": 70, "7052": 45, "7053": 65, "7056": 36, "7057": 36, "0701": 25, "0703": 25,
 }
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
 
