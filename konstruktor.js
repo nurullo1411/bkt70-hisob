@@ -523,7 +523,7 @@ const ASBOBLAR = {
     ["tik3", "3 ga boʻlish", ik('<line x1="8" y1="3" x2="8" y2="21" class="q"/><line x1="16" y1="3" x2="16" y2="21" class="q"/>')],
     ["yoy", "Yoy impost (arkaga parallel yoki oʻz chuqurligi)", ik('<path d="M3 15q9-9 18 0" class="q"/>')],
     ["portal", "Portal: arkali oʻrta, atrofida U oyna", ik('<path d="M3 3h18v18H3z" class="q"/><path d="M8 21v-9a4 4 0 0 1 8 0v9"/>')],
-    ["shtulp", "Shtulp: 2 tabaqali eshik", ik('<line x1="12" y1="3" x2="12" y2="21" class="q"/><path d="M9 9h6M9 15h6"/>')],
+    // "Shtulp" asbobi olib tashlandi (foydalanuvchi, 2026-11-08): 2 tabaqali eshik — Eshik boʻlimida
     ["ochir", "Boʻlakni oʻchirish", ik(ramaIk() + '<path d="M8 8l8 8M16 8l-8 8" class="x"/>')],
   ],
   tabaqa: [
