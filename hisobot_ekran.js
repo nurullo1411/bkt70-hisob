@@ -113,18 +113,21 @@ function hbMijozlar(h, mq) {
   const zq = (z, ichki) => {
     const k = "z:" + z.id, och = hbOchiq === k;
     return `<div class="hb-q${ichki ? " ichki" : ""}" data-qoch="${k}"><div class="hb-q1"><b class="id-teg">${z.id}</b> ${ichki ? (z.izoh && z.izoh !== z.mijoz ? esc(z.izoh) : "") : `<b>${esc(z.mijoz || "—")}</b>`}<span class="xira"> ${esc(holatNomi(z.holat))}</span></div>
-      <div class="hb-q2"><span>${hbPul(z.summa, z.valyuta)}</span><span>berdi ${hbPul(z.tolangan, z.valyuta)}</span><b class="${z.qarz > 0 ? "qarz" : "ortiq"}">${z.qarz > 0 ? "" : "ortiq "}${hbPul(Math.abs(z.qarz), z.valyuta)}</b></div>${och ? tarix(z) : ""}</div>`;
+      <div class="hb-q2"><span>${hbPul(z.summa, z.valyuta)}</span><span>berdi ${hbPul(z.tolangan, z.valyuta)}</span>${!z.summa ? `<b class="ogoh-m">summa yozilmagan</b>` : Math.abs(z.qarz) < 0.01 ? `<b class="xira">toʻlangan ✓</b>` : `<b class="${z.qarz > 0 ? "qarz" : "ortiq"}">${z.qarz > 0 ? "" : "ortiq "}${hbPul(Math.abs(z.qarz), z.valyuta)}</b>`}</div>${och ? tarix(z) : ""}</div>`;
   };
   // BTB — usta boʻyicha bitta qator; BTC — zakaz boʻyicha
+  // BTB: usta boʻyicha hamma zakazlari (qarzi yoʻqlari ham), qarzi bor ustalar tepada
   const ustalar = {};
-  for (const z of t.filter((z) => z.btb)) (ustalar[String(z.mijoz || "—").trim()] = ustalar[String(z.mijoz || "—").trim()] || []).push(z);
+  for (const z of h.zakazlar.filter((z) => z.btb)) (ustalar[String(z.mijoz || "—").trim()] = ustalar[String(z.mijoz || "—").trim()] || []).push(z);
   const ustaQatori = ([nom, zz]) => {
-    const k = "btb:" + nom, och = hbOchiq === k;
-    const x = { usd: zz.filter((z) => z.valyuta === "USD").reduce((a, z) => a + z.qarz, 0), som: zz.filter((z) => z.valyuta !== "USD").reduce((a, z) => a + z.qarz, 0) };
-    return `<div class="hb-q btb" data-qoch="${k}"><div class="hb-q1"><b>${esc(nom)}</b> <span class="teg-btb">BTB</span><span class="xira"> · ${zz.length} ta zakaz</span></div>
-      <div class="hb-q2"><span></span><b class="qarz">${hbIkkiPul(x)}</b></div></div>${och ? zz.map((z) => zq(z, true)).join("") : ""}`;
+    const k = "btb:" + nom, och = hbOchiq === k, qarzli = zz.filter((z) => z.qarz > 0.009);
+    const x = { usd: qarzli.filter((z) => z.valyuta === "USD").reduce((a, z) => a + z.qarz, 0), som: qarzli.filter((z) => z.valyuta !== "USD").reduce((a, z) => a + z.qarz, 0) };
+    const jami = zz.reduce((a, z) => a + (z.valyuta === "USD" ? z.summa * h.kurs : z.summa), 0);
+    return `<div class="hb-q btb" data-qoch="${k}"><div class="hb-q1"><b>${esc(nom)}</b> <span class="teg-btb">BTB</span><span class="xira"> · ${zz.length} ta zakaz${qarzli.length ? ` · ${qarzli.length} tasida qarz` : ""}</span></div>
+      <div class="hb-q2"><span class="xira">jami ${som(jami)}</span><b class="${qarzli.length ? "qarz" : ""}">${qarzli.length ? hbIkkiPul(x) : "qarz yoʻq"}</b></div></div>${och ? zz.map((z) => zq(z, true)).join("") : ""}`;
   };
-  const btb = hbQarzFiltr !== "oddiy" ? Object.entries(ustalar).sort((a, c) => a[0].localeCompare(c[0])).map(ustaQatori).join("") : "";
+  const qarzSom = (zz) => zz.reduce((a, z) => a + (z.qarz > 0.009 ? (z.valyuta === "USD" ? z.qarz * h.kurs : z.qarz) : 0), 0);
+  const btb = hbQarzFiltr !== "oddiy" ? Object.entries(ustalar).sort((a, c) => qarzSom(c[1]) - qarzSom(a[1]) || a[0].localeCompare(c[0])).map(ustaQatori).join("") : "";
   const btc = hbQarzFiltr !== "btb" ? t.filter((z) => !z.btb).map((z) => zq(z, false)).join("") : "";
   return `<div class="hb-grid">${hbKarta("Mijozlar qarzi", som(mq.jami), `${hbIkkiPul(mq)} · ${mq.soni} ta zakaz`, "ogoh")}</div>
     <div class="seg hb-filtr">${filtr}</div>
