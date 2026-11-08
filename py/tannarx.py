@@ -10,7 +10,7 @@ import json
 import sys
 from pathlib import Path
 
-from hisob import HisobXato, narx_kaliti
+from hisob import HisobXato, hivich_metr, narx_kaliti
 from hisobot import ARKA_OYNA, narxlarni_oqi
 from zakaz import hisobla_zakaz
 
@@ -21,7 +21,7 @@ def _narx(kalit, narxlar, kurs):
     if bolim in ("Profil", "Profil otxod"):
         profil = narx_kaliti(artikul)
         hivich = narxlar["profil_hivich"].get(profil, {}).get(izoh)
-        return None if hivich is None else hivich / narxlar["hivich_m"]
+        return None if hivich is None else hivich / hivich_metr(profil, narxlar["hivich_m"])
     if bolim == "Oyna":
         som = narxlar.get("steklopaket_som", {}).get(artikul, {}).get(str(izoh))
         return None if not som else som / kurs

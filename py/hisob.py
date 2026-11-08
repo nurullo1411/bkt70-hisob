@@ -55,7 +55,18 @@ class Seriya:
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
 ENGELBERG = Seriya("Engelberg 7000", "7053", "7052", D("2.2"), D("1.5"), D("0.5"), True, {24: "7056", 32: "7057"}, False)
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG}
-ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058"}
+ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703"}
+# Armatura (foydalanuvchi, 2026-11-08): hamma detalga; uzunlik = kesish uzunligi − ayirma (laminatda ham shu),
+# 6 m hivichdan raskroy. Samorez 3,9×16: armatura uzunligi 70 dan kalta — 2 ta, aks holda uzunlik : 35 yuqoriga.
+ARMATURA = {"7051": ("0701", D(13)), "7052": ("0701", D(13)), "7053": ("0703", D("0.5"))}
+ARMATURA_SAMOREZ = "3,9×16 YSBM"
+ARMATURA_QADAM = D(35)
+ARMATURA_KALTA = D(70)
+
+
+def hivich_metr(kalit, standart):
+    """Profil narxi qaysi hivich uzunligiga (m): Engelberg 6 m (foydalanuvchi, 2026-11-08), qolgani narxlardagi."""
+    return 6 if narx_kaliti(kalit).startswith("ENG ") else standart
 
 
 def narx_kaliti(profil):
@@ -149,6 +160,7 @@ class Hisob:
         self.dvaynoylar = []
         self.fortochkalar = []  # (en, boʻy, ruchka bilanmi)
         self.impost_soni = 0
+        self.armatura_samorez = 0
         self.eshiklar = []
         self.markaziy_rezina = D(0)
         self.oyna_rezinasi = D(0)
@@ -176,6 +188,15 @@ class Hisob:
             raise HisobXato(f"{nomi} uzunligi musbat emas: {uzunlik}")
         key = (nomi, profil, uzunlik)
         self.profillar[key] = self.profillar.get(key, 0) + soni
+        if profil in ARMATURA and self.seriya is ENGELBERG:
+            arm, ayirma = ARMATURA[profil]
+            u = uzunlik - ayirma
+            if u <= 0:
+                raise HisobXato(f"{nomi} juda kalta, armatura sigʻmaydi: {uzunlik}")
+            akey = (f"Armatura ({nomi.lower()})", arm, u)
+            self.profillar[akey] = self.profillar.get(akey, 0) + soni
+            bitta = 2 if u < ARMATURA_KALTA else math.ceil(u / ARMATURA_QADAM)
+            self.armatura_samorez += int(bitta) * soni
 
     def oyna(self, joy, ichki_en, ichki_boy, ayirma, arka=D(0), past=D(0), yonlar=2):
         en, boy = ichki_en - ayirma, ichki_boy - ayirma
@@ -642,7 +663,7 @@ def hisobla(k):
     lam = LAMINAT_QOSHIMCHA if (k.get("tanlov") or {}).get("rang") == "Laminatsiya" else D(0)
     h = Hisob(k.get("oyna_qalinligi", 24), vertikal_r=vertikal == "R", lam=lam, seriya=seriya)
     if seriya is ENGELBERG:
-        h.qoida_yoq.append("Engelberg 7000: rezina, armatura, aksessuar va furnitura hali kiritilmagan")
+        h.qoida_yoq.append("Engelberg 7000: rezina, aksessuar va furnitura hali kiritilmagan")
     if not seriya.eshik and (k.get("arka") or k.get("tur") == "lapshali"):
         raise HisobXato(f"{seriya.nomi}: arka va lapshali vitraj hozircha yoʻq")
 
@@ -696,6 +717,7 @@ def hisobla(k):
             "dvaynoylar": [[float(e), float(b)] for e, b in h.dvaynoylar],
             "fortochkalar": [[float(e), float(b), r] for e, b, r in h.fortochkalar],
             "impost_soni": h.impost_soni,
+            "armatura_samorez": h.armatura_samorez,
             "eshiklar": h.eshiklar,
             "markaziy_rezina": float(h.markaziy_rezina),
             "oyna_rezinasi": float(h.oyna_rezinasi),

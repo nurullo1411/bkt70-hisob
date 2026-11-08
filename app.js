@@ -902,10 +902,10 @@ function skladPdfHtml(r, p) {
     <div class="sp-q">qoldiq: ${son(k.qoldiq, 2)} sm</div></div>`;
   return `<div class="sp">
     <div class="p-sarlavha">${esc(p.nom)} — kesish rejasi</div>
-    <div>Zakaz: ${esc(nom)} · Rang: ${esc(r.rang)} · Hivich ${son(r.hivich_sm / 100, 1)} m · ${new Date().toISOString().slice(0, 10)}</div>
+    <div>Zakaz: ${esc(nom)} · Rang: ${esc(r.rang)} · Hivich ${son((p.hivich_sm || r.hivich_sm) / 100, 1)} m · ${new Date().toISOString().slice(0, 10)}</div>
     <div class="xira">${kesimMatn(p.kesim)}${p.togri ? " · □ — gradusga kesilmaydi (90°)" : ""}</div>
     <div class="sp-kartalar">${p.kartalar.map(karta).join("")}</div>
-    <div class="sp-jami"><b>Jami yangi ${son(r.hivich_sm / 100, 1)} m hivich: ${p.yangi_soni} dona</b><br>Skladdan: ${p.sklad_soni} boʻlak · Jami detal: ${p.jami_detal} dona</div>
+    <div class="sp-jami"><b>Jami yangi ${son((p.hivich_sm || r.hivich_sm) / 100, 1)} m hivich: ${p.yangi_soni} dona</b><br>Skladdan: ${p.sklad_soni} boʻlak · Jami detal: ${p.jami_detal} dona</div>
     <div class="sp-sar">Qaysi konstruksiyaga</div>
     ${p.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${esc(k.nom)}: ${son(k.L, 1)} × ${son(k.H, 1)} sm, ${k.soni} dona</b>
       ${k.detallar.map((x) => `<div>${belgi}${esc(x.nomi)}: ${son(x.uzunlik, 2)} × ${x.soni}</div>`).join("")}</div>`).join("")}

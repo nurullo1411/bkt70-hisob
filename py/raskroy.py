@@ -16,6 +16,13 @@ from hisob import HisobXato, hisobla
 from zakaz import _birlashtir
 
 HIVICH = 650
+# PVX Engelberg 7000 hivichi 6 m (foydalanuvchi, 2026-11-08)
+HIVICH_PROFIL = {p: 600 for p in ("7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703")}
+
+
+def hivich(profil):
+    """Profil hivichi, sm."""
+    return HIVICH_PROFIL.get(profil, HIVICH)
 ARRA = 0.4
 QOLDIQ_CHEGARA = 10
 # BKT 70 da hamma profil aylantirmasdan kesiladi (foydalanuvchi, 2026-11-03).
@@ -24,12 +31,13 @@ AYLANTIRISH = {}
 # Bu profillarda sklad boʻlagi qoldigʻi 10 sm dan oshsa ham olinadi:
 # A701 ning 190 sm dan kichigi baribir ishlatilmaydi (foydalanuvchi, 2026-11-03).
 CHEGARASIZ = {"A701"}
-TOGRI_KESIM = {"M702", "A701", "H702"}  # 90°
+TOGRI_KESIM = {"M702", "A701", "H702", "7053", "0701", "0703"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
 SKLAD_NOMI = {
     "F702": "Kosa F702", "F703": "Kosa F703", "M702": "O'rta M702", "V702": "Qanot V702",
     "V707": "Balkon o'rta V707", "V708": "Balkon qanot V708", "A701": "Shtulp A701", "H702": "Lapsha lam",
 }
-TARTIB = ["F702", "F703", "V702", "V707", "V708", "M702", "A701", "H702", "G24", "G24-R", "G32", "G32-R"]
+TARTIB = ["F702", "F703", "V702", "V707", "V708", "M702", "A701", "H702", "G24", "G24-R", "G32", "G32-R",
+          "7051", "7052", "7053", "7056", "7057", "0701", "0703"]
 
 
 def _b(x):
@@ -200,7 +208,7 @@ def _aniq(qolgan, profil, L, k, chegara=ANIQ_CHEGARA):
 
 def _yangi_variantlar(qolgan, profil):
     """Faqat yangi hivichdan kesish variantlari: ochkoʻz, FFD va eng kam hivichli aniq joylash."""
-    L = HIVICH * 100
+    L = hivich(profil) * 100
     greedy, q2 = [], Counter(qolgan)
     while sum(q2.values()):
         t = _eng_toliq(q2, profil, L)
@@ -256,7 +264,7 @@ def otxod_hisobi(profil, kerak, usul="chegara"):
 
 def _yangi_sarf(profil, v):
     """Yangi hivichlar sarfi chegara qoidasi bilan (sm_b)."""
-    L = HIVICH * 100
+    L = hivich(profil) * 100
     chegara = OTXOD_CHEGARA.get(profil)
     chegara_b = L if chegara is None else _b(chegara)
     return sum(L - q if q >= chegara_b else L for q in (_qoldiq(L, t, profil) for t in v))
@@ -264,10 +272,10 @@ def _yangi_sarf(profil, v):
 
 def _otxod_hisobi(profil, kerak, usul="chegara"):
     qolgan = Counter({d: n for d, n in kerak.items() if n > 0})
-    if max(qolgan) > HIVICH * 100:
+    if max(qolgan) > hivich(profil) * 100:
         raise HisobXato(f"{profil}: {_k(max(qolgan))} sm detal hivichdan uzun")
     chegara = OTXOD_CHEGARA.get(profil)
-    L = HIVICH * 100
+    L = hivich(profil) * 100
 
     def sarf(v):
         return len(v) * L if usul == "butun" else _yangi_sarf(profil, v)
@@ -291,7 +299,7 @@ def sklad_otxod_hisobi(profil, kerak, sklad_bolak, usul):
     usul "sklad_metr": skladdan olingan detal faqat oʻz metri; "sklad_tekin": sklad qismi 0.
     """
     r = profil_rejasi(profil, kerak, sklad_bolak)
-    L = HIVICH * 100
+    L = hivich(profil) * 100
     sarf, sklad_detal, yangi = 0, 0, []
     for k in r["kartalar"]:
         detal = sum(d * n for d, n in k["t"].items()) * k["soni"]
@@ -321,7 +329,6 @@ def kesish_chizmasi(zakaz):
     """
     faol = [k for k in zakaz.get("konstruksiyalar") or [] if k.get("soni", 1) != 0]
     royxat, jami = detallarni_yig({**zakaz, "konstruksiyalar": faol})
-    L = HIVICH * 100
     profillar = []
     for p in sorted(jami, key=lambda x: TARTIB.index(x) if x in TARTIB else 99):
         egalari = {}
@@ -330,6 +337,7 @@ def kesish_chizmasi(zakaz):
                 if d["profil"] == p:
                     egalari.setdefault(_b(d["uzunlik"]), []).extend([i] * (d["soni"] * k["soni"]))
         o = otxod_hisobi(p, jami[p])
+        L = hivich(p) * 100
         hivichlar = []
         for t in o["variant"]:
             bolaklar = []
@@ -339,7 +347,7 @@ def kesish_chizmasi(zakaz):
             hivichlar.append({"bolaklar": bolaklar, "qoldiq": round(_qoldiq(L, t, p) / 100, 2)})
         hivichlar.sort(key=lambda h: h["qoldiq"])
         profillar.append({
-            "profil": p, "nom": toliq_nom(p), "kesim": _kesim_matni(p), "hivich_sm": HIVICH,
+            "profil": p, "nom": toliq_nom(p), "kesim": _kesim_matni(p), "hivich_sm": hivich(p),
             "hivichlar": hivichlar, "kesimlar": sum(jami[p].values()),
             "samaradorlik": round(o["ishlatilgan"] / (len(hivichlar) * L) * 100, 1),
             "qoldiq_sm": round(sum(h["qoldiq"] for h in hivichlar), 2),
@@ -369,11 +377,11 @@ def profil_rejasi(profil, kerak, sklad=()):
         kartalar.append({"manba": "SKLAD", "L": L, "t": t, "qoldiq": q})
 
     qolgan = Counter({d: n for d, n in qolgan.items() if n > 0})
-    if qolgan and max(qolgan) > HIVICH * 100:
+    if qolgan and max(qolgan) > hivich(profil) * 100:
         raise HisobXato(f"{profil}: {_k(max(qolgan))} sm detal hivichdan uzun")
     yangi = min(_yangi_variantlar(qolgan, profil), key=len) if qolgan else []
     for t in yangi:
-        kartalar.append({"manba": "YANGI", "L": HIVICH * 100, "t": t, "qoldiq": _qoldiq(HIVICH * 100, t, profil)})
+        kartalar.append({"manba": "YANGI", "L": hivich(profil) * 100, "t": t, "qoldiq": _qoldiq(hivich(profil) * 100, t, profil)})
 
     kesilgan = Counter()
     for k in kartalar:
@@ -384,7 +392,7 @@ def profil_rejasi(profil, kerak, sklad=()):
         "profil": profil,
         "kartalar": _birlashtir_karta(kartalar),
         "yangi_soni": len(yangi),
-        "pastki_chegara": ceil(yuk / _sigim(HIVICH * 100, profil)) if yuk else 0,
+        "pastki_chegara": ceil(yuk / _sigim(hivich(profil) * 100, profil)) if yuk else 0,
         "ishlatilmagan": ishlatilmagan,
     }
 
@@ -489,7 +497,7 @@ def sklad_rejasi(zakaz, sklad_qatorlari, rang, guruh=None):
             "bolaklar": [[d / 100, n] for d, n in sorted(k["t"].items(), reverse=True)],
         } for k in r["kartalar"]]
         rejalar.append({
-            "profil": p, "nom": toliq_nom(p), "fayl": fayl_nomi(p), "kesim": _kesim_matni(p),
+            "profil": p, "nom": toliq_nom(p), "fayl": fayl_nomi(p), "kesim": _kesim_matni(p), "hivich_sm": hivich(p),
             "togri": p in TOGRI_KESIM, "kartalar": kartalar, "yangi_soni": r["yangi_soni"],
             "sklad_soni": sum(k["soni"] for k in r["kartalar"] if k["manba"] == "SKLAD"),
             "jami_detal": sum(n * k["soni"] for k in r["kartalar"] for n in k["t"].values()),
@@ -519,6 +527,8 @@ PROFIL_NOMI = {
     "F702": "Kosa (Sredniy)", "F703": "Kosa Shirokaya", "V707": "Balkon Urta", "V708": "Balkon Kanot",
     "M702": "Urta", "V702": "Kanot", "G24": "Shtapik", "G24-R": "Shtapik", "G32": "Shtapik", "G32-R": "Shtapik",
     "A701": "Shtulp", "H702": "Lapsha", "A703": "90-Gradus", "H701": "Usilitel",
+    "7051": "Kosa", "7052": "Kanat", "7053": "Urta", "7056": "Shtapik", "7057": "Shtapik",
+    "0701": "Armatura Kosa-Qanot", "0703": "Armatura Urta",
 }
 
 
@@ -580,7 +590,7 @@ def pdf_yoz(reja, r, yol, sarlavha):
         y[0] -= olcham + 5
 
     matn(f"{toliq_nom(r['profil'])} — kesish rejasi", "AB", 20, koʻk)
-    matn(f"Zakaz: {sarlavha} · Rang: {reja['rang']} · Hivich {HIVICH / 100:g} m", olcham=11)
+    matn(f"Zakaz: {sarlavha} · Rang: {reja['rang']} · Hivich {hivich(r['profil']) / 100:g} m", olcham=11)
     belgi_izoh = " · □ — gradusga kesilmaydi (90°)" if r["profil"] in TOGRI_KESIM else ""
     km = _kesim_matni(r["profil"])
     asos, _, ogoh = km.partition(" · DIQQAT")
@@ -635,7 +645,7 @@ def pdf_yoz(reja, r, yol, sarlavha):
     c.setFillColor(HexColor("#E3F2FD"))
     c.roundRect(M, y[0] - 62, W - 2 * M, 62, 10, stroke=0, fill=1)
     y[0] -= 10
-    matn(f"Jami yangi {HIVICH / 100:g} m hivich: {r['yangi_soni']} dona", "AB", 13, koʻk, M + 12)
+    matn(f"Jami yangi {hivich(r['profil']) / 100:g} m hivich: {r['yangi_soni']} dona", "AB", 13, koʻk, M + 12)
     matn(f"Skladdan: {sum(k['soni'] for k in sklad)} boʻlak · Jami detal: {jami_detal} dona", olcham=11, x=M + 12)
     y[0] -= 18
 
