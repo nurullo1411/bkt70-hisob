@@ -62,12 +62,11 @@ ARMATURA = {"7051": ("0701", D(13)), "7052": ("0701", D(13)), "7053": ("0703", D
 ARMATURA_SAMOREZ = "3,9×16 YSBM"
 ARMATURA_QADAM = D(35)
 ARMATURA_KALTA = D(70)
-# Rezina (foydalanuvchi, 2026-11-08): EPDM 5025 hamma profil chetiga (kosa, qanot, shtapik — detal × 1,
-# impost — ikki cheti × 2), 5108 qanot ichiga qoʻshimcha (qanot detallari). Uzunlik = kesish uzunligi + 1 sm har detalga.
+# Rezina (foydalanuvchi, 2026-11-08): Termo 70 (ProfOkna) qoidasi, nomlari almashtirilgan:
+# A01-005 → EPDM 5108 (qanot perimetri × 1), A01-003 → EPDM 5025 (× 2), A01-002 → EPDM 5025 (oyna perimetri
+# + har tomonga 2 sm). EPDM Ю ishlatilmaydi — shtapikning oʻz rezinasi bor.
 REZINA_CHET = "EPDM 5025"
 REZINA_QANOT = "EPDM 5108"
-REZINA_ZAPAS = D(1)
-REZINA_CHETLAR = {"7051": 1, "7052": 1, "7053": 2, "7056": 1, "7057": 1}
 
 
 def hivich_metr(kalit, standart):
@@ -167,8 +166,6 @@ class Hisob:
         self.fortochkalar = []  # (en, boʻy, ruchka bilanmi)
         self.impost_soni = 0
         self.armatura_samorez = 0
-        self.rezina_chet = D(0)   # Engelberg 5025, sm
-        self.rezina_qanot = D(0)  # Engelberg 5108, sm
         self.eshiklar = []
         self.markaziy_rezina = D(0)
         self.oyna_rezinasi = D(0)
@@ -196,11 +193,6 @@ class Hisob:
             raise HisobXato(f"{nomi} uzunligi musbat emas: {uzunlik}")
         key = (nomi, profil, uzunlik)
         self.profillar[key] = self.profillar.get(key, 0) + soni
-        if self.seriya is ENGELBERG and profil in REZINA_CHETLAR:
-            bitta = uzunlik + REZINA_ZAPAS
-            self.rezina_chet += bitta * REZINA_CHETLAR[profil] * soni
-            if profil == "7052":
-                self.rezina_qanot += bitta * soni
         if profil in ARMATURA and self.seriya is ENGELBERG:
             arm, ayirma = ARMATURA[profil]
             u = uzunlik - ayirma
@@ -731,8 +723,6 @@ def hisobla(k):
             "fortochkalar": [[float(e), float(b), r] for e, b, r in h.fortochkalar],
             "impost_soni": h.impost_soni,
             "armatura_samorez": h.armatura_samorez,
-            "rezina_chet": float(h.rezina_chet),
-            "rezina_qanot": float(h.rezina_qanot),
             "eshiklar": h.eshiklar,
             "markaziy_rezina": float(h.markaziy_rezina),
             "oyna_rezinasi": float(h.oyna_rezinasi),
