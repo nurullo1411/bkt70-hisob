@@ -166,6 +166,7 @@ class Hisob:
         self.fortochkalar = []  # (en, boʻy, ruchka bilanmi)
         self.impost_soni = 0
         self.armatura_samorez = 0
+        self.lapsha_samorez = 0
         self.eshiklar = []
         self.markaziy_rezina = D(0)
         self.oyna_rezinasi = D(0)
@@ -351,6 +352,8 @@ def _bolinish(b, z, h, ctx):
     vertikal = b["yonalish"] == "vertikal"
     if b["yonalish"] not in ("vertikal", "gorizontal"):
         raise HisobXato(f"Nomaʼlum yoʻnalish: {b['yonalish']}")
+    if b.get("lapsha"):
+        raise HisobXato("Lapsha faqat alohida ramalar orasida boʻladi (rama ichida — impost)")
     if b.get("egilgan") is not None:
         return _egilgan_bolinish(b, z, h, ctx)
     if vertikal and _tashqari_eshik_bor(b):
@@ -647,6 +650,46 @@ def _rama_hisobi(profil, impost, en, boy, bolak, h):
     _bolak(bolak, Zona(en, boy, r, r, r, r, tepa_yoy=h.arka), h, ctx)
 
 
+LAPSHA_SAMOREZ_QADAM = D(100)   # har metr lapshaga 1 samorez (foydalanuvchi, 2026-11-09)
+
+
+def _lapshami(b):
+    return isinstance(b, dict) and b.get("tur") == "bolinish" and bool(b.get("lapsha"))
+
+
+def _ramalar_hisobi(profil, impost, en, boy, b, h):
+    """Lapsha bilan ulangan ramalar (foydalanuvchi, 2026-11-09): istalgan konstruksiyalar yonma-yon (vertikal)
+    yoki ustma-ust (gorizontal), oraligʻi H702 lapsha 0,5 sm. Har rama alohida hisoblanadi. Bola rama
+    boshqasidan kalta boʻlishi mumkin: vertikalda "boy", gorizontalda "en". Lapsha = qoʻshni ikki ramaning
+    qisqarogʻi; har metriga samorez 1 ta (yuqoriga). Tekislash ("tekislash") faqat chizma uchun."""
+    if not _lapshami(b):
+        _rama_hisobi(profil, impost, en, boy, b, h)
+        return
+    vertikal = b.get("yonalish") == "vertikal"
+    if b.get("yonalish") not in ("vertikal", "gorizontal"):
+        raise HisobXato(f"Nomaʼlum yoʻnalish: {b.get('yonalish')}")
+    n = len(b.get("bolaklar") or [])
+    jami = (en if vertikal else boy) - LAPSHA_ENI * (n - 1)
+    olchamlar = _olchamlar(b, jami, [D(0)] * n)
+    yon = []
+    for i, bola in enumerate(b["bolaklar"]):
+        kalit = "boy" if vertikal else "en"
+        toliq = boy if vertikal else en
+        ikkinchi = D(bola[kalit]) if isinstance(bola, dict) and bola.get(kalit) is not None else toliq
+        if ikkinchi <= 0 or ikkinchi > toliq:
+            raise HisobXato(f"Lapshali rama {'boʻyi' if vertikal else 'eni'} 0 dan katta va {toliq} dan oshmasligi kerak: {ikkinchi}")
+        ichi = {k: v for k, v in bola.items() if k != kalit} if isinstance(bola, dict) else bola
+        if vertikal:
+            _ramalar_hisobi(profil, impost, olchamlar[i], ikkinchi, ichi, h)
+        else:
+            _ramalar_hisobi(profil, impost, ikkinchi, olchamlar[i], ichi, h)
+        yon.append(ikkinchi)
+    for a, c in zip(yon, yon[1:]):
+        uz = min(a, c)
+        h.detal("Lapsha", LAPSHA_PROFILI, uz, 1)
+        h.lapsha_samorez += math.ceil(uz / LAPSHA_SAMOREZ_QADAM)
+
+
 def hisobla(k):
     """Konstruksiya lugʻatidan natija lugʻatini qaytaradi. Xato boʻlsa HisobXato chiqaradi."""
     profil = k.get("rama")
@@ -668,33 +711,35 @@ def hisobla(k):
     h = Hisob(k.get("oyna_qalinligi", 24), vertikal_r=vertikal == "R", lam=lam, seriya=seriya)
     if seriya is ENGELBERG:
         pass  # Engelberg 7000: fortochka, dvaynoy, eshik hali yoʻq (_bolak_ichi da xato)
-    if not seriya.eshik and (k.get("arka") or k.get("tur") == "lapshali"):
-        raise HisobXato(f"{seriya.nomi}: arka va lapshali vitraj hozircha yoʻq")
+    if not seriya.eshik and k.get("arka"):
+        raise HisobXato(f"{seriya.nomi}: arka hozircha yoʻq")
 
     # Arka (foydalanuvchi, 2026-11-06): chuqurlik L/2 dan oshmaydi, radius chegarasi yoʻq
     arka = k.get("arka")
     if arka:
         a = D(arka.get("balandlik") or 0)
-        if k.get("tur") == "lapshali":
-            raise HisobXato("Lapshali vitrajda arka boʻlmaydi")
+        if k.get("tur") == "lapshali" or _lapshami(k.get("bolak")):
+            raise HisobXato("Lapshali konstruksiyada arka boʻlmaydi")
         if a <= 0 or a > L / 2 or a > H:
             raise HisobXato(f"Arka chuqurligi 0 dan katta, L/2 dan va H dan katta emas boʻlishi kerak: {a}")
         h.arka = Arka(L, a)
         h.segment = a == H  # yarim aylana, yon devorsiz
 
+    bolak = k["bolak"]
     if k.get("tur") == "lapshali":
-        yonlar = [D(k[t]) for t in ("chap", "ong") if k.get(t) is not None]
-        if not yonlar or any(y <= 0 for y in yonlar):
+        # eski yozuv (chap / ong yon oyna) — lapsha daraxtiga oʻgiriladi
+        yonlar = [t_ for t_ in ("chap", "ong") if k.get(t_) is not None]
+        if not yonlar or any(D(k[t_]) <= 0 for t_ in yonlar):
             raise HisobXato("Lapshali vitrajda kamida bitta yon oyna eni kerak")
-        eshik_eni = L - sum(yonlar) - LAPSHA_ENI * len(yonlar)
-        if eshik_eni <= 0:
+        if L - sum(D(k[t_]) for t_ in yonlar) - LAPSHA_ENI * len(yonlar) <= 0:
             raise HisobXato("Eshik ramasi uchun joy qolmadi")
-        _rama_hisobi(profil, impost, eshik_eni, H, k["bolak"], h)
-        for y in yonlar:
-            _rama_hisobi(profil, impost, y, H, {"tur": "gluxoy"}, h)
-        h.detal("Lapsha", LAPSHA_PROFILI, H, len(yonlar))
-    else:
-        _rama_hisobi(profil, impost, L, H, k["bolak"], h)
+        bolaklar, olchamlar = [bolak], [None]
+        if k.get("chap") is not None:
+            bolaklar.insert(0, {"tur": "gluxoy"}); olchamlar.insert(0, k["chap"])
+        if k.get("ong") is not None:
+            bolaklar.append({"tur": "gluxoy"}); olchamlar.append(k["ong"])
+        bolak = {"tur": "bolinish", "yonalish": "vertikal", "lapsha": True, "olchamlar": olchamlar, "bolaklar": bolaklar}
+    _ramalar_hisobi(profil, impost, L, H, bolak, h)
 
     m2 = sum((en * boy * n for (_, en, boy, _), n in h.oynalar.items()), D(0)) / 10000
     return {
@@ -722,6 +767,7 @@ def hisobla(k):
             "fortochkalar": [[float(e), float(b), r] for e, b, r in h.fortochkalar],
             "impost_soni": h.impost_soni,
             "armatura_samorez": h.armatura_samorez,
+            "lapsha_samorez": h.lapsha_samorez,
             "eshiklar": h.eshiklar,
             "markaziy_rezina": float(h.markaziy_rezina),
             "oyna_rezinasi": float(h.oyna_rezinasi),

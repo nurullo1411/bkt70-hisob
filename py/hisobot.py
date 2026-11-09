@@ -46,6 +46,7 @@ PODOKONNIK_ENLARI = (15, 20, 25, 30, 35, 40, 45)  # sm, Romchidagidek tanlov (fo
 PODOKONNIK_ZAPAS = D(15)                          # uzunlik = L + 15 sm
 PODOKONNIK_KRISHKA = "Krishka Podokonnik"         # har podokonnikka 2 dona
 ARKA_EGISH = "Arka egish"        # $ / m egiladigan profil
+LAPSHA_SAMOREZ = "Lapsha samorez soʻm"   # dona, soʻmda (foydalanuvchi, 2026-11-09: 300 soʻm), kursga boʻlinadi
 ARKA_OYNA = "Arka oyna soʻm"     # soʻm / m² arkali oyna ustamasi (narx soʻmda, kursga boʻlinadi)
 
 
@@ -414,6 +415,10 @@ def hisobot(k, narxlar):
     # Arka (foydalanuvchi, 2026-11-06): egish 7,5 $ / m (shtapik ichida), arkali oyna m² ga soʻmda ustama
     if s.get("arka_metr"):
         r.qosh("Arka", ARKA_EGISH, D(str(s["arka_metr"])), "m")
+    if s.get("lapsha_samorez"):
+        dona = D(s["lapsha_samorez"])
+        som = r.narx.get(LAPSHA_SAMOREZ)
+        r.summa_bilan("Aksessuar", LAPSHA_SAMOREZ, dona, "dona", None if som is None else dona * D(som) / kurs, LAPSHA_SAMOREZ)
     if s.get("arka_oyna_m2"):
         m2 = D(str(s["arka_oyna_m2"]))
         som = r.narx.get(ARKA_OYNA)

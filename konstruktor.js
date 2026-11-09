@@ -72,10 +72,48 @@ const yolQism = (p) => (p === "" ? [] : p.split(".").map(Number));
 const bolaYoli = (p, i) => (p === "" ? String(i) : p + "." + i);
 function tugun(ildiz, p) { let b = ildiz; for (const i of yolQism(p)) b = b.bolaklar[i]; return b; }
 function ota(p) { const q = yolQism(p); return q.length ? { yol: q.slice(0, -1).join("."), i: q[q.length - 1] } : null; }
+// Lapsha guruhi (foydalanuvchi, 2026-11-09): {tur: "bolinish", lapsha: true, yonalish, olchamlar, bolaklar, tekislash?} —
+// har bolasi alohida rama, oraligʻi H702 lapsha 0,5 sm. Bola kaltaroq boʻlsa: vertikalda "boy", gorizontalda "en".
+const LAPSHA_ENI = 0.5;
+const lapshaKalit = (b) => (b && b.lapsha ? (b.yonalish === "vertikal" ? "boy" : "en") : null);
 function almashtir(p, yangi) {
   if (p === "") { tahrir.bolak = yangi; return; }
   const o = ota(p);
-  tugun(tahrir.bolak, o.yol).bolaklar[o.i] = yangi;
+  const otaB = tugun(tahrir.bolak, o.yol), eski = otaB.bolaklar[o.i], kal = lapshaKalit(otaB);
+  if (kal && eski && eski !== yangi && eski[kal] != null) { if (yangi[kal] == null) yangi[kal] = eski[kal]; delete eski[kal]; }
+  otaB.bolaklar[o.i] = yangi;
+}
+// Barg yoʻlidan uning ramasi (lapsha guruhi bolasi yoki ildiz) yoʻli
+function ramaYoli(p) {
+  let q = p;
+  for (;;) { const o = ota(q); if (!o) return q; if (tugun(tahrir.bolak, o.yol).lapsha) return q; q = o.yol; }
+}
+// Lapsha asbobi: bosilgan boʻlak ramasi yoniga (yoki ustiga/ostiga) yangi rama qoʻshiladi
+function lapshaBolish(p, yonalish) {
+  if (tahrir.arka) { xabar("Arkali konstruksiyada lapsha boʻlmaydi"); return false; }
+  const rp = ramaYoli(p), o = ota(rp), otaB = o ? tugun(tahrir.bolak, o.yol) : null;
+  if (otaB && otaB.lapsha && otaB.yonalish === yonalish) {
+    const x = otaB.olchamlar[o.i];
+    otaB.bolaklar.splice(o.i + 1, 0, { tur: "gluxoy" });
+    otaB.olchamlar.splice(o.i + 1, 0, null);
+    if (x != null && otaB.olchamlar.some((y, k) => y == null && k !== o.i + 1)) {
+      const q = yaxlit((x - LAPSHA_ENI) / 2);
+      otaB.olchamlar[o.i] = q; otaB.olchamlar[o.i + 1] = Math.round((x - LAPSHA_ENI - q) * 100) / 100;
+    } else if (x != null) otaB.olchamlar[o.i] = null;
+    return true;
+  }
+  almashtir(rp, { tur: "bolinish", yonalish, lapsha: true, olchamlar: [null, null], bolaklar: [tugun(tahrir.bolak, rp), { tur: "gluxoy" }] });
+  return true;
+}
+// Eski yozuv (k.tur = "lapshali", chap / ong) — lapsha daraxtiga
+function lapshaDaraxt(k) {
+  if (!k || k.tur !== "lapshali") return k;
+  const bolaklar = [k.bolak], olchamlar = [null];
+  if (k.chap != null) { bolaklar.unshift({ tur: "gluxoy" }); olchamlar.unshift(Number(k.chap)); }
+  if (k.ong != null) { bolaklar.push({ tur: "gluxoy" }); olchamlar.push(Number(k.ong)); }
+  const n = { ...k, bolak: { tur: "bolinish", yonalish: "vertikal", lapsha: true, olchamlar, bolaklar } };
+  delete n.tur; delete n.chap; delete n.ong;
+  return n;
 }
 const yaxlit = (x) => Math.round(x * 10) / 10;
 
@@ -84,7 +122,7 @@ function bolish(p, yonalish, n = 2) {
   const b = tugun(tahrir.bolak, p);
   const o = ota(p);
   const otaB = o ? tugun(tahrir.bolak, o.yol) : null;
-  if (otaB && otaB.tur === "bolinish" && otaB.yonalish === yonalish && !otaB.egilgan) {
+  if (otaB && otaB.tur === "bolinish" && otaB.yonalish === yonalish && !otaB.egilgan && !otaB.lapsha) {
     const x = otaB.olchamlar[o.i];
     for (let j = 1; j < n; j++) { otaB.bolaklar.splice(o.i + j, 0, { tur: "gluxoy" }); otaB.olchamlar.splice(o.i + j, 0, null); }
     // oʻlchami qoʻlda berilgan boʻlak boʻlinsa — oʻz oʻrni ichida teng qismlar (oxirgisi qoldiq),
@@ -108,7 +146,11 @@ function ochir(p) {
   const [w, h] = olchamTaxmin(o.yol);
   otaB.bolaklar.splice(o.i, 1);
   otaB.olchamlar.splice(o.i, 1);
-  if (otaB.bolaklar.length === 1) { almashtir(o.yol, otaB.bolaklar[0]); tanlangan = o.yol; return true; }
+  if (otaB.bolaklar.length === 1) {
+    const qol = otaB.bolaklar[0], kal = lapshaKalit(otaB);
+    if (kal) delete qol[kal];
+    almashtir(o.yol, qol); tanlangan = o.yol; return true;
+  }
   if (otaB.egilgan && otaB.olchamlar[0] == null) otaB.olchamlar[0] = yaxlit((otaB.yonalish === "vertikal" ? w : h) / otaB.olchamlar.length);
   else if (otaB.olchamlar.every((x) => x != null)) otaB.olchamlar[otaB.olchamlar.length - 1] = null;
   tanlangan = bolaYoli(o.yol, Math.max(0, o.i - 1));
@@ -121,19 +163,6 @@ function taqsimla(olchamlar, jami) {
   const boshlar = olchamlar.filter((x) => x == null).length;
   const ulush = boshlar ? (jami - berilgan) / boshlar : 0;
   return olchamlar.map((x) => (x == null ? ulush : Number(x)));
-}
-
-function ramalar(k) {
-  const L = Number(k.L) || 0;
-  if (k.tur !== "lapshali") return [{ x: 0, w: L, asosiy: true }];
-  const chap = Number(k.chap) || 0, ong = Number(k.ong) || 0;
-  const r = [];
-  let x = 0;
-  if (chap) { r.push({ x: 0, w: chap }); x = chap + 0.5; }
-  const eshikW = L - chap - ong - (chap ? 0.5 : 0) - (ong ? 0.5 : 0);
-  r.push({ x, w: eshikW, asosiy: true });
-  if (ong) r.push({ x: x + eshikW + 0.5, w: ong });
-  return r;
 }
 
 // ---------- yoylar: rama arkasi va egilgan impost (foydalanuvchi, 2026-11-06) ----------
@@ -186,6 +215,30 @@ function joyla(b, x, y, w, h, p, g, chuqur = 0, tY = null, pY = null) {
     if (yr != null && b.bolaklar[3]) joyla(b.bolaklar[3], xb, yr, ong, y + h - yr, bolaYoli(p, 3), g, chuqur + 1, null, pY);
     return;
   }
+  if (b.tur === "bolinish" && b.lapsha) {
+    const v = b.yonalish === "vertikal", n = b.bolaklar.length, kal = v ? "boy" : "en";
+    const s = taqsimla(b.olchamlar, (v ? w : h) - LAPSHA_ENI * (n - 1));
+    const tek = b.tekislash || (v ? "tepa" : "chap");
+    g.bolinishlar.push({ p, v, x, y, w, h, s, olchamlar: b.olchamlar, chuqur, oraliq: LAPSHA_ENI });
+    let q = v ? x : y, avvalgi = null;
+    s.forEach((o, i) => {
+      const c = b.bolaklar[i], toliq = v ? h : w;
+      const ikk = Math.min(toliq, c[kal] != null ? Number(c[kal]) : toliq);
+      const sur = tek === "orta" ? (toliq - ikk) / 2 : tek === "past" || tek === "ong" ? toliq - ikk : 0;
+      const rr = v ? { x: q, y: y + sur, w: o, h: ikk } : { x: x + sur, y: q, w: ikk, h: o };
+      if (avvalgi) {
+        // lapsha tasmasi: qoʻshni ikki ramaning umumiy qismi
+        const a0 = v ? Math.max(avvalgi.y, rr.y) : Math.max(avvalgi.x, rr.x);
+        const a1 = v ? Math.min(avvalgi.y + avvalgi.h, rr.y + rr.h) : Math.min(avvalgi.x + avvalgi.w, rr.x + rr.w);
+        g.lapshalar.push(v ? { x: q - LAPSHA_ENI, y: a0, w: LAPSHA_ENI, h: a1 - a0 } : { x: a0, y: q - LAPSHA_ENI, w: a1 - a0, h: LAPSHA_ENI });
+      }
+      if (c[kal] != null) g.qisqalar.push({ ...rr, p: bolaYoli(p, i), kal });
+      ramaJoyla(c, rr, bolaYoli(p, i), g, chuqur + 1, c[kal] != null ? kal : null, p);
+      avvalgi = rr;
+      q += o + LAPSHA_ENI;
+    });
+    return;
+  }
   if (b.tur === "bolinish") {
     const v = b.yonalish === "vertikal";
     const s = taqsimla(b.olchamlar, v ? w : h);
@@ -211,10 +264,20 @@ function joyla(b, x, y, w, h, p, g, chuqur = 0, tY = null, pY = null) {
   } else g.barglar.push({ b, x, y, w, h, p, tY, pY });
 }
 
+// Bitta rama: ichidagi barglar shu ramaga bogʻlanadi (ramaga tegadigan chet — r)
+function ramaJoyla(b, rr, p, g, chuqur, qisqa = null, guruh = null) {
+  if (b.tur === "bolinish" && b.lapsha) { joyla(b, rr.x, rr.y, rr.w, rr.h, p, g, chuqur); return; }
+  const rama = { ...rr, p, qisqa, guruh, asosiy: p === "" };
+  g.ramalar.push(rama);
+  const i0 = g.barglar.length;
+  joyla(b, rr.x, rr.y, rr.w, rr.h, p, g, chuqur, rama.asosiy ? g.ark : null, null);
+  for (let i = i0; i < g.barglar.length; i++) g.barglar[i].rama = rama;
+}
+
 function geometriya(k) {
-  const g = { barglar: [], impostlar: [], bolinishlar: [], portallar: [], ramalar: ramalar(k), ark: arkaGeom(k) };
-  const a = g.ramalar.find((r) => r.asosiy);
-  joyla(k.bolak, a.x, 0, a.w, Number(k.H) || 0, "", g, 0, g.ark, null);
+  k = lapshaDaraxt(k);
+  const g = { barglar: [], impostlar: [], bolinishlar: [], portallar: [], ramalar: [], lapshalar: [], qisqalar: [], ark: arkaGeom(k) };
+  ramaJoyla(k.bolak, { x: 0, y: 0, w: Number(k.L) || 0, h: Number(k.H) || 0 }, "", g, 0);
   return g;
 }
 
@@ -224,7 +287,7 @@ function eshikTabaqalari(k, g, o) {
   const rama = k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null);
   const lam = tl.rang === "Laminatsiya" ? 0.08 : 0;
   const rr = (rama === "F703" ? 5.8 : rama === "7051" ? 5.4 : 3.8) + lam, im = (rama === "7051" ? 2.2 : 1.9) + lam / 2;
-  const a = g.ramalar.find((x) => x.asosiy), yaqin = (u, v) => Math.abs(u - v) < 0.01;
+  const a = o.rama || g.ramalar[0], yaqin = (u, v) => Math.abs(u - v) < 0.01;
   const ichki = o.w - (yaqin(o.x, a.x) ? rr : im) - (yaqin(o.x + o.w, a.x + a.w) ? rr : im);
   const jami = Math.round((ichki + 0.5) * 100) / 100;
   const L1 = o.b.L1 != null ? Number(o.b.L1) : Math.max(65, jami / 2);
@@ -253,7 +316,7 @@ function belgilar(barglar) {
 // k.arka = {balandlik: a}: tepasi aylana yoyi, a — yoy balandligi (yon devor tepasidan choʻqqigacha), sm.
 // H — umumiy boʻy (choʻqqigacha). a = L/2 — yarim doira. Lapshali vitrajda arka yoʻq.
 function arkaGeom(k) {
-  if (!k || !k.arka || k.tur === "lapshali") return null;
+  if (!k || !k.arka || k.tur === "lapshali" || (k.bolak && k.bolak.lapsha)) return null;
   const L = Number(k.L) || 0, H = Number(k.H) || 0;
   const a = Math.min(Number(k.arka.balandlik) || 0, L / 2, H);
   if (!(a > 0) || !(L > 0)) return null;
@@ -448,21 +511,22 @@ function chizmaSVG(k, opts = {}) {
   const rama = k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null);
   const eF = rama === "F703" || rama === "7051" ? t * 0.45 : 0;
   if (eF) {
-    const e = eF, a = g.ramalar.find((r) => r.asosiy), yaqin = (u, v) => Math.abs(u - v) < 0.01;
+    const e = eF, yaqin = (u, v) => Math.abs(u - v) < 0.01;
     for (const o of g.barglar) {
+      const a = o.rama || g.ramalar[0], aY = a.y || 0, aH = aY + (a.h ?? H);
       if (o.u) {
         // portal U oynasi: ramaga tegadigan tomonlari (chap, oʻng, tepa, past) e ichkariga
         const u = o.u;
-        o.u = { ...u, eL: yaqin(u.ux, a.x) ? e : 0, eR: yaqin(u.ux + u.uw, a.x + a.w) ? e : 0, eT: yaqin(o.y, 0) ? e : 0,
-          eBL: yaqin(u.ul, H) ? e : 0, eBR: yaqin(u.ur, H) ? e : 0 };
+        o.u = { ...u, eL: yaqin(u.ux, a.x) ? e : 0, eR: yaqin(u.ux + u.uw, a.x + a.w) ? e : 0, eT: yaqin(o.y, aY) ? e : 0,
+          eBL: yaqin(u.ul, aH) ? e : 0, eBR: yaqin(u.ur, aH) ? e : 0 };
         continue;
       }
       if (yaqin(o.x, a.x)) { o.x += e; o.w -= e; }
       if (yaqin(o.x + o.w, a.x + a.w)) o.w -= e;
-      if (!o.tY && yaqin(o.y, 0)) { o.y += e; o.h -= e; }
+      if (!o.tY && yaqin(o.y, aY)) { o.y += e; o.h -= e; }
       // rama arkasiga tegsa: yoy e ichkariga (konsentrik) — yoyY(yangi, x, d) = yoyY(eski, x, d + e)
       if (o.tY && o.tY === g.ark) o.tY = { ...o.tY, R: o.tY.R - e, y0: o.tY.y0 + e };
-      if (!o.pY && yaqin(o.y + o.h, H)) o.h -= e;
+      if (!o.pY && yaqin(o.y + o.h, aH)) o.h -= e;
     }
   }
   const belgi = opts.kichik ? {} : belgilar(g.barglar);
@@ -472,10 +536,9 @@ function chizmaSVG(k, opts = {}) {
       s += `<path d="${shakl(0, 0, L, H, 0, ark)} ${shakl(t + eF, t + eF, L - 2 * (t + eF), H - 2 * (t + eF), t + eF, ark)}" class="ra" fill-rule="evenodd"/>`;
       continue;
     }
-    if (!r.asosiy) s += `<g data-p="${r.x === 0 ? "lapsha:chap" : "lapsha:ong"}">`;
-    s += rect(r.x, 0, r.w, H, "ra");
-    if (!r.asosiy) s += oyna(r.x + t, t, r.w - 2 * t, H - 2 * t, t) + "</g>";
+    s += rect(r.x, r.y, r.w, r.h, "ra");
   }
+  for (const l of g.lapshalar) s += rect(l.x - t * 0.15, l.y, l.w + t * 0.3, l.h, "ra lap");
   // impostlar tabaqadan oldin: tabaqa impost ustiga kirib turadi, petlya koʻrinadi
   // impost uchi: rama yoyidan t, impost yoyidan t/2 ichkarida
   const ichOf = (yo) => (yo ? (yo.rama ? t : t / 2) : t);
@@ -565,12 +628,12 @@ function chizmaSVG(k, opts = {}) {
     for (const b of tik) {
       const yy = H + qadam * (++pastQator);
       let q = b.x;
-      b.s.forEach((o, i) => { s += olchamChizigi(q, yy, q + o, yy, o, b.olchamlar[i] == null, `${b.p}|${i}`, H + qadam * 0.2); q += o; });
+      b.s.forEach((o, i) => { s += olchamChizigi(q, yy, q + o, yy, o, b.olchamlar[i] == null, `${b.p}|${i}`, H + qadam * 0.2); q += o + (b.oraliq || 0); });
     }
     for (const b of yotiq) {
       const xx = L + qadam * (++ongQator);
       let q = b.y;
-      b.s.forEach((o, i) => { s += olchamChizigi(xx, q, xx, q + o, o, b.olchamlar[i] == null, `${b.p}|${i}`, L + qadam * 0.2); q += o; });
+      b.s.forEach((o, i) => { s += olchamChizigi(xx, q, xx, q + o, o, b.olchamlar[i] == null, `${b.p}|${i}`, L + qadam * 0.2); q += o + (b.oraliq || 0); });
       if (b.egilgan != null) {
         // yoy impost chuqurligi: choʻqqidan uchlarigacha (≈ — arkaga parallel)
         const x2 = L + qadam * (++ongQator);
@@ -602,9 +665,14 @@ function chizmaSVG(k, opts = {}) {
       const xx = L + qadam * (++ongQator);
       s += olchamChizigi(xx, 0, xx, ark.a, ark.a, false, "arka");
     }
-    if (k.tur === "lapshali") {
+    // kalta ramalar: oʻz boʻyi (oʻngda) yoki eni (pastda), bosib oʻzgartiriladi
+    for (const r of g.qisqalar.filter((r) => r.kal === "boy")) {
+      const xx = L + qadam * (++ongQator);
+      s += olchamChizigi(xx, r.y, xx, r.y + r.h, r.h, false, `${r.p}|boy`, L + qadam * 0.2);
+    }
+    for (const r of g.qisqalar.filter((r) => r.kal === "en")) {
       const yy = H + qadam * (++pastQator);
-      for (const r of g.ramalar) s += olchamChizigi(r.x, yy, r.x + r.w, yy, r.w, r.asosiy, r.asosiy ? null : (r.x === 0 ? "chap" : "ong"), H + qadam * 0.2);
+      s += olchamChizigi(r.x, yy, r.x + r.w, yy, r.w, false, `${r.p}|en`, H + qadam * 0.2);
     }
     s += olchamChizigi(0, H + qadam * (++pastQator), L, H + qadam * pastQator, L, false, "L", H + qadam * 0.2);
     s += olchamChizigi(-qadam, 0, -qadam, H, H, false, "H", -qadam * 0.2);
@@ -624,7 +692,8 @@ const ASBOBLAR = {
     ["yotiq", "Yotiq impost", ik('<line x1="3" y1="12" x2="21" y2="12" class="q"/>')],
     ["tik3", "3 ga boʻlish", ik('<line x1="8" y1="3" x2="8" y2="21" class="q"/><line x1="16" y1="3" x2="16" y2="21" class="q"/>')],
     ["yotiq3", "3 ga boʻlish (yotiq)", ik('<line x1="3" y1="8" x2="21" y2="8" class="q"/><line x1="3" y1="16" x2="21" y2="16" class="q"/>')],
-    ["lapsha", "Lapsha bilan ajratish: yon oyna alohida ramada (tashqariga eshik)", ik('<line x1="10" y1="3" x2="10" y2="21" class="q"/><line x1="14" y1="3" x2="14" y2="21" class="q"/><path d="M10 7h4M10 12h4M10 17h4"/>')],
+    ["lapsha", "Lapsha (tik): yoniga alohida rama", ik('<line x1="10" y1="3" x2="10" y2="21" class="q"/><line x1="14" y1="3" x2="14" y2="21" class="q"/><path d="M10 7h4M10 12h4M10 17h4"/>')],
+    ["lapsha_y", "Lapsha (yotiq): ustiga/ostiga alohida rama", ik('<line x1="3" y1="10" x2="21" y2="10" class="q"/><line x1="3" y1="14" x2="21" y2="14" class="q"/><path d="M7 10v4M12 10v4M17 10v4"/>')],
     ["yoy", "Yoy impost (arkaga parallel yoki oʻz chuqurligi)", ik('<path d="M3 15q9-9 18 0" class="q"/>')],
     ["portal", "Portal: arkali oʻrta, atrofida U oyna", ik('<path d="M3 3h18v18H3z" class="q"/><path d="M8 21v-9a4 4 0 0 1 8 0v9"/>')],
     // "Shtulp" asbobi olib tashlandi (foydalanuvchi, 2026-11-08): 2 tabaqali eshik — Eshik boʻlimida
@@ -662,7 +731,7 @@ const BOLIMLAR = [
 
 // Tugma ostidagi qisqa nom (belgining oʻzi tushunarsiz boʻlmasin)
 const QISQA = {
-  tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", portal: "Portal", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", lapsha: "Lapsha", ochir: "Impostni olish",
+  tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", portal: "Portal", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", lapsha: "Lapsha tik", lapsha_y: "Lapsha yotiq", ochir: "Impostni olish",
   tab_chap: "Chap", tab_ong: "Oʻng", dv_chap: "Dvaynoy chap", dv_ong: "Dvaynoy oʻng", fortochka: "Fortochka ↓", fortochka_tepa: "Fortochka ↑", gluxoy: "Gluxoy",
   esh1_chap: "1 tab. chap", esh1_ong: "1 tab. oʻng", esh2_ong: "2 tab. ruchka oʻng", esh2_chap: "2 tab. ruchka chap",
   togri: "Toʻgʻri", arka_yarim: "Yarim doira", arka: "Pologiy arka", aylana: "Yarim aylana",
@@ -675,7 +744,7 @@ function shaklId(k) {
   return Number(k.arka.balandlik) >= Number(k.L) / 2 - 0.05 ? "arka_yarim" : "arka";
 }
 function shaklniQolla(id) {
-  if (id !== "togri" && tahrir.tur === "lapshali") { xabar("Lapshali vitrajda arka boʻlmaydi: avval Lapsha asbobi bilan yon ramani qaytaring"); return; }
+  if (id !== "togri" && (tahrir.tur === "lapshali" || tahrir.bolak.lapsha)) { xabar("Lapsha bilan ulangan konstruksiyada arka boʻlmaydi"); return; }
   saqlaTarix();
   const L = Number(tahrir.L), H = Number(tahrir.H);
   if (id === "togri") {
@@ -709,47 +778,14 @@ function asboblarniChiz() {
 
 function saqlaTarix() { orqaga.push(nusxa(tahrir)); if (orqaga.length > 50) orqaga.shift(); oldinga = []; }
 
-// Lapsha (foydalanuvchi, 2026-11-09): eng chetdagi tik gluxoy alohida ramaga chiqadi (k.chap / k.ong = eni),
-// eshik ramasi bilan H702 lapsha orqali ulanadi. Yon ramaga yana bosilsa — impost bilan qaytadi.
-function lapshaQolla(p) {
-  const k = tahrir;
-  if (p.startsWith("lapsha:")) {
-    const tomon = p.slice(7), Y = Number(k[tomon]);
+function asbobniQolla(p) {
+  if (asbob === "lapsha" || asbob === "lapsha_y") {
     saqlaTarix();
-    delete k[tomon];
-    const b = k.bolak, chapda = tomon === "chap";
-    if (b.tur === "bolinish" && b.yonalish === "vertikal" && !b.egilgan) {
-      if (chapda) { b.bolaklar.unshift({ tur: "gluxoy" }); b.olchamlar.unshift(Y); }
-      else { b.bolaklar.push({ tur: "gluxoy" }); b.olchamlar.push(Y); }
-    } else k.bolak = { tur: "bolinish", yonalish: "vertikal", olchamlar: chapda ? [Y, null] : [null, Y], bolaklar: chapda ? [{ tur: "gluxoy" }, b] : [b, { tur: "gluxoy" }] };
-    if (k.chap == null && k.ong == null) delete k.tur;
-    xabar("Lapsha olindi: yon oyna impost bilan qaytdi");
+    if (!lapshaBolish(p, asbob === "lapsha" ? "vertikal" : "gorizontal")) orqaga.pop();
+    if (!tugun(tahrir.bolak, tanlangan) || tugun(tahrir.bolak, tanlangan).tur === "bolinish") tanlangan = geometriya(tahrir).barglar[0].p;
+    yangila();
     return;
   }
-  const o = ota(p);
-  const ildiz = k.bolak;
-  if (!o || o.yol !== "" || ildiz.tur !== "bolinish" || ildiz.yonalish !== "vertikal" || ildiz.egilgan) { xabar("Lapsha: avval tik impost bilan yon oynani ajrating, keyin chetdagi oynaga bosing"); return; }
-  const oxirgi = ildiz.bolaklar.length - 1;
-  if (o.i !== 0 && o.i !== oxirgi) { xabar("Lapsha faqat eng chetdagi (chap yoki oʻng) boʻlakka"); return; }
-  if (tugun(ildiz, p).tur !== "gluxoy") { xabar("Alohida ramadagi yon boʻlak faqat gluxoy boʻladi"); return; }
-  const tomon = o.i === 0 ? "chap" : "ong";
-  if (k[tomon] != null) { xabar("Bu tomonda lapshali oyna bor"); return; }
-  if (k.arka) { xabar("Arkali konstruksiyada lapsha boʻlmaydi"); return; }
-  const bo = geometriya(k).bolinishlar.find((x) => x.p === "");
-  const Y = yaxlit(bo.s[o.i]);
-  saqlaTarix();
-  ildiz.bolaklar.splice(o.i, 1);
-  ildiz.olchamlar.splice(o.i, 1);
-  if (ildiz.bolaklar.length === 1) k.bolak = ildiz.bolaklar[0];
-  else if (ildiz.olchamlar.every((x) => x != null)) ildiz.olchamlar[ildiz.olchamlar.length - 1] = null;
-  k.tur = "lapshali";
-  k[tomon] = Y;
-  xabar(`Yon oyna alohida ramada (${Y} sm), lapsha bilan`);
-}
-
-function asbobniQolla(p) {
-  if (asbob === "lapsha") { lapshaQolla(p); tanlangan = geometriya(tahrir).barglar[0].p; yangila(); return; }
-  if (p.startsWith("lapsha:")) { xabar("Yon ramani qaytarish uchun Lapsha asbobi bilan bosing"); return; }
   const b = tugun(tahrir.bolak, p);
   // Portal U oynasi faqat gluxoy (shakli impostlardan chiqadi)
   const o_ = ota(p);
@@ -910,6 +946,19 @@ async function olchamniOzgartir(kalit) {
       yangila();
       return;
     }
+    if (i === "boy" || i === "en") {
+      const o = ota(p), guruh = tugun(tahrir.bolak, o.yol), gb = geometriya(tahrir).bolinishlar.find((x) => x.p === o.yol);
+      const toliq = i === "boy" ? gb.h : gb.w;
+      const j = await soraSon(`Shu rama ${i === "boy" ? "boʻyi" : "eni"}, sm (Teng — toʻliq ${yx(toliq)})`, b[i] ?? null, true);
+      if (!j) return;
+      saqlaTarix();
+      if (j.bosh || j.son >= toliq - 0.001) delete b[i];
+      else if (j.son <= 0) { orqaga.pop(); return; }
+      else b[i] = j.son;
+      if (!guruh.lapsha) delete b[i];
+      yangila();
+      return;
+    }
     if (i === "yoy") {
       const bo = geometriya(tahrir).bolinishlar.find((x) => x.p === p);
       const j = await soraSon(bo.tY ? "Yoy impost chuqurligi, sm (Teng — arkaga parallel)" : "Yoy impost chuqurligi, sm", b.egilgan.chuqurlik ?? bo.egilgan, !!bo.tY);
@@ -986,7 +1035,7 @@ function almashtirIchida(ildiz, p, yangi) {
 // ---------- tahrirlash oynasi ----------
 function konstruktorniOch(i) {
   tahrirIndeks = i;
-  tahrir = i >= 0 ? nusxa(zakaz.konstruksiyalar[i]) : { nom: "", soni: 1, L: 150, H: 150, bolak: { tur: "gluxoy" } };
+  tahrir = i >= 0 ? lapshaDaraxt(nusxa(zakaz.konstruksiyalar[i])) : { nom: "", soni: 1, L: 150, H: 150, bolak: { tur: "gluxoy" } };
   tanlangan = geometriya(tahrir).barglar[0].p;
   asbob = null;
   orqaga = []; oldinga = [];
@@ -1064,6 +1113,15 @@ function panelniChiz() {
   } else if (b.tur === "eshik") {
     p += `<div class="xira">${b.ochilish === "tashqariga" ? "Balkon Oʻrta V707 (tashqariga)" : "Balkon Qanot V708 (ichkariga)"} — ⚙ sozlamada almashtiriladi. Tabaqa soni va ruchka tomoni tepadagi asboblarda.</div>`;
   } else p += `<div class="xira">Turini almashtirish uchun tepadan asbob tanlab, boʻlakka bosing.</div>`;
+  // Lapsha bilan ulangan rama: oʻlchami, kalta qilish va tekislash
+  const rm = o.rama;
+  if (rm && rm.guruh != null) {
+    const gr = tugun(tahrir.bolak, rm.guruh), v = gr.yonalish === "vertikal", kal = v ? "boy" : "en";
+    p += `<div class="sarlavha">Rama (lapsha bilan) · ${yx(rm.w)} × ${yx(rm.h)} sm</div>
+      <div class="tugmalar"><button class="tugma" data-ol="${rm.p}|${kal}">Shu rama ${v ? "boʻyi" : "eni"}ni kiritish</button></div>
+      <div class="sarlavha">Kalta ramalar tekislanishi</div>${tugmalar("tekislash", gr.tekislash || (v ? "tepa" : "chap"),
+        v ? [["tepa", "Tepaga"], ["orta", "Oʻrtaga"], ["past", "Pastga"]] : [["chap", "Chapga"], ["orta", "Oʻrtaga"], ["ong", "Oʻngga"]])}`;
+  }
   // Oyna turi ⚙ sozlamada (foydalanuvchi, 2026-11-07: panelda ortiqcha)
   $("k-panel").innerHTML = p;
 }
@@ -1317,7 +1375,6 @@ $("k-chizma").addEventListener("click", (e) => {
   const r = e.target.closest("[data-p]");
   if (!r) return;
   if (asbob) { asbobniQolla(r.dataset.p); return; }
-  if (r.dataset.p.startsWith("lapsha:")) { xabar("Alohida ramadagi yon oyna. Eni — pastdagi raqamda; qaytarish — Lapsha asbobi bilan bosing"); return; }
   tanlangan = r.dataset.p;
   yangila();
 });
@@ -1330,12 +1387,17 @@ $("k-panel").addEventListener("change", (e) => {
   yangila();
 });
 $("k-panel").addEventListener("click", (e) => {
+  const ol_ = e.target.closest("[data-ol]");
+  if (ol_) { olchamniOzgartir(ol_.dataset.ol); return; }
   const el = e.target.closest("[data-amal]");
   if (!el) return;
   const b = tugun(tahrir.bolak, tanlangan);
   saqlaTarix();
   const v = JSON.parse(el.dataset.v);
-  if (el.dataset.amal === "turi") {
+  if (el.dataset.amal === "tekislash") {
+    const o = geometriya(tahrir).barglar.find((x) => x.p === tanlangan);
+    tugun(tahrir.bolak, o.rama.guruh).tekislash = v;
+  } else if (el.dataset.amal === "turi") {
     delete b.dvaynoy; delete b.fortochka; delete b.ruchka; delete b.petlya_tomoni;
     if (v === "dvaynoy") b.dvaynoy = true;
     if (v === "fortochka") b.fortochka = true;

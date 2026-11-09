@@ -75,7 +75,7 @@ REZINA_KG_M = {"A01-002": 0.064, "A01-003": 0.036, "EPDM Rezina Ю": 0.046, "A01
 REZINALAR = ("A01-005", "A01-003", "A01-002", "EPDM Rezina Ю")
 
 # Dillerdan olinmaydi — eslatma (qizil)
-ESLATMA = {"3,9×19 YHBM": "Samorez 3,9×19", "K188": "Kley K188 (Saudal)", "MK 01": "Pena"}
+ESLATMA = {"3,9×19 YHBM": "Samorez 3,9×19", "Lapsha samorez soʻm": "Samorez (lapsha)", "K188": "Kley K188 (Saudal)", "MK 01": "Pena"}
 TASHLANADI = {"Oyna", "Arka", "Profil", "Profil otxod"}
 
 
