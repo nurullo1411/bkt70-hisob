@@ -206,14 +206,77 @@ ENG_ISPANILET_FORT = {
 }
 ENG_OGRANICHITEL = {"Uz": "Ogranichitel Dlya Fortochki (Uz)", "Kinglong": "Ogranichitel Dlya Fortochki (Kinglong)"}
 ENG_ISPANILET_NOMI = {"fornax": "Ispanilet Fornax", "roto": "Ispanilet Roto"}
-ENG_ZATSEP = {"fornax": "(13) Zatsepka (Rehau) (FORNAX)", "roto": "Zatsepka (ROTO)"}
-ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Uz)", "Ruchka Okon (ROTO LUX) (Tr)", "Ruchka Okon HOPPE NY (OQ) (Tr)",
-                 "Ruchka Okon HOPPE NY (Seriy) (Tr)", "Ruchka Okon HOPPE NY (Bronza) (Tr)"]
+ENG_ZATSEP = {"fornax": "(13) Zatsepka (FORNAX)", "roto": "Zatsepka (ROTO)"}
+# Ruchka diller nomi bilan, rangi qavsda; Roto Lux: oq, bronza, toʻq jigarrang (foydalanuvchi, 2026-11-09)
+ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Oq) (Uz)", "Ruchka Okon (ROTO LUX) (Oq) (Tr)",
+                 "Ruchka Okon (ROTO LUX) (Bronza) (Tr)", "Ruchka Okon (ROTO LUX) (Tem Kor) (Tr)",
+                 "Ruchka Okon HOPPE NY (Oq) (Tr)", "Ruchka Okon HOPPE NY (Seriy) (Tr)",
+                 "Ruchka Okon HOPPE NY (Bronza) (Tr)", "Ruchka Okon HOPPE NY (Tem Kor) (Tr)"]
 ENG_PETLYA_PROSTOE = "(Prostoe Otkr) Petli Komplekt (FORNAX)"
 ENG_PETLYA_100 = "Petlya 100 mm (Uz)"
 ENG_BLOKIRATOR = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)"]
 ENG_ISPANILET_SAMOREZ = "3,9×25 YHB S"  # ProfOkna: har ispaniletga jadvaldagicha, prijimga 4
 ENG_PRIJIM = "(13) Sredniy Prijim Skritiy (FORNAX)"  # framujniy; Prostoe Otkr bilan, qanot 100 sm dan baland
+
+
+# Dvaynoy Fornax 13 (foydalanuvchi, 2026-11-09, diller roʻyxati): komplekt + ispanilet (boʻyi) + nojnitsa (eni)
+# + oʻrta zamok (boʻyi) + petlya qopqogʻi (ruchka rangida) + zatsepka 3 + blokirator (ramaga) 1. Oʻlcham = kesish
+# − 4,9 sm (mm); oraliqlar ustma-ust tushsa kichigi. Jadvaldan tashqari — dvaynoy qoʻyib boʻlmaydi.
+# Samorez ProfOkna Fornax 13 dvaynoyidan: zapor 1225 mm gacha 12, balandi 14; ruchkaga 4,2×38 × 8.
+ENG_DV_KOMPLEKT = "(13) KOMPLEKT Dvoy. Otkr (FORNAX)"
+ENG_DV_ISPANILET = [(885, 1300), (1185, 1600), (1385, 1800), (1585, 2000), (1985, 2400)]
+ENG_DV_NOJNITSA = [(395, 600), (595, 800), (795, 1000)]
+ENG_DV_ZAMOK = [(700, 1150), (1150, 1500), (1350, 1800), (1850, 2100)]
+ENG_DV_ZATSEP = 3
+ENG_DV_BLOKIRATOR = "(13) Blokirator Ruchki Na Rame (FORNAX)"
+ENG_DV_RUCHKA_SAMOREZ = ("4,2×38", 8)
+ENG_KRISHKA_RANGLARI = ["Oq", "Bronza", "Seriy", "Tem Kor", "Mahagon", "Zol Dub"]
+
+
+def _oraliq(mm, jadval):
+    for dan, gacha in jadval:  # dan boʻyicha tartibda — ustma-ust tushsa kichigi
+        if dan <= mm <= gacha:
+            return f"{dan}-{gacha}"
+    return None
+
+
+def eng_krishka_rangi(ruchka):
+    for rang in ENG_KRISHKA_RANGLARI:
+        if f"({rang})" in ruchka:
+            return rang
+    return "Oq"  # rangsiz eski nom ("ROTO LUX (Uz)") — oq
+
+
+def _eng_dvaynoy(dvaynoylar, ruchka, r):
+    if not dvaynoylar:
+        return 0
+    isp, noj, zam = {}, {}, {}
+    samorez = 0
+    for en, boy in dvaynoylar:
+        b = (boy - D("4.9")) * 10
+        e = (en - D("4.9")) * 10
+        i, n, z = _oraliq(b, ENG_DV_ISPANILET), _oraliq(e, ENG_DV_NOJNITSA), _oraliq(b, ENG_DV_ZAMOK)
+        if i is None:
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa boʻyi {b} mm — Fornax ispaniletlari 885–2400 mm")
+        if n is None:
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa eni {e} mm — Fornax nojnitsalari 395–1000 mm")
+        if z is None:
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa boʻyi {b} mm — Fornax oʻrta zamogʻi 700–2100 mm")
+        for d, k in ((isp, i), (noj, n), (zam, z)):
+            d[k] = d.get(k, 0) + 1
+        samorez += 12 if b <= 1225 else 14
+    soni = len(dvaynoylar)
+    r.qosh("Furnitura", ENG_DV_KOMPLEKT, soni, "komplekt")
+    for k, n in isp.items():
+        r.qosh("Furnitura", f"Ispanilet {k} (FORNAX)", n, "dona")
+    for k, n in noj.items():
+        r.qosh("Furnitura", f"Komplekt Nojnits Rami I Stvorki {k} (FORNAX)", n, "komplekt")
+    for k, n in zam.items():
+        r.qosh("Furnitura", f"Zamok Sredniy {k} (FORNAX)", n, "dona")
+    r.qosh("Furnitura", f"Krishka Petlya ({eng_krishka_rangi(ruchka)}) (FORNAX)", soni, "dona")
+    r.qosh("Furnitura", ENG_DV_BLOKIRATOR, soni, "dona")
+    r.qosh("Furnitura", ENG_DV_RUCHKA_SAMOREZ[0], ENG_DV_RUCHKA_SAMOREZ[1] * soni, "dona")
+    return samorez
 
 
 def eng_ispanilet(boy_kesish, mexanizm, jadval=None):
@@ -228,7 +291,8 @@ def eng_ispanilet(boy_kesish, mexanizm, jadval=None):
 def _eng_furnitura(s, tanlov, r):
     boylar = [D(str(b)) for b in s.get("rom_tabaqa_boylari", [])]
     fortochkalar = [D(str(f[0])) for f in s.get("fortochkalar", [])]  # eni (kesish)
-    if not boylar and not fortochkalar:
+    dvaynoylar = [(D(str(e)), D(str(b))) for e, b in s.get("dvaynoylar", [])]
+    if not boylar and not fortochkalar and not dvaynoylar:
         return
     mexanizm = tanlov.get("eng_mexanizm") or "fornax"
     if mexanizm not in ENG_ISPANILET:
@@ -236,9 +300,12 @@ def _eng_furnitura(s, tanlov, r):
     petlya = tanlov.get("eng_petlya") or "prostoe"
     if petlya not in ("prostoe", "100"):
         raise HisobXato(f"Petlya faqat prostoe yoki 100: {petlya}")
+    if dvaynoylar and mexanizm != "fornax":
+        raise HisobXato("Engelberg dvaynoy hozircha faqat Fornax mexanizmida (Roto hali oʻrgatilmagan)")
     soni = len(boylar)
-    r.qosh("Furnitura", tanlov.get("eng_ruchka") or ENG_RUCHKALAR[0], soni + len(fortochkalar), "dona")
-    samorez = 0
+    ruchka = tanlov.get("eng_ruchka") or ENG_RUCHKALAR[0]
+    r.qosh("Furnitura", ruchka, soni + len(fortochkalar) + len(dvaynoylar), "dona")
+    samorez = _eng_dvaynoy(dvaynoylar, ruchka, r)
     if not soni:
         pass
     elif petlya == "prostoe":
@@ -270,8 +337,9 @@ def _eng_furnitura(s, tanlov, r):
         samorez += sam
     for kod, n in isp.items():
         r.qosh("Furnitura", f"{ENG_ISPANILET_NOMI[mexanizm]} {kod}", n, "dona")
+    zatsep += ENG_DV_ZATSEP * len(dvaynoylar)
     r.qosh("Furnitura", ENG_ZATSEP[mexanizm], zatsep, "dona")
-    # blokirator: oddiy tabaqa va fortochkada yoʻq (komplekt ichida), dvaynoyda boʻladi — dvaynoy hali yoʻq
+    # blokirator: oddiy tabaqa va fortochkada yoʻq (komplekt ichida), dvaynoyda bor (_eng_dvaynoy)
     r.qosh("Furnitura", ENG_ISPANILET_SAMOREZ, samorez, "dona")
 
 

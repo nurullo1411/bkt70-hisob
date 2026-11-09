@@ -1284,8 +1284,10 @@ function oynaRangi(nom) {
 }
 
 // Engelberg rom tabaqasi furniturasi (hisobot.py: eng_mexanizm, eng_petlya, eng_ruchka)
-const ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Uz)", "Ruchka Okon (ROTO LUX) (Tr)", "Ruchka Okon HOPPE NY (OQ) (Tr)",
-  "Ruchka Okon HOPPE NY (Seriy) (Tr)", "Ruchka Okon HOPPE NY (Bronza) (Tr)"];
+const ENG_RUCHKALAR = [["Ruchka Okon (ROTO LUX) (Oq) (Uz)", "Roto Lux oq Uz"], ["Ruchka Okon (ROTO LUX) (Oq) (Tr)", "Roto Lux oq Tr"],
+  ["Ruchka Okon (ROTO LUX) (Bronza) (Tr)", "Roto Lux bronza"], ["Ruchka Okon (ROTO LUX) (Tem Kor) (Tr)", "Roto Lux toʻq jigarrang"],
+  ["Ruchka Okon HOPPE NY (Oq) (Tr)", "Hoppe oq"], ["Ruchka Okon HOPPE NY (Seriy) (Tr)", "Hoppe kulrang"],
+  ["Ruchka Okon HOPPE NY (Bronza) (Tr)", "Hoppe bronza"], ["Ruchka Okon HOPPE NY (Tem Kor) (Tr)", "Hoppe toʻq jigarrang"]];
 function engFurnituraHtml(k, faol) {
   const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
   const v = (kalit, std) => t[kalit] ?? ut[kalit] ?? std;
@@ -1296,8 +1298,8 @@ function engFurnituraHtml(k, faol) {
     <div class="sz-bolim">Fortochka <span class="xira">(doim ruchka bilan)</span></div>
     ${seg("eng_fortochka_petlya", "ogranichitel", [["ogranichitel", "Ogranichitel"], ["100", "Petlya 100 mm × 2 + ogranichitel"]])}
     ${seg("eng_ogranichitel", "Uz", [["Uz", "Ogranichitel Uz"], ["Kinglong", "Ogranichitel Kinglong"]])}
-    <div class="sz-bolim">Ruchka</div>
-    ${seg("eng_ruchka", ENG_RUCHKALAR[0], ENG_RUCHKALAR.map((r, i) => [r, ["Roto Lux Uz", "Roto Lux Tr", "Hoppe oq", "Hoppe kulrang", "Hoppe bronza"][i]]))}`;
+    <div class="sz-bolim">Ruchka <span class="xira">(dvaynoyda petlya qopqogʻi shu rangda)</span></div>
+    ${seg("eng_ruchka", ENG_RUCHKALAR[0][0], ENG_RUCHKALAR)}`;
 }
 
 function joriy(k) {
@@ -1364,7 +1366,7 @@ function sozlamaOynasi() {
     <label class="belgi sz-rejim"><input type="checkbox" data-sz-faqat ${faqatShu ? "checked" : ""}> Faqat shu konstruksiyaga</label>
     <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
     <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button></div>
-    ${pvxmi(j.rama) ? `<div class="xira">Engelberg: hozircha faqat rom (gluxoy, tabaqa, impost); rezina va furnitura hali yoʻq.</div>` : ""}
+    ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax); eshik va arka hali yoʻq.</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>
     <div class="sz-seg">${[[24, "24 mm (ikki qavat)"], [32, "32 mm"]].map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>

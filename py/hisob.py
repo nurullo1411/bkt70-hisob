@@ -615,7 +615,7 @@ def _bolak_ichi(b, z, h, ctx):
     if z.ichki_en <= 0 or z.ichki_boy <= 0:
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
     tur = b.get("tur")
-    if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("dvaynoy") or b.get("egilgan") is not None):
+    if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("egilgan") is not None):
         raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, fortochka, impost) hisoblanadi")
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas
     past = h.yoy_chuqurligi(z.past_yoy, z)
@@ -721,7 +721,7 @@ def hisobla(k):
     lam = LAMINAT_QOSHIMCHA if (k.get("tanlov") or {}).get("rang") == "Laminatsiya" else D(0)
     h = Hisob(k.get("oyna_qalinligi", 24), vertikal_r=vertikal == "R", lam=lam, seriya=seriya)
     if seriya is ENGELBERG:
-        pass  # Engelberg 7000: fortochka, dvaynoy, eshik hali yoʻq (_bolak_ichi da xato)
+        pass  # Engelberg 7000: eshik, portal, egilgan impost hali yoʻq (_bolak_ichi da xato)
     if not seriya.eshik and k.get("arka"):
         raise HisobXato(f"{seriya.nomi}: arka hozircha yoʻq")
 
