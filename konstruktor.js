@@ -538,7 +538,12 @@ function chizmaSVG(k, opts = {}) {
     }
     s += rect(r.x, r.y, r.w, r.h, "ra");
   }
-  for (const l of g.lapshalar) s += rect(l.x - t * 0.15, l.y, l.w + t * 0.3, l.h, "ra lap");
+  // Lapsha (H702): ramalar orasida alohida koʻrinadigan tasma, oʻrtasida uzuq chiziq (foydalanuvchi, 2026-11-09)
+  for (const l of g.lapshalar) {
+    const v = l.w < l.h, q = t * 0.9;
+    s += v ? rect(l.x + l.w / 2 - q / 2, l.y, q, l.h, "lap") + chiziq(l.x + l.w / 2, l.y + q, l.x + l.w / 2, l.y + l.h - q, "lap-ch")
+           : rect(l.x, l.y + l.h / 2 - q / 2, l.w, q, "lap") + chiziq(l.x + q, l.y + l.h / 2, l.x + l.w - q, l.y + l.h / 2, "lap-ch");
+  }
   // impostlar tabaqadan oldin: tabaqa impost ustiga kirib turadi, petlya koʻrinadi
   // impost uchi: rama yoyidan t, impost yoyidan t/2 ichkarida
   const ichOf = (yo) => (yo ? (yo.rama ? t : t / 2) : t);
