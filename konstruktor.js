@@ -1174,7 +1174,15 @@ function panelniChiz() {
       ${gr.bolaklar.some((c) => c[kal] != null) ? `<div class="sarlavha">Kalta ramalar tekislanishi</div>${tugmalar("tekislash", gr.tekislash || (v ? "tepa" : "chap"),
         v ? [["tepa", "Tepaga"], ["orta", "Oʻrtaga"], ["past", "Pastga"]] : [["chap", "Chapga"], ["orta", "Oʻrtaga"], ["ong", "Oʻngga"]])}` : ""}`;
   }
-  // Oyna turi ⚙ sozlamada (foydalanuvchi, 2026-11-07: panelda ortiqcha)
+  // Shu boʻlak oynasi (foydalanuvchi, 2026-11-09: bitta konstruksiyada har xil oyna boʻladi)
+  {
+    const asosiy = bargOynaTuri({ ...tahrir, bolak: { ...tahrir.bolak, oyna_turi: undefined } }, "") || "Oq+oq";
+    const oz = b.oyna_turi || "";
+    const gul = (o) => (o.toLowerCase().includes("gul") ? ";background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)" : "");
+    const tug = (v, nom, rang) => `<button data-amal="oyna_turi" data-v="${esc(JSON.stringify(v))}" class="sz-oyna${oz === v ? " faol" : ""}"><span class="namuna" style="background:${oynaRangi(rang)}${gul(rang)}"></span>${esc(nom)}</button>`;
+    p += `<div class="sarlavha">Shu boʻlak oynasi · ${esc(bargOynaTuri(tahrir, tanlangan) || asosiy)}</div>
+      <div class="sz-oynalar">${tug("", "Konstruksiyadagidek", asosiy)}${oynaTurlari().map((o) => tug(o, o, o)).join("")}</div>`;
+  }
   $("k-panel").innerHTML = p;
 }
 
@@ -1468,6 +1476,7 @@ $("k-panel").addEventListener("click", (e) => {
     if (v === "dvaynoy") b.dvaynoy = true;
     if (v === "fortochka") b.fortochka = true;
   } else if (el.dataset.amal === "ruchka") { if (v) b.ruchka = true; else delete b.ruchka; }
+  else if (el.dataset.amal === "oyna_turi") { if (v) b.oyna_turi = v; else delete b.oyna_turi; }
   else b[el.dataset.amal] = v;
   yangila();
 });
