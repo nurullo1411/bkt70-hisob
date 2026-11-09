@@ -264,7 +264,8 @@ class Hisob:
             self.egilgan("Shtapik arka", f"G{g}", e, c, egish=False)
         self.oyna_rezinasi += rezina
 
-    def tabaqa(self, joy, profil, en, boy, shtulp_yonida=False, rom=False, dvaynoy=False, fortochka=None, arka=D(0), past=D(0)):
+    def tabaqa(self, joy, profil, en, boy, shtulp_yonida=False, rom=False, dvaynoy=False, fortochka=None, arka=D(0), past=D(0),
+               ichki_impost=None):
         self.tabaqa_soni += 1
         self.tabaqalar[profil] = self.tabaqalar.get(profil, 0) + 1
         if fortochka is not None:
@@ -284,7 +285,43 @@ class Hisob:
         self.detal("Tabaqa boʻyi", profil, boy, 2)
         ayirma = TABAQA_AYIRMA[profil] + 2 * self.lam  # ikki tomon profili
         # fortochka oynasi qanot ichki − 1,5, boshqa tabaqalarda − 2 (foydalanuvchi, 2026-11-07); Engelberg − 1,5
-        self.oyna(joy, en - ayirma, boy - ayirma, D("1.5") if fortochka is not None else self.seriya.tabaqa_oyna, arka, past)
+        oyna_ayirma = D("1.5") if fortochka is not None else self.seriya.tabaqa_oyna
+        if ichki_impost:
+            self._tabaqa_ichi(joy, en - ayirma, boy - ayirma, oyna_ayirma, ichki_impost, arka or past)
+        else:
+            self.oyna(joy, en - ayirma, boy - ayirma, oyna_ayirma, arka, past)
+
+    def _tabaqa_ichi(self, joy, ichki_en, ichki_boy, oyna_ayirma, ii, yoy):
+        """Tabaqa ichidagi M702 impost (foydalanuvchi, 2026-11-09). ii = {"yonalish", "olchamlar"}.
+
+        olchamlar — har boʻlakning tabaqa ichki chetidan (yoki impost chetidan) impost chetigacha ichki oʻlchami
+        (tepadan / chapdan); null — qolgani teng. Impost uzunligi = tabaqa ichki eni (yotiq) yoki boʻyi (tik),
+        uchlariga 01.553 × 2 (impost_soni). Har boʻlak oynasi = ichki − 2, shtapik va rezina har oynaga.
+        """
+        if yoy:
+            raise HisobXato("Arkali tabaqa ichiga impost hozircha yoʻq")
+        vertikal = ii.get("yonalish") == "vertikal"
+        if not vertikal and ii.get("yonalish") != "gorizontal":
+            raise HisobXato("Tabaqa ichi impost yoʻnalishi vertikal yoki gorizontal boʻlishi kerak")
+        olch = list(ii.get("olchamlar") or [])
+        if len(olch) < 2:
+            raise HisobXato("Tabaqa ichi impostida kamida 2 boʻlak boʻladi")
+        tana = 2 * (IMPOST_YARMI["M702"] + self.lam / 2)
+        jami = (ichki_en if vertikal else ichki_boy) - tana * (len(olch) - 1)
+        berilgan = [D(str(x)) for x in olch if x is not None]
+        boshlar = len(olch) - len(berilgan)
+        qolgan = jami - sum(berilgan, D(0))
+        if boshlar == 0 and qolgan != 0:
+            raise HisobXato(f"Tabaqa ichi boʻlaklari jami {jami} boʻlishi kerak, {jami - qolgan} berilgan")
+        teng = qolgan / boshlar if boshlar else D(0)
+        olch = [D(str(x)) if x is not None else teng for x in olch]
+        if any(x <= 0 for x in olch):
+            raise HisobXato(f"Tabaqa ichiga impost sigʻmaydi: ichki {ichki_en} × {ichki_boy}")
+        n = len(olch) - 1
+        self.detal("Tabaqa ichi impost", "M702", ichki_boy if vertikal else ichki_en, n)
+        self.impost_soni += n
+        for x in olch:
+            self.oyna(joy, x if vertikal else ichki_en, ichki_boy if vertikal else x, oyna_ayirma)
 
     def rama(self, profil, en, boy):
         self.medved_samorez += medved_soni(en, boy)
@@ -570,9 +607,10 @@ def _eshik(b, z, h, arka=D(0)):
         raise HisobXato("Eshik ochilishi 'ichkariga' yoki 'tashqariga' boʻlishi kerak")
     profil = ESHIK_PROFILI[ochilish]
     H1 = z.ichki_boy + D("1.2")
+    ii = b.get("tabaqa_impost")  # tabaqa ichida M702 impost; 2 tabaqada ikkalasiga bir xil
     soni = b.get("tabaqa_soni")
     if soni == 1:
-        h.tabaqa("Eshik tabaqasi", profil, z.ichki_en + D("1.2"), H1, arka=arka)
+        h.tabaqa("Eshik tabaqasi", profil, z.ichki_en + D("1.2"), H1, arka=arka, ichki_impost=ii)
         h.eshiklar.append(1)
     elif soni == 2:
         jami = z.ichki_en + D("0.5")
@@ -591,8 +629,8 @@ def _eshik(b, z, h, arka=D(0)):
         # ikki tabaqada har birining ustidagi yoy chuqurligi alohida
         ch1 = z.tepa_yoy.chuqurlik(z.x + z.chap, z.x + z.chap + L1) if arka else D(0)
         ch2 = z.tepa_yoy.chuqurlik(z.x + z.chap + L1, z.x + z.en - z.ong) if arka else D(0)
-        h.tabaqa("Eshik tabaqasi L1", profil, L1, H1, shtulp_yonida=True, arka=ch1)
-        h.tabaqa("Eshik tabaqasi L2", profil, L2, H1, shtulp_yonida=True, arka=ch2)
+        h.tabaqa("Eshik tabaqasi L1", profil, L1, H1, shtulp_yonida=True, arka=ch1, ichki_impost=ii)
+        h.tabaqa("Eshik tabaqasi L2", profil, L2, H1, shtulp_yonida=True, arka=ch2, ichki_impost=ii)
         h.markaziy_rezina += H1  # shtulp boʻyi bir marta
         h.detal("Shtulp", "A701", H1 - 7, 1)
         h.eshiklar.append(2)
