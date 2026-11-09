@@ -597,6 +597,7 @@ const ASBOBLAR = {
     ["tik", "Tik impost", ik('<line x1="12" y1="3" x2="12" y2="21" class="q"/>')],
     ["yotiq", "Yotiq impost", ik('<line x1="3" y1="12" x2="21" y2="12" class="q"/>')],
     ["tik3", "3 ga boʻlish", ik('<line x1="8" y1="3" x2="8" y2="21" class="q"/><line x1="16" y1="3" x2="16" y2="21" class="q"/>')],
+    ["yotiq3", "3 ga boʻlish (yotiq)", ik('<line x1="3" y1="8" x2="21" y2="8" class="q"/><line x1="3" y1="16" x2="21" y2="16" class="q"/>')],
     ["yoy", "Yoy impost (arkaga parallel yoki oʻz chuqurligi)", ik('<path d="M3 15q9-9 18 0" class="q"/>')],
     ["portal", "Portal: arkali oʻrta, atrofida U oyna", ik('<path d="M3 3h18v18H3z" class="q"/><path d="M8 21v-9a4 4 0 0 1 8 0v9"/>')],
     // "Shtulp" asbobi olib tashlandi (foydalanuvchi, 2026-11-08): 2 tabaqali eshik — Eshik boʻlimida
