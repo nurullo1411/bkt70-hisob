@@ -1321,7 +1321,7 @@ $("k-chizma").addEventListener("contextmenu", (e) => e.preventDefault());
 // Tabaqa ichi impostlari paneli: har tugun — yoʻnalishi, boʻlak oʻlchamlari (bosib kiritiladi), olish
 function ichkiPanel(b, bosh) {
   if (!b.tabaqa_impost) return bosh ? `<div class="xira">${bosh}</div>` : "";
-  let q = `<div class="sarlavha">Tabaqa ichida impost (M702) · ichki oʻlcham, impost chetigacha · boʻlakka yana asbob surish mumkin</div>`;
+  let q = `<div class="sarlavha">Tabaqa ichida impost · ichki oʻlcham, impost chetigacha · boʻlakka yana asbob surish mumkin</div>`;
   const yur = (t, yol, nom) => {
     const v = t.yonalish === "vertikal", y = yol.join(".");
     q += `<div class="xira">${nom}${v ? "tik" : "yotiq"} (${v ? "chapdan" : "tepadan"})</div><div class="tugmalar">${t.olchamlar.map((x, j) =>
@@ -1354,8 +1354,8 @@ function panelniChiz() {
       ? `<div class="sarlavha">Petlya</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "past", [["past", "Pastda"], ["tepa", "Tepada"]])}
          ${pvxmi(joriy(tahrir).rama) ? "" : `<div class="sarlavha">Yopilishi</div>${tugmalar("ruchka", !!b.ruchka, [[false, "Chit-chit"], [true, "Ruchka"]])}`}`
       : "";
-    if (!pvxmi(joriy(tahrir).rama)) p += b.tabaqa_impost ? ichkiPanel(b, "")
-      : `<div class="sarlavha">Tabaqa ichiga impost (M702)</div><div class="tugmalar"><button class="tugma" data-amal="ii_qosh" data-v='"gorizontal"'>Yotiq</button><button class="tugma" data-amal="ii_qosh" data-v='"vertikal"'>Tik</button></div>`;
+    p += b.tabaqa_impost ? ichkiPanel(b, "")
+      : `<div class="sarlavha">Tabaqa ichiga impost</div><div class="tugmalar"><button class="tugma" data-amal="ii_qosh" data-v='"gorizontal"'>Yotiq</button><button class="tugma" data-amal="ii_qosh" data-v='"vertikal"'>Tik</button></div>`;
   } else if (b.tur === "eshik") {
     p += `<div class="xira">${b.ochilish === "tashqariga" ? "Balkon Oʻrta V707 (tashqariga)" : "Balkon Qanot V708 (ichkariga)"} — ⚙ sozlamada almashtiriladi. Tabaqa soni va ruchka tomoni tepadagi asboblarda.</div>`;
     p += ichkiPanel(b, "Tabaqa ichiga impost: tik yoki yotiq asbobni eshikka suring.");
@@ -1507,7 +1507,7 @@ function sozlamaOynasi() {
     <label class="belgi sz-rejim"><input type="checkbox" data-sz-faqat ${faqatShu ? "checked" : ""}> Faqat shu konstruksiyaga</label>
     <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
     <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button></div>
-    ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax); eshik va arka hali yoʻq.</div>` : ""}
+    ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax), tabaqa ichida impost; eshik va arka hali yoʻq.</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>
     <div class="sz-seg">${[[24, "24 mm (ikki qavat)"], [32, "32 mm"]].map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>

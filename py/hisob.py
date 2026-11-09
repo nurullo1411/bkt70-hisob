@@ -40,6 +40,8 @@ ARKA_ZAPAS = D("40")  # egiladigan profilga qoʻshiladi, termo (foydalanuvchi, 2
 RAMA_R["7051"] = D("5.4")
 IMPOST_YARMI["7053"] = D("2.2")
 TABAQA_AYIRMA["7052"] = D("0.5") + 2 * RAMA_R["7051"]   # qanot ichki = qanot − 0,5 − r − r (laminatda r + 0,08)
+# qanot ichidagi impost 7053 (ProfOkna T-ulanish 62 mm, foydalanuvchi 2026-11-09): qanot tayyor (kesish − 0,5) − 2 × 6,2
+TABAQA_IMPOST_AYIRMA["7052"] = D("0.5") + 2 * D("6.2")
 
 
 @dataclass(frozen=True)
@@ -290,8 +292,6 @@ class Hisob:
         # fortochka oynasi qanot ichki − 1,5, boshqa tabaqalarda − 2 (foydalanuvchi, 2026-11-07); Engelberg − 1,5
         oyna_ayirma = D("1.5") if fortochka is not None else self.seriya.tabaqa_oyna
         if ichki_impost:
-            if not self.seriya.eshik:
-                raise HisobXato(f"{self.seriya.nomi}: tabaqa ichiga impost hozircha yoʻq")
             # impost tabaqaga tegadigan har uchida ichki chetdan shuncha chuqur kiradi (V707 0,16; V708, V702 0,01)
             chuqur = (TABAQA_AYIRMA[profil] - TABAQA_IMPOST_AYIRMA[profil]) / 2
             self._tabaqa_ichi(joy, en - ayirma, boy - ayirma, oyna_ayirma, ichki_impost, arka or past,
@@ -321,7 +321,8 @@ class Hisob:
         bolaklar = list(ii.get("bolaklar") or [None] * len(olch))
         if len(bolaklar) != len(olch):
             raise HisobXato("Tabaqa ichi: bolaklar va olchamlar soni bir xil boʻlishi kerak")
-        tana = 2 * (IMPOST_YARMI["M702"] + self.lam / 2)
+        impost = self.seriya.impost  # Termo M702, Engelberg 7053 (armatura detal() da)
+        tana = 2 * (IMPOST_YARMI[impost] + self.lam / 2)
         jami = (ichki_en if vertikal else ichki_boy) - tana * (len(olch) - 1)
         berilgan = [D(str(x)) for x in olch if x is not None]
         boshlar = len(olch) - len(berilgan)
@@ -335,7 +336,7 @@ class Hisob:
         n = len(olch) - 1
         chap, ong, tepa, past = tabaqada
         uchlar = (tepa, past) if vertikal else (chap, ong)
-        self.detal("Tabaqa ichi impost", "M702", (ichki_boy if vertikal else ichki_en) + chuqur * sum(uchlar), n)
+        self.detal("Tabaqa ichi impost", impost, (ichki_boy if vertikal else ichki_en) + chuqur * sum(uchlar), n)
         self.impost_soni += n
         for i, (x, bola) in enumerate(zip(olch, bolaklar)):
             en, boy = (x, ichki_boy) if vertikal else (ichki_en, x)
