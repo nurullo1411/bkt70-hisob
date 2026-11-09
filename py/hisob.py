@@ -335,8 +335,6 @@ def _olchamlar(b, jami, ayirmalar):
     if boshlar:
         if qoldiq <= 0:
             raise HisobXato("Boʻlaklar konstruksiyadan katta")
-        if len(boshlar) == len(olchamlar):
-            raise HisobXato("Kamida bitta boʻlak oʻlchami berilishi kerak")
         ichki = (qoldiq - sum(ayirmalar[i] for i in boshlar)) / len(boshlar)
         ichki = ichki.quantize(D("0.01"), rounding=ROUND_HALF_UP)
         natija = [None if x is None else D(x) for x in olchamlar]

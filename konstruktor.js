@@ -60,17 +60,19 @@ function bolish(p, yonalish, n = 2) {
   const o = ota(p);
   const otaB = o ? tugun(tahrir.bolak, o.yol) : null;
   if (otaB && otaB.tur === "bolinish" && otaB.yonalish === yonalish && !otaB.egilgan) {
+    const x = otaB.olchamlar[o.i];
     for (let j = 1; j < n; j++) { otaB.bolaklar.splice(o.i + j, 0, { tur: "gluxoy" }); otaB.olchamlar.splice(o.i + j, 0, null); }
-    // bu boʻlakning oʻlchami berilgan boʻlsa, yangilari bilan teng boʻlishsin
-    if (otaB.olchamlar[o.i] != null && otaB.olchamlar.filter((x) => x != null).length > 1) otaB.olchamlar[o.i] = null;
-    else if (otaB.olchamlar[o.i] != null) otaB.olchamlar[o.i] = yaxlit(otaB.olchamlar[o.i] / n);
+    // oʻlchami qoʻlda berilgan boʻlak boʻlinsa — oʻz oʻrni ichida teng qismlar (oxirgisi qoldiq),
+    // aks holda hamma oʻlchamsiz boʻlak teng boʻladi (Romchi kabi)
+    if (x != null && otaB.olchamlar.some((y, k) => y == null && (k < o.i || k >= o.i + n))) {
+      const q = yaxlit(x / n);
+      for (let j = 0; j < n; j++) otaB.olchamlar[o.i + j] = j < n - 1 ? q : Math.round((x - q * (n - 1)) * 100) / 100;
+    } else if (x != null) otaB.olchamlar[o.i] = null;
     return;
   }
-  // Yangi boʻlinish: hisob.py kamida bitta oʻlcham talab qiladi — birinchisiga teng ulush yoziladi
-  const [w, h] = olchamTaxmin(p);
-  const ulush = yaxlit((yonalish === "vertikal" ? w : h) / n);
+  // Yangi boʻlinish: hamma boʻlak oʻlchamsiz — teng (ichki razmer boʻyicha) boʻlinadi
   const bolalar = [b, ...Array.from({ length: n - 1 }, () => ({ tur: "gluxoy" }))];
-  almashtir(p, { tur: "bolinish", yonalish, olchamlar: [ulush, ...Array(n - 1).fill(null)], bolaklar: bolalar });
+  almashtir(p, { tur: "bolinish", yonalish, olchamlar: Array(n).fill(null), bolaklar: bolalar });
 }
 
 function ochir(p) {
@@ -82,7 +84,7 @@ function ochir(p) {
   otaB.bolaklar.splice(o.i, 1);
   otaB.olchamlar.splice(o.i, 1);
   if (otaB.bolaklar.length === 1) { almashtir(o.yol, otaB.bolaklar[0]); tanlangan = o.yol; return true; }
-  if (otaB.olchamlar.every((x) => x == null)) otaB.olchamlar[0] = yaxlit((otaB.yonalish === "vertikal" ? w : h) / otaB.olchamlar.length);
+  if (otaB.egilgan && otaB.olchamlar[0] == null) otaB.olchamlar[0] = yaxlit((otaB.yonalish === "vertikal" ? w : h) / otaB.olchamlar.length);
   else if (otaB.olchamlar.every((x) => x != null)) otaB.olchamlar[otaB.olchamlar.length - 1] = null;
   tanlangan = bolaYoli(o.yol, Math.max(0, o.i - 1));
   return true;
@@ -862,7 +864,7 @@ async function olchamniOzgartir(kalit) {
     if (j.bosh) {
       const eski = b.olchamlar[+i];
       b.olchamlar[+i] = null;
-      if (b.olchamlar.every((x) => x == null)) { b.olchamlar[+i] = eski; orqaga.pop(); xabar("Hech boʻlmasa bitta oʻlcham berilishi kerak"); }
+      if (b.egilgan && b.olchamlar.every((x) => x == null)) { b.olchamlar[+i] = eski; orqaga.pop(); xabar("Hech boʻlmasa bitta oʻlcham berilishi kerak"); }
     } else {
       b.olchamlar[+i] = j.son;
       // hammasi berilgan boʻlsa, oxirgi boʻsh qolmasa yigʻindi mos kelmaydi: boshqa birini avtomatik qilamiz
