@@ -529,7 +529,8 @@ function kesishniChiz() {
 const RASMLAR = ["A01-002", "A01-003", "A01-005", "A10-001", "A10-002", "A10-003", "A1501_5", "A701", "A8060", "EPD001", "F702", "F703", "G24", "G32", "H702", "M702", "V702", "V707", "V708"];
 const RASM_KODLAR = RASMLAR.map((f) => [f.replace("_", "."), f]).sort((a, b) => b[0].length - a[0].length);
 // AKFA (UZ) katalogi suratlari (foydalanuvchi telefonidan, 2026-11-09; qirqish rasm_foto_kes.py): material nomi boʻyicha
-const RASM_NOM = [[/A9211\.3/, "A9211_3"], [/4514/, "A4514"], [/1076\.92\.28|komfort dver/i, "1076_92_28"], [/stublina 1177|1177\.85/i, "1177"],
+const RASM_NOM = [[/A6004|A6011|cremone|comfort okon/i, "RUCHKA_ROM"], [/nojnitsa|3400\.2/i, "NOJNITSA"], [/3420F|dv\. otk/i, "DVAYNOY_MEX"],
+  [/rezina ю|5603/i, "EPDM_YU"], [/A9211\.3/, "A9211_3"], [/4514/, "A4514"], [/1076\.92\.28|komfort dver/i, "1076_92_28"], [/stublina 1177|1177\.85/i, "1177"],
   [/roto lux/i, "ROTO_LUX"], [/petlya 100/i, "PETLYA_100"], [/krishka podokonnik/i, "KRISHKA_POD"], [/ct 203|takos pvh/i, "CT203"],
   [/takos regul/i, "TAKOS_REG"], [/soedinitel 7000/i, "SOED_7000"], [/M(115)?35/, "M535"], [/W02/, "W02"], [/W03/, "W03"],
   [/J01/, "J01"], [/J05/, "J05"], [/5025/, "EPDM_5025"], [/5108/, "EPDM_5108"],
