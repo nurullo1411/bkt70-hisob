@@ -405,9 +405,10 @@ def hisobot(k, narxlar):
     if len(turlar) <= 1:
         turlar = {next(iter(turlar), oyna_turi): D(n["oyna_m2"])}
     for t, m2 in turlar.items():
+        # Oyna turi narxlar roʻyxatidan olib tashlangan/nomi oʻzgargan boʻlsa — hisob toʻxtamaydi, narxsiz chiqadi
         if t not in narxlar["steklopaket_m2"]:
-            raise HisobXato(f"Nomaʼlum oyna turi: {t}")
-        m2_narx = narxlar["steklopaket_m2"][t].get(qalinlik)
+            n["ogohlantirishlar"].append(f"Oyna turi \"{t}\" narxlar roʻyxatida yoʻq — boshqasini tanlang")
+        m2_narx = narxlar["steklopaket_m2"].get(t, {}).get(qalinlik)
         r.summa_bilan(
             "Oyna", f"Steklopaket {t} {qalinlik} mm", m2, "m²",
             None if m2_narx is None else m2 * D(m2_narx), f"Steklopaket {t} {qalinlik} mm",

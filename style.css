@@ -206,7 +206,8 @@ select { width: 100%; font: inherit; color: var(--matn); background: var(--fon);
 
 /* Pastga tortib yangilash (pull-to-refresh) oʻchirilgan: chizish paytida sahifa yangilanmasin */
 html, body { overscroll-behavior-y: contain; }
-#k-chizma { touch-action: pan-x pan-y pinch-zoom; }
+#k-chizma { touch-action: pan-x pan-y pinch-zoom; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+#oq-tugmalar { margin: 8px 0 4px; }
 
 /* Surib chizish */
 #k-asboblar button[data-asbob] { touch-action: none; user-select: none; -webkit-user-select: none; }

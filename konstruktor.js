@@ -1141,6 +1141,56 @@ function yangila() {
 
 const tugmalar = (amal, qiymat, variantlar) => `<div class="seg">${variantlar.map(([v, y]) => `<button data-amal="${amal}" data-v="${esc(JSON.stringify(v))}" class="${JSON.stringify(v) === JSON.stringify(qiymat) ? "faol" : ""}">${esc(y)}</button>`).join("")}</div>`;
 
+// Boʻlak oynasi tugmalari (panel va bosib turganda chiqadigan oyna uchun)
+function oynaTugmalari(b, attr) {
+  const asosiy = bargOynaTuri({ ...tahrir, bolak: { ...tahrir.bolak, oyna_turi: undefined } }, "") || "Oq+oq";
+  const oz = b.oyna_turi || "", turlar = oynaTurlari();
+  const gul = (o) => (o.toLowerCase().includes("gul") ? ";background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)" : "");
+  const tug = (v, nom, rang) => `<button data-${attr}="oyna_turi" data-v="${esc(JSON.stringify(v))}" class="sz-oyna${oz === v ? " faol" : ""}"><span class="namuna" style="background:${oynaRangi(rang)}${gul(rang)}"></span>${esc(nom)}</button>`;
+  return tug("", "Konstruksiyadagidek", asosiy) + turlar.map((o) => tug(o, o, o)).join("");
+}
+function oynaSarlavha(p) {
+  const ot = bargOynaTuri(tahrir, p) || "Oq+oq";
+  return ot + (oynaTurlari().includes(ot) ? "" : " (roʻyxatda yoʻq — boshqasini tanlang)");
+}
+
+// Oyna ustiga bosib turilsa (foydalanuvchi, 2026-11-09: 2 soniya) — oyna tanlovi qalqib chiqadi, tanlangach yopiladi
+const OYNA_BOSIB_MS = 2000;
+let bosibTaymer = null, bosibTurildi = false;
+function oynaQalqib(p) {
+  const b = tugun(tahrir.bolak, p);
+  if (!b || b.tur === "bolinish" || b.tur === "portal") return;
+  tanlangan = p; tanlanganImpost = null;
+  yangila();
+  $("oq-sarlavha").textContent = `${belgilar(geometriya(tahrir).barglar)[p] || ""} oynasi · ${oynaSarlavha(p)}`;
+  $("oq-tugmalar").innerHTML = oynaTugmalari(b, "oq");
+  $("oyna-qalqib").hidden = false;
+  try { navigator.vibrate && navigator.vibrate(30); } catch (e) {}
+}
+$("oyna-qalqib").addEventListener("click", (e) => {
+  const el = e.target.closest("[data-oq]");
+  if (el) {
+    const b = tugun(tahrir.bolak, tanlangan), v = JSON.parse(el.dataset.v);
+    saqlaTarix();
+    if (v) b.oyna_turi = v; else delete b.oyna_turi;
+    $("oyna-qalqib").hidden = true;
+    yangila();
+    return;
+  }
+  if (e.target.id === "oyna-qalqib" || e.target.closest("[data-oq-yop]")) $("oyna-qalqib").hidden = true;
+});
+$("k-chizma").addEventListener("pointerdown", (e) => {
+  clearTimeout(bosibTaymer); bosibTurildi = false;
+  const r = e.target.closest("[data-p]");
+  if (!r || asbob || e.target.closest("[data-imp]") || e.target.closest("[data-ol]")) return;
+  const x0 = e.clientX, y0 = e.clientY, p = r.dataset.p;
+  const bekor = () => { clearTimeout(bosibTaymer); document.removeEventListener("pointermove", sur); document.removeEventListener("pointerup", bekor); document.removeEventListener("pointercancel", bekor); };
+  const sur = (m) => { if (Math.hypot(m.clientX - x0, m.clientY - y0) > 10) bekor(); };
+  document.addEventListener("pointermove", sur); document.addEventListener("pointerup", bekor); document.addEventListener("pointercancel", bekor);
+  bosibTaymer = setTimeout(() => { bekor(); bosibTurildi = true; oynaQalqib(p); }, OYNA_BOSIB_MS);
+});
+$("k-chizma").addEventListener("contextmenu", (e) => e.preventDefault());
+
 function panelniChiz() {
   if (tanlanganImpost) {
     const [ip] = tanlanganImpost.split("|"), lap = tugun(tahrir.bolak, ip)?.lapsha;
@@ -1175,14 +1225,8 @@ function panelniChiz() {
         v ? [["tepa", "Tepaga"], ["orta", "Oʻrtaga"], ["past", "Pastga"]] : [["chap", "Chapga"], ["orta", "Oʻrtaga"], ["ong", "Oʻngga"]])}` : ""}`;
   }
   // Shu boʻlak oynasi (foydalanuvchi, 2026-11-09: bitta konstruksiyada har xil oyna boʻladi)
-  {
-    const asosiy = bargOynaTuri({ ...tahrir, bolak: { ...tahrir.bolak, oyna_turi: undefined } }, "") || "Oq+oq";
-    const oz = b.oyna_turi || "";
-    const gul = (o) => (o.toLowerCase().includes("gul") ? ";background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)" : "");
-    const tug = (v, nom, rang) => `<button data-amal="oyna_turi" data-v="${esc(JSON.stringify(v))}" class="sz-oyna${oz === v ? " faol" : ""}"><span class="namuna" style="background:${oynaRangi(rang)}${gul(rang)}"></span>${esc(nom)}</button>`;
-    p += `<div class="sarlavha">Shu boʻlak oynasi · ${esc(bargOynaTuri(tahrir, tanlangan) || asosiy)}</div>
-      <div class="sz-oynalar">${tug("", "Konstruksiyadagidek", asosiy)}${oynaTurlari().map((o) => tug(o, o, o)).join("")}</div>`;
-  }
+  p += `<div class="sarlavha">Shu boʻlak oynasi · ${esc(oynaSarlavha(tanlangan))}</div>
+      <div class="sz-oynalar">${oynaTugmalari(b, "amal")}</div>`;
   $("k-panel").innerHTML = p;
 }
 
@@ -1202,7 +1246,7 @@ function oldindanHisobla() {
     }
     const k = d.ok.konstruksiyalar[0];
     const oy = d.ok.oynalar.map((o) => `${o.joy} ${son(o.en, 2)}×${son(o.boy, 2)}${o.soni > 1 ? " ×" + o.soni : ""}`).join("; ");
-    $("k-holat").innerHTML = `<span class="k-narx">1 dona <b>${usd(k.bir_dona_usd)}</b></span>${k.izoh ? `<br><span class="ogoh">${esc(k.izoh)}</span>` : ""}<br><span class="xira">Oynalar: ${esc(oy)}</span>`;
+    $("k-holat").innerHTML = `<span class="k-narx">1 dona <b>${usd(k.bir_dona_usd)}</b></span>${k.izoh ? `<br><span class="ogoh">${esc(k.izoh)}</span>` : ""}${d.ok.narx_yoq.length ? `<br><span class="ogoh">Narxi yoʻq: ${esc(d.ok.narx_yoq.join(", "))}</span>` : ""}<br><span class="xira">Oynalar: ${esc(oy)}</span>`;
     $("k-holat").className = "";
   }, 250);
 }
@@ -1434,6 +1478,7 @@ $("k-asboblar").addEventListener("click", (e) => {
   yangila();
 });
 $("k-chizma").addEventListener("click", (e) => {
+  if (bosibTurildi) { bosibTurildi = false; return; }
   const ol_ = e.target.closest("[data-ol]");
   if (ol_) { olchamniOzgartir(ol_.dataset.ol); return; }
   const im = e.target.closest("[data-imp]");
