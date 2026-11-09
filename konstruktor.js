@@ -823,9 +823,43 @@ function asboblarniChiz() {
     : nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbobni bosib turib boʻlakka suring. Boʻlak yoki impostga bosib tanlang, oʻlcham — raqamga bosing.";
 }
 
+// Oʻlcham yoki impost konstruksiyaga sigʻmasa — oʻzgarish qabul qilinmaydi (foydalanuvchi, 2026-11-09:
+// 45 oʻrniga 450 yozilsa ham chizildi). Hamma boʻlak va boʻlinish rama ichida, kamida BOLAK_MIN sm boʻlishi kerak.
+const BOLAK_MIN = 10;
+function olchamXatosi(k) {
+  const g = geometriya(k), L = Number(k.L), H = Number(k.H), e = 0.01;
+  for (const o of [...g.barglar, ...g.bolinishlar]) {
+    if (!(o.x >= -e && o.y >= -e && o.x + o.w <= L + e && o.y + o.h <= H + e)) return "Boʻlaklar konstruksiyadan katta chiqdi";
+    if (!(o.w >= BOLAK_MIN && o.h >= BOLAK_MIN)) return `Boʻlak juda kichik chiqdi (${yx(Math.min(o.w, o.h))} sm; kamida ${BOLAK_MIN} sm)`;
+  }
+  return null;
+}
+// Oʻzgarishdan keyin tekshiradi: oldin toʻgʻri boʻlib, endi sigʻmasa — eski holatga qaytaradi.
+// (Eski zakaz allaqachon notoʻgʻri boʻlsa, tuzatish uchun oʻzgarishga ruxsat.)
+function tekshirib(amal) {
+  const eskiJ = JSON.stringify(tahrir), eskiXato = olchamXatosi(tahrir);
+  const r = amal();
+  const qayt = () => {
+    if (eskiXato || JSON.stringify(tahrir) === eskiJ) return;
+    const x = olchamXatosi(tahrir);
+    if (!x) return;
+    if (orqaga.length && JSON.stringify(orqaga[orqaga.length - 1]) === eskiJ) orqaga.pop();
+    tahrir = JSON.parse(eskiJ);
+    try { if (!tugun(tahrir.bolak, tanlangan)) throw 0; } catch (_) { tanlangan = geometriya(tahrir).barglar[0].p; }
+    yangila();
+    xabar(x + " — oʻzgarish qabul qilinmadi");
+  };
+  if (r && r.then) return r.then(qayt);
+  qayt();
+}
+
 function saqlaTarix() { orqaga.push(nusxa(tahrir)); if (orqaga.length > 50) orqaga.shift(); oldinga = []; }
 
 function asbobniQolla(p) {
+  tekshirib(() => asbobniQollaIchki(p));
+}
+
+function asbobniQollaIchki(p) {
   if (asbob === "lapsha" || asbob === "lapsha_y") {
     saqlaTarix();
     if (!lapshaBolish(p, asbob === "lapsha" ? "vertikal" : "gorizontal")) orqaga.pop();
@@ -960,6 +994,10 @@ function soraSon(sarlavha, qiymat, boshMumkin) {
 }
 
 async function olchamniOzgartir(kalit) {
+  await tekshirib(() => olchamniOzgartirIchki(kalit));
+}
+
+async function olchamniOzgartirIchki(kalit) {
   if (kalit === "arka") {
     const j = await soraSon(`Arka balandligi, sm (yarim doira = ${yx(Number(tahrir.L) / 2)})`, tahrir.arka.balandlik, false);
     if (!j) return;
