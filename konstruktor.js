@@ -22,6 +22,32 @@ function eshiklar(n, r = []) {
   for (const c of n.bolaklar || []) eshiklar(c, r);
   return r;
 }
+// Avtomatik nom (foydalanuvchi, 2026-11-09): eshik + yonida rom/oyna — Vitraj, eshik — Eshik,
+// hamma boʻlak fortochka — Fortochka, qolgani — Rom. Eshik ustidagi framuga eshikligicha qoladi.
+function konstruksiyaTuri(k) {
+  const barg = [];
+  let vitraj = k.tur === "lapshali";
+  const yur = (n) => {
+    if (!n) return false;
+    if (!n.bolaklar) { barg.push(n); return n.tur === "eshik"; }
+    const bor = n.bolaklar.map(yur);
+    if (n.tur === "bolinish" && n.yonalish === "vertikal" && bor.some(Boolean) && !bor.every(Boolean)) vitraj = true;
+    return bor.some(Boolean);
+  };
+  const eshik = yur(k.bolak);
+  if (eshik) return vitraj ? "Vitraj" : "Eshik";
+  if (barg.length && barg.every((b) => b.tur === "tabaqa" && b.fortochka)) return "Fortochka";
+  return "Rom";
+}
+function avtoNom(k, boshqalar) {
+  const tur = konstruksiyaTuri(k);
+  const eski = String(k.nom || "");
+  if ((eski === tur || /^\d+$/.test(eski.slice(tur.length + 1)) && eski.startsWith(tur + " ")) && !boshqalar.includes(eski)) return eski;
+  if (!boshqalar.includes(tur)) return tur;
+  let i = 2;
+  while (boshqalar.includes(tur + " " + i)) i++;
+  return tur + " " + i;
+}
 function joriyOchilish(k) { const e = eshiklar(k && k.bolak)[0]; return e ? e.ochilish : (k && k.tur === "lapshali" ? "tashqariga" : eshikOchilish); }
 let orqaga = [], oldinga = [];
 let oldindanTaymer = null;
@@ -918,7 +944,7 @@ function almashtirIchida(ildiz, p, yangi) {
 // ---------- tahrirlash oynasi ----------
 function konstruktorniOch(i) {
   tahrirIndeks = i;
-  tahrir = i >= 0 ? nusxa(zakaz.konstruksiyalar[i]) : { nom: "K" + (zakaz.konstruksiyalar.length + 1), soni: 1, L: 150, H: 150, bolak: { tur: "gluxoy" } };
+  tahrir = i >= 0 ? nusxa(zakaz.konstruksiyalar[i]) : { nom: "", soni: 1, L: 150, H: 150, bolak: { tur: "gluxoy" } };
   tanlangan = geometriya(tahrir).barglar[0].p;
   asbob = null;
   orqaga = []; oldinga = [];
@@ -934,9 +960,7 @@ function konstruktorniYop(saqlansin, tarixdan) {
   if (!tarixdan && history.state && history.state.ekran === "konstruktor") { ichkiOrqaga = true; history.back(); }
   if (saqlansin) {
     const nomlar = zakaz.konstruksiyalar.filter((_, j) => j !== tahrirIndeks).map((k) => k.nom);
-    let nom = (tahrir.nom || "").trim() || "K" + (zakaz.konstruksiyalar.length + 1);
-    while (nomlar.includes(nom)) nom += "+";
-    tahrir.nom = nom;
+    tahrir.nom = avtoNom(tahrir, nomlar);
     if (tahrirIndeks >= 0) zakaz.konstruksiyalar[tahrirIndeks] = tahrir;
     else zakaz.konstruksiyalar.push(tahrir);
     saqla("oxirgi_zakaz", JSON.stringify(zakaz));
@@ -1162,10 +1186,6 @@ function sozlamaOynasi() {
     ${eshiklar(k.bolak).length ? eshikFurnitura(k) : ""}`}
 
     <div class="sz-bolim">Konstruksiya</div>
-    <div class="panjara">
-      <label>Nomi<input data-m="nom" value="${esc(k.nom)}"></label>
-      <label>Soni<input data-m="soni" type="number" inputmode="numeric" min="1" step="1" value="${esc(k.soni ?? 1)}"></label>
-    </div>
     <label class="belgi"><input type="checkbox" data-m="lapsha" ${lap ? "checked" : ""}> Yon oynalar alohida ramada, lapsha bilan (tashqariga eshik)</label>
     ${lap ? `<div class="panjara">
       <label>Chap oyna eni, sm<input data-m="chap" type="number" inputmode="decimal" step="0.1" value="${esc(k.chap ?? "")}" placeholder="yoʻq"></label>
