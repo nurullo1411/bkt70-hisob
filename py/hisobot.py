@@ -24,11 +24,9 @@ DVAYNOY_RUCHKA = "(A6011.10) Ruchka COMFORT Okon Dv. Otk"
 DVAYNOY_MEXANIZM = "(A3420F.1) Dv. Otk 160kg"
 NOJNITSA_SREDNIY = "(A3400.21) Nojnitsa Sredniy"
 NOJNITSA_DLINNIY = "(A3400.22) Nojnitsa Dlinniy"
-NOJNITSA_KALTA = "(A3400.20) Nojnitsa Korotkiy"
 NOJNITSA_CHEGARA = D(65)  # tabaqa eni 65 sm gacha — sredniy, kattasi — dlinniy (ProfOkna, tasdiqlangan)
-# Master "Ween" T&T qogʻozi (foydalanuvchi, 2026-11-09): nojnitsa 3400.20 37–45, .21 45,1–65, .22 65,1–120 sm;
+# Master "Ween" T&T qogʻozi (foydalanuvchi, 2026-11-09): nojnitsa .21 37–65 (Masterda 37–45 uchun 3400.20, foydalanuvchi .21 oladi), .22 65,1–120 sm;
 # prijim (3420F.31) boʻyi 140 dan baland; 3400F.32 boʻyi 220 dan baland; 120 dan keng — qoʻyib boʻlmaydi
-NOJNITSA_KALTA_CHEGARA = D(45)
 DVAYNOY_EN_MIN, DVAYNOY_EN_MAX = D(37), D(120)
 DVAYNOY_BOY_MIN, DVAYNOY_BOY_MAX = D(50), D(270)
 DVAYNOY_BALAND = "(A3400F.32) Dv. Otk qoʻshimcha zapor"
@@ -325,7 +323,7 @@ def _dvaynoy_furnitura(s, r):
         return
     for en, boy in tabaqalar:
         if en < DVAYNOY_EN_MIN:
-            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa eni {en} sm — Master furniturasida eng kalta nojnitsa (3400.20) {DVAYNOY_EN_MIN} sm dan")
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa eni {en} sm — Master furniturasida eng kalta nojnitsa {DVAYNOY_EN_MIN} sm dan")
         if en > DVAYNOY_EN_MAX:
             raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa eni {en} sm — {DVAYNOY_EN_MAX} sm dan keng tabaqaga Master qoʻshimcha detal (3420F.31 + 3400.35) talab qiladi, dasturda yoʻq")
         if boy < DVAYNOY_BOY_MIN:
@@ -335,14 +333,11 @@ def _dvaynoy_furnitura(s, r):
     soni = len(tabaqalar)
     r.qosh("Furnitura", DVAYNOY_RUCHKA, soni, "dona")
     r.qosh("Furnitura", DVAYNOY_MEXANIZM, soni, "dona")
-    kalta = sum(1 for en, _ in tabaqalar if en <= NOJNITSA_KALTA_CHEGARA)
-    sredniy = sum(1 for en, _ in tabaqalar if NOJNITSA_KALTA_CHEGARA < en <= NOJNITSA_CHEGARA)
-    if kalta:
-        r.qosh("Furnitura", NOJNITSA_KALTA, kalta, "dona")
+    sredniy = sum(1 for en, _ in tabaqalar if en <= NOJNITSA_CHEGARA)
     if sredniy:
         r.qosh("Furnitura", NOJNITSA_SREDNIY, sredniy, "dona")
-    if soni - sredniy - kalta:
-        r.qosh("Furnitura", NOJNITSA_DLINNIY, soni - sredniy - kalta, "dona")
+    if soni - sredniy:
+        r.qosh("Furnitura", NOJNITSA_DLINNIY, soni - sredniy, "dona")
     prijim = sum(1 for _, b in tabaqalar if b > DVAYNOY_PRIJIM_BOY)
     if prijim:
         r.qosh("Furnitura", DVAYNOY_PRIJIM, prijim, "dona")
