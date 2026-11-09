@@ -323,7 +323,10 @@ function olchamTaxmin(p) {
 // F1, C1, E1 belgilari (chapdan oʻngga, tepadan pastga)
 function belgilar(barglar) {
   const sanoq = { F: 0, C: 0, E: 0 };
-  const tartib = [...barglar].sort((a, b) => (Math.abs(a.y - b.y) > 1 ? a.y - b.y : a.x - b.x));
+  const ramaTartib = new Map();
+  for (const o of barglar) if (o.rama && !ramaTartib.has(o.rama)) ramaTartib.set(o.rama, ramaTartib.size);
+  const ri = (o) => ramaTartib.get(o.rama) ?? 0;
+  const tartib = [...barglar].sort((a, b) => ri(a) - ri(b) || (Math.abs(a.y - b.y) > 1 ? a.y - b.y : a.x - b.x));
   const nat = {};
   for (const o of tartib) {
     const h = o.b.tur === "gluxoy" ? "F" : o.b.tur === "eshik" ? "E" : "C";
@@ -638,7 +641,7 @@ function chizmaSVG(k, opts = {}) {
 
   // Oʻlcham chiziqlari: tik boʻlinishlar pastda, yotiqlari oʻngda; umumiy L pastda, H chapda.
   // Uchlari qiya chiziqcha (arxitektura uslubi), qiymat yumaloq taxtachada.
-  let pastQator = 0, ongQator = 0;
+  let pastQator = 0, ongQator = 0, chapQator = 0;
   const olchamChizigi = (x1, y1, x2, y2, qiymat, avto, kalit, uzat) => {
     const yot = y1 === y2;
     const uz = qadam * 0.16;
@@ -705,8 +708,13 @@ function chizmaSVG(k, opts = {}) {
     }
     // kalta ramalar: oʻz boʻyi (oʻngda) yoki eni (pastda), bosib oʻzgartiriladi
     for (const r of g.qisqalar.filter((r) => r.kal === "boy")) {
-      const xx = L + qadam * (++ongQator);
-      s += olchamChizigi(xx, r.y, xx, r.y + r.h, r.h, false, `${r.p}|boy`, L + qadam * 0.2);
+      if (r.x + r.w / 2 < L / 2) {
+        const xx = -qadam * (2 + chapQator++);
+        s += olchamChizigi(xx, r.y, xx, r.y + r.h, r.h, false, `${r.p}|boy`, r.x - qadam * 0.2);
+      } else {
+        const xx = L + qadam * (++ongQator);
+        s += olchamChizigi(xx, r.y, xx, r.y + r.h, r.h, false, `${r.p}|boy`, r.x + r.w + qadam * 0.2);
+      }
     }
     for (const r of g.qisqalar.filter((r) => r.kal === "en")) {
       const yy = H + qadam * (++pastQator);
@@ -715,7 +723,7 @@ function chizmaSVG(k, opts = {}) {
     s += olchamChizigi(0, H + qadam * (++pastQator), L, H + qadam * pastQator, L, false, "L", H + qadam * 0.2);
     s += olchamChizigi(-qadam, 0, -qadam, H, H, false, "H", -qadam * 0.2);
   }
-  const chap = opts.kichik ? t : qadam * 1.6, tepa = opts.kichik ? t : qadam * 0.6;
+  const chap = opts.kichik ? t : qadam * (1.6 + chapQator), tepa = opts.kichik ? t : qadam * 0.6;
   const vb = `${f(-chap)} ${f(-tepa)} ${f(L + chap + (opts.kichik ? t : qadam * (ongQator + 0.7)))} ${f(H + tepa + (opts.kichik ? t : qadam * (pastQator + 0.7)))}`;
   return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" class="chizma${opts.kichik ? " kichik" : ""}" style="--g-ra:url(#${gid}-ra);--g-oy:url(#${gid}-oy)${prUslub}" preserveAspectRatio="xMidYMid meet">${s}</svg>`;
 }
@@ -1163,8 +1171,8 @@ function panelniChiz() {
     const gr = tugun(tahrir.bolak, rm.guruh), v = gr.yonalish === "vertikal", kal = v ? "boy" : "en";
     p += `<div class="sarlavha">Rama (lapsha bilan) · ${yx(rm.w)} × ${yx(rm.h)} sm</div>
       <div class="tugmalar"><button class="tugma" data-ol="${rm.p}|${kal}">Shu rama ${v ? "boʻyi" : "eni"}ni kiritish</button></div>
-      <div class="sarlavha">Kalta ramalar tekislanishi</div>${tugmalar("tekislash", gr.tekislash || (v ? "tepa" : "chap"),
-        v ? [["tepa", "Tepaga"], ["orta", "Oʻrtaga"], ["past", "Pastga"]] : [["chap", "Chapga"], ["orta", "Oʻrtaga"], ["ong", "Oʻngga"]])}`;
+      ${gr.bolaklar.some((c) => c[kal] != null) ? `<div class="sarlavha">Kalta ramalar tekislanishi</div>${tugmalar("tekislash", gr.tekislash || (v ? "tepa" : "chap"),
+        v ? [["tepa", "Tepaga"], ["orta", "Oʻrtaga"], ["past", "Pastga"]] : [["chap", "Chapga"], ["orta", "Oʻrtaga"], ["ong", "Oʻngga"]])}` : ""}`;
   }
   // Oyna turi ⚙ sozlamada (foydalanuvchi, 2026-11-07: panelda ortiqcha)
   $("k-panel").innerHTML = p;
