@@ -724,3 +724,8 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .kt-forma label { display: grid; gap: 4px; font-size: 14px; }
 .kt-forma input { min-height: 44px; font-size: 16px; }
 .nowrap { white-space: nowrap; }
+
+/* Lambri (oyna oʻrniga): profil rangida, tik tasmalar */
+.chizma .lb { fill: var(--rama-1, #eef0f2); stroke: var(--rama-chiziq, #8a939c); stroke-width: .3; }
+.chizma .lb-ch { stroke: var(--rama-chiziq, #8a939c); stroke-width: .35; opacity: .7; }
+.lambri-namuna { background: repeating-linear-gradient(90deg, #d9dde1 0 5px, #8a939c 5px 6px) !important; }

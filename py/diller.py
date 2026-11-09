@@ -109,6 +109,14 @@ def profil_nomi(profil, rang):
     kod = profil.replace("-", "")
     if profil in ENGELBERG_PROFILLARI:
         return eng_profil_nomi(profil, rang)
+    if profil == "L116":  # lambri (foydalanuvchi, 2026-11-09): diller "Lambri Termo 116", 6 m
+        if rang == "oq":
+            return "Lambri Termo 116 (R) (Oq)"
+        if rang in ("306g", "anod"):
+            return f"Lambri Termo 116 ({DILLER_RANGI.get(rang, 'anod rangi?')})"
+        lam = {"grey": "7011-Anthrazit Grey LL", "alux": "7011-Alyuks LL", "sh/d": "7011-Sheffal Dub LL",
+               "z/d": "8017-Zol Dub", "d/m": "8017-Dub Mokko"}.get(rang or "", "rangi?")
+        return f"T LAM ({lam}) Lambri Termo 116"
     if rang in ("oq", "306g", "anod"):
         r = DILLER_RANGI.get(rang, "anod rangi?")
         return f"TERMO BKT 70 {kod} {TERMO_NOM.get(profil, '')} ({r}) (6.5m)".replace("  ", " ")
