@@ -1412,8 +1412,19 @@ $("k-panel").addEventListener("click", (e) => {
 });
 $("k-saqla").addEventListener("click", () => konstruktorniYop(true));
 $("k-bekor").addEventListener("click", () => konstruktorniYop(false));
+// 🗑 (foydalanuvchi, 2026-11-09): tanlangan boʻlak impost(i) bilan olinadi, joyi qoʻshnisiga oʻtadi;
+// boʻlak bitta qolganda — ikki marta bosib hammasini tozalash
 $("k-tozala").addEventListener("click", () => {
   const b = $("k-tozala");
+  if (tanlangan && ota(tanlangan) && tugun(tahrir.bolak, tanlangan)) {
+    saqlaTarix();
+    if (ochir(tanlangan)) {
+      if (!tugun(tahrir.bolak, tanlangan) || tugun(tahrir.bolak, tanlangan).tur === "bolinish") tanlangan = geometriya(tahrir).barglar[0].p;
+      xabar("Boʻlak olindi (↶ bilan qaytariladi)");
+    } else orqaga.pop();
+    yangila();
+    return;
+  }
   if (!b.classList.contains("tasdiq")) { b.classList.add("tasdiq"); setTimeout(() => b.classList.remove("tasdiq"), 3000); xabar("Hammasini tozalash uchun yana bosing"); return; }
   b.classList.remove("tasdiq");
   saqlaTarix();
