@@ -390,6 +390,29 @@ function hk() { zakaz.hisob_kitob = zakaz.hisob_kitob || {}; return zakaz.hisob_
 function valyuta() { return ol("valyuta") === "usd" ? "usd" : "som"; }
 function pul(usdQiymat) { return valyuta() === "usd" ? usd(usdQiymat) : som(usdQiymat * natija.kurs); }
 
+// Ustama har seriyaga alohida (foydalanuvchi, 2026-11-09: Termoni baland, Aldoksni past foizda sotib boʻlmaydi).
+// Zakazda hisob_kitob.ustama_seriya {seriya: foiz}; berilmagan seriyaga oxirgi kiritilgan foiz (localStorage
+// "ustama_seriya") yoziladi va zakazda muzlatiladi. Eski zakazdagi yagona ustama_foiz hamma seriyaga.
+function ustamaStandart() { try { return JSON.parse(ol("ustama_seriya")) || {}; } catch (e) { return {}; } }
+function ustamalar(n = natija) {
+  const h = hk(), st = ustamaStandart(), guruh = new Map();
+  for (const k of n.konstruksiyalar) {
+    const s = k.seriya || "Termo 70";
+    guruh.set(s, (guruh.get(s) || 0) + k.jami_usd);
+  }
+  let yozildi = false;
+  const roy = [...guruh].map(([seriya, tannarx]) => {
+    let foiz = h.ustama_seriya && h.ustama_seriya[seriya];
+    if (foiz == null) foiz = h.ustama_foiz != null ? Number(h.ustama_foiz) : null;
+    if (foiz == null && st[seriya] > 0) { h.ustama_seriya = h.ustama_seriya || {}; foiz = h.ustama_seriya[seriya] = st[seriya]; yozildi = true; }
+    foiz = Number(foiz) || 0;
+    return { seriya, tannarx, foiz, ustama: tannarx * foiz / 100 };
+  });
+  if (yozildi) saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+  return roy;
+}
+function ustamaKoef(n, seriya) { const u = ustamalar(n).find((x) => x.seriya === (seriya || "Termo 70")); return 1 + (u ? u.foiz : 0) / 100; }
+
 function hisobKitobniChiz() {
   const n = natija, h = hk(), kurs = n.kurs, v = valyuta();
   const otxod = n.materiallar.filter((m) => m.bolim === "Profil otxod").reduce((a, m) => a + (m.summa || 0), 0);
@@ -400,10 +423,20 @@ function hisobKitobniChiz() {
   $("j-str").textContent = pul(n.straxovka_usd);
   $("j-tan").textContent = pul(n.jami_usd);
   $("j-tan2").textContent = v === "usd" ? som(n.jami_som) : usd(n.jami_usd);
-  const ustama = n.jami_usd * (Number(h.ustama_foiz) || 0) / 100;
+  const ust = ustamalar(n);
+  const ustama = ust.reduce((a, u) => a + u.ustama, 0);
   const mijozga = n.jami_usd + ustama;
+  const qut = $("hk-ustamalar"), kal = ust.map((u) => u.seriya).join("|");
+  if (qut.dataset.kal !== kal) {
+    qut.dataset.kal = kal;
+    qut.innerHTML = ust.map((u) => `<div class="hk-maydon"><label>Ustama${ust.length > 1 || u.seriya !== "Termo 70" ? " — " + esc(u.seriya) : " (foyda)"}, %<input data-ust-seriya="${esc(u.seriya)}" type="number" inputmode="decimal" min="0" step="1" placeholder="0"></label><b data-ust-summa="${esc(u.seriya)}"></b></div>`).join("");
+  }
+  for (const u of ust) {
+    const inp = qut.querySelector(`[data-ust-seriya="${CSS.escape(u.seriya)}"]`), b = qut.querySelector(`[data-ust-summa="${CSS.escape(u.seriya)}"]`);
+    if (document.activeElement !== inp) inp.value = u.foiz || "";
+    b.textContent = u.ustama ? "+ " + pul(u.ustama) : "";
+  }
   const chegirma = (Number(h.chegirma_som) || 0) / kurs, avans = (Number(h.avans_som) || 0) / kurs;
-  $("j-ust").textContent = ustama ? "+ " + pul(ustama) : "";
   $("j-mijoz").textContent = pul(mijozga);
   $("x-narx").textContent = pul(mijozga);
   $("j-tolov").textContent = pul(mijozga - chegirma);
@@ -422,7 +455,6 @@ function hisobKitobniChiz() {
   const ish = zakaz.ish || {};
   document.querySelectorAll("[data-ish]").forEach((el) => { if (document.activeElement !== el) el.value = ish[el.dataset.ish] ?? ""; });
   $("ish-termo").placeholder = son(zakazM2(zakaz), 2) + " (avto)";
-  if (document.activeElement !== $("hk-ustama")) $("hk-ustama").value = h.ustama_foiz ?? "";
   const korsat = (s) => (s ? (v === "usd" ? Math.round(s / kurs * 100) / 100 : s) : "");
   if (document.activeElement !== $("hk-chegirma")) $("hk-chegirma").value = korsat(h.chegirma_som);
   if (document.activeElement !== $("hk-avans")) $("hk-avans").value = korsat(h.avans_som);
@@ -635,13 +667,25 @@ document.querySelectorAll("[data-valyuta]").forEach((b) => b.addEventListener("c
   saqla("valyuta", b.dataset.valyuta);
   if (natija) hisobKitobniChiz();
 }));
-for (const [id, kalit] of [["hk-ustama", "ustama_foiz"], ["hk-chegirma", "chegirma_som"], ["hk-avans", "avans_som"]]) {
+$("hk-ustamalar").addEventListener("input", (e) => {
+  const inp = e.target.closest("[data-ust-seriya]");
+  if (!inp || !natija) return;
+  const h = hk(), s = inp.dataset.ustSeriya, x = Number(inp.value);
+  // eski yagona foizni avval hamma seriyaga yoyamiz
+  if (h.ustama_foiz != null) { h.ustama_seriya = Object.fromEntries(ustamalar().map((u) => [u.seriya, u.foiz])); delete h.ustama_foiz; }
+  h.ustama_seriya = h.ustama_seriya || {};
+  h.ustama_seriya[s] = inp.value && x > 0 ? x : 0;
+  const st = ustamaStandart(); st[s] = h.ustama_seriya[s]; saqla("ustama_seriya", JSON.stringify(st));
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+  hisobKitobniChiz();
+});
+for (const [id, kalit] of [["hk-chegirma", "chegirma_som"], ["hk-avans", "avans_som"]]) {
   $(id).addEventListener("input", () => {
     if (!natija) return;
     const x = Number($(id).value);
     const h = hk();
     if (!$(id).value || !(x > 0)) delete h[kalit];
-    else h[kalit] = kalit === "ustama_foiz" || valyuta() === "som" ? x : Math.round(x * natija.kurs);
+    else h[kalit] = valyuta() === "som" ? x : Math.round(x * natija.kurs);
     saqla("oxirgi_zakaz", JSON.stringify(zakaz));
     hisobKitobniChiz();
   });
@@ -771,9 +815,9 @@ $("pdf-ber").addEventListener("click", () => {
 function pdfHtml(o) {
   // Oʻz uslubimiz (Romchidan farqli): hisob-faktura jadvali + 2 ustunli chizma kartalari
   const n = natija, kurs = n.kurs, m = zakaz.mijoz || {}, h = hk();
-  const k1 = 1 + (Number(h.ustama_foiz) || 0) / 100;
+  const k1 = (x) => (x ? ustamaKoef(n, x.seriya) : 1);
   const chegirma = Number(h.chegirma_som) || 0, avans = Number(h.avans_som) || 0;
-  const boshlang = Math.round(n.jami_usd * k1 * kurs);
+  const boshlang = Math.round((n.jami_usd + ustamalar(n).reduce((a, u) => a + u.ustama, 0)) * kurs);
   const hisob = Object.fromEntries(n.konstruksiyalar.map((k) => [k.nom, k]));
   const u = zakaz.umumiy;
   const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) > 0);
@@ -786,7 +830,7 @@ function pdfHtml(o) {
       ${ol("bajaruvchi") ? `<div class="p-baj"><b>${esc(ol("bajaruvchi"))}</b>${ol("bajaruvchi_tel") ? `<span>${esc(ol("bajaruvchi_tel"))}</span>` : ""}</div>` : ""}</div>
     <div class="p-mijoz">${malumot("Buyurtmachi", m.ism)}${malumot("Telefon", m.telefon)}${malumot("Manzil", m.manzil)}${malumot("Muddat", m.muddat)}</div>
     <table class="p-faktura"><thead><tr><th>№</th><th>Nomi</th><th>Oʻlchami, sm</th><th>Soni</th><th>Yuzasi</th>${o.narx ? "<th>Narxi</th>" : ""}</tr></thead><tbody>
-    ${faol.map((k, i) => { const x = kHisob(k); return `<tr><td>${i + 1}</td><td>${esc(k.nom)}</td><td>${esc(k.L)} × ${esc(k.H)}</td><td>${k.soni ?? 1}</td><td>${son(yuza(k) * (k.soni ?? 1), 2)} m²</td>${o.narx ? `<td>${x ? som(x.jami_usd * k1 * kurs) : "—"}</td>` : ""}</tr>`; }).join("")}
+    ${faol.map((k, i) => { const x = kHisob(k); return `<tr><td>${i + 1}</td><td>${esc(k.nom)}</td><td>${esc(k.L)} × ${esc(k.H)}</td><td>${k.soni ?? 1}</td><td>${son(yuza(k) * (k.soni ?? 1), 2)} m²</td>${o.narx ? `<td>${x ? som(x.jami_usd * k1(x) * kurs) : "—"}</td>` : ""}</tr>`; }).join("")}
     </tbody><tfoot><tr><td></td><td>Jami</td><td></td><td>${jamiSoni}</td><td>${son(jamiM2, 2)} m²</td>${o.narx ? `<td>${som(boshlang)}</td>` : ""}</tr></tfoot></table>`;
   if (o.narx) {
     s += `<div class="p-jami">${chegirma ? `<div><span>Chegirma</span><b>− ${som(chegirma)}</b></div>` : ""}
@@ -801,7 +845,7 @@ function pdfHtml(o) {
       <div class="p-rasm">${chizmaSVG(k, { kichik: !o.olcham })}</div>
       <div class="p-xus">${malumot("Rama", k.rama || u.rama)}${malumot("Rang", t.rang_nomi ? `${t.rang} (${t.rang_nomi})` : t.rang)}
         ${malumot("Oyna", `${t.oyna_turi || ""} ${k.oyna_qalinligi || u.oyna_qalinligi || 24} mm`)}${malumot("Yuzasi", son(yuza(k), 2) + " m²")}
-        ${malumot("Izoh", k.eslatma)}${o.narx && x ? malumot("Narxi", som(x.jami_usd * k1 * kurs)) : ""}</div></div>`;
+        ${malumot("Izoh", k.eslatma)}${o.narx && x ? malumot("Narxi", som(x.jami_usd * k1(x) * kurs)) : ""}</div></div>`;
   });
   s += `</div>`;
   if (o.mat) {

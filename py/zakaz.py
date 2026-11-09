@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from hisob import HisobXato, narx_kaliti
+from hisob import SERIYA_RAMA, HisobXato, narx_kaliti
 from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
@@ -91,7 +91,9 @@ def hisobla_zakaz(zakaz, otxod_usuli="chegara", sklad=None):
         n = h["n"]
         sklad_rangi = _konstruksiya_rangi(umumiy.get("tanlov") or {}, element)[0]
         izoh = [f"Qoida yoʻq: {x}" for x in n["qoida_yoq"]] + n["ogohlantirishlar"]
-        konstruksiyalar.append({"nom": nom, "L": k["L"], "H": k["H"], "soni": soni, "izoh": "; ".join(izoh)})
+        seriya = SERIYA_RAMA.get(k.get("rama"))
+        konstruksiyalar.append({"nom": nom, "L": k["L"], "H": k["H"], "soni": soni, "izoh": "; ".join(izoh),
+                                "seriya": seriya.nomi if seriya else ""})
         # Varaqda miqdor 1 dona uchun yoziladi, soni (D ustuni) bilan formula koʻpaytiradi
         for o in n["oynalar"]:
             oynalar.append({"nom": nom, "i": i, "joy": o["joy"], "en": o["en"], "boy": o["boy"], "soni": o["soni"],
