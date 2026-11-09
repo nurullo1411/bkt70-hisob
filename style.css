@@ -711,3 +711,16 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .hb-stavka input { font: inherit; color: var(--matn); background: var(--fon); border: 1px solid var(--chiziq); border-radius: 8px; padding: 8px; }
 
 .ogoh-m { color: var(--urgu); }
+
+/* Katalog */
+#e-katalog .seg { margin-bottom: 10px; }
+.kt-qator { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--chiziq); }
+.kt-qator:last-child { border-bottom: 0; }
+.kt-qator.yashirin { opacity: .6; }
+.kt-nom { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.kt-nom small { color: var(--xira, #888); font-size: 12px; }
+.kt-qator .kichik-t.xavf { color: #fff; background: #c62828; border-color: #c62828; }
+.kt-forma { margin-top: 12px; display: grid; gap: 8px; }
+.kt-forma label { display: grid; gap: 4px; font-size: 14px; }
+.kt-forma input { min-height: 44px; font-size: 16px; }
+.nowrap { white-space: nowrap; }

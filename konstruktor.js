@@ -54,7 +54,8 @@ let orqaga = [], oldinga = [];
 let oldindanTaymer = null;
 
 function oynaTurlari() {
-  try { return Object.keys(JSON.parse(ol("narxlar")).steklopaket_som || {}); } catch (e) { return ["Oq+oq"]; }
+  // Katalogda yashirilgan turlar tanlovda chiqmaydi (eski zakazda qolgani narxi bilan hisoblanadi)
+  try { const n = JSON.parse(ol("narxlar")), y = new Set(n.oyna_yashirin || []); return Object.keys(n.steklopaket_som || {}).filter((t) => !y.has(t)); } catch (e) { return ["Oq+oq"]; }
 }
 
 function yangiZakaz() {
@@ -1151,7 +1152,10 @@ function oynaTugmalari(b, attr) {
 }
 function oynaSarlavha(p) {
   const ot = bargOynaTuri(tahrir, p) || "Oq+oq";
-  return ot + (oynaTurlari().includes(ot) ? "" : " (roʻyxatda yoʻq — boshqasini tanlang)");
+  if (oynaTurlari().includes(ot)) return ot;
+  let bor = false;
+  try { bor = ot in (JSON.parse(ol("narxlar")).steklopaket_som || {}); } catch (e) {}
+  return ot + (bor ? " (katalogda yashirilgan)" : " (roʻyxatda yoʻq — boshqasini tanlang)");
 }
 
 // Oyna ustiga bosib turilsa (foydalanuvchi, 2026-11-09: 2 soniya) — oyna tanlovi qalqib chiqadi, tanlangach yopiladi

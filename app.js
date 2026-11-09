@@ -149,13 +149,14 @@ function zakazniOch(matn, jim) {
 // ---------- ekranlar: bosh sahifa → boʻlim roʻyxati → zakaz (telefonning ← tugmasi ham ishlaydi) ----------
 let joriyEkran = "bosh";
 function ekran(nom, push = true) {
-  for (const e of ["bosh", "royxat", "zakaz", "kassa"]) $("e-" + e).hidden = e !== nom;
+  for (const e of ["bosh", "royxat", "zakaz", "kassa", "katalog"]) $("e-" + e).hidden = e !== nom;
   if (push && nom !== joriyEkran) history.pushState({ ekran: nom }, "");
   joriyEkran = nom;
   $("orqaga").hidden = nom === "bosh";
   const bolim = BOSH_BOLIMLAR.find((h) => h[0] === arxivTab) || HOLATLAR.find((h) => h[0] === arxivTab);
-  $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : nom === "kassa" ? "Hisobot" : "Buyurtma maʼlumotlari";
+  $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : nom === "kassa" ? "Hisobot" : nom === "katalog" ? "Katalog" : "Buyurtma maʼlumotlari";
   if (nom === "kassa") { hbChiz(); kassaYangila(); }
+  else if (nom === "katalog") katalogChiz();
   else if (nom !== "zakaz") { arxivniChiz(); zakazlarniOl(); }
   window.scrollTo(0, 0);
 }

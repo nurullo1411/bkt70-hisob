@@ -1,7 +1,7 @@
 """Google Sheets "bkt 70 hisoblash" qatorlaridan narxlar.json tuzadi (telefon ilovasi va kompyuter uchun bitta qoida).
 
 Manba (Apps Script `?t=narx` javobi, koʻrinadigan qiymatlar, ru_RU formatida "0,97", "160 000,00"):
-  Narxlar!A:O — B kalit, E narx ($); H:J steklopaket soʻmda (2-qator: qalinliklar); "K188 tuba ..." qatorlari.
+  Narxlar!A:P — B kalit, E narx ($); H:J steklopaket soʻmda (2-qator: qalinliklar); "K188 tuba ..." qatorlari.
   Malumot!I:M — profil hivichi narxi (1-qator: rang turkumlari), "Hivich uzunligi (m)".
   Hisob!F5 — kurs.
 Kompyuterda yangilash: python narx_yangila.py
@@ -48,7 +48,7 @@ def tuz(manba):
 
     sarlavha = narxlar_q[1] if len(narxlar_q) > 1 else []
     qalinlik = {j: str(int(son(_q(sarlavha, j)))) for j in (8, 9, 10, 11, 12, 13, 14) if son(_q(sarlavha, j))}
-    stekl, k188_g, k188_narx = {}, None, None
+    stekl, k188_g, k188_narx, yashirin = {}, None, None, []
     for q in narxlar_q[2:]:
         nom = _q(q, 7)
         if not nom:
@@ -61,6 +61,8 @@ def tuz(manba):
             qiymatlar = {qal: int(round(son(_q(q, j)))) for j, qal in qalinlik.items() if son(_q(q, j)) is not None}
             if qiymatlar:
                 stekl[nom] = qiymatlar
+                if _q(q, 15).lower().startswith("yashirin"):
+                    yashirin.append(nom)
 
     turkumlar = [_q(malumot_q[0], j) for j in range(1, 5)] if malumot_q else []
     profil, hivich_m = {}, None
@@ -83,6 +85,8 @@ def tuz(manba):
         "narx": narx,
         "kurs": son(manba.get("kurs")) or 12000,
         "steklopaket_som": stekl,
+        # Katalogda yashirilgan oyna turlari (P ustuni): tanlovda chiqmaydi, eski zakazlar narxi bilan hisoblanadi
+        "oyna_yashirin": yashirin,
         "steklopaket_m2": {t: {q: None for q in qalinlik.values()} for t in stekl},
     }
 
