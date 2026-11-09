@@ -4,7 +4,6 @@
 // Faqat chizish uchun kalitlar: petlya_tomoni, aktiv (hisobga taʼsir qilmaydi).
 "use strict";
 
-const RANGLAR = ["Laminatsiya", "Svetnoy (kraska)", "Oq", "Anod"];
 const ESHIK_RUCHKA = ["Komfort dver ruchka", "Stublina 1177", "Stublina 1177 (Uz)", "Ruchka Dver (1076.92.28) (Qora)"];
 const ZAMOKLAR = ["Zamok Dver (3147) (Otvetka) (Tr)", "TERMO Zamok Dvernoy GIESSE", "Stublina Serbia"];
 const PETLYALAR = ["(A8060) 2SK TERMO Petlya (Tr)", "(A8060) 2SK TERMO Petlya (Uz)"];  // A9211.3 — rom petlyasi, eshikka emas
@@ -1075,11 +1074,26 @@ function joriy(k) {
     rama: k.rama ?? u.rama, qal: Number(k.oyna_qalinligi ?? u.oyna_qalinligi ?? 24),
     rang: t.rang ?? ut.rang, rangNomi: t.rang_nomi ?? ut.rang_nomi, oyna: t.oyna_turi ?? ut.oyna_turi,
     pod: t.podokonnik ?? ut.podokonnik ?? null,
+    soed: t.impost_soedinitel ?? ut.impost_soedinitel ?? "ugol", sht: t.vertikal_shtapik ?? ut.vertikal_shtapik ?? "R",
+    montaj: !!(t.montaj ?? ut.montaj),
   };
 }
 
-// Qiymatni konstruksiyaga yozadi; umumiyga teng boʻlsa olib tashlaydi
+// ⚙ tanlovi (foydalanuvchi, 2026-11-09): odatda butun zakazga yoziladi va hamma konstruksiyadagi
+// shu kalitning alohida qiymati olib tashlanadi; "faqat shu konstruksiyaga" belgisi bilan — faqat shu konstruksiyaga.
+let faqatShu = false;
 function ornat(joy, kalit, qiymat) {
+  if (!faqatShu) {
+    const u = zakaz.umumiy, ut = u.tanlov || (u.tanlov = {});
+    const obj = joy === "s" ? u : ut;
+    if (qiymat == null) delete obj[kalit]; else obj[kalit] = qiymat;
+    for (const k of [tahrir, ...zakaz.konstruksiyalar]) {
+      if (joy === "s") delete k[kalit];
+      else if (k.tanlov) { delete k.tanlov[kalit]; if (!Object.keys(k.tanlov).length) delete k.tanlov; }
+    }
+    saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+    return;
+  }
   const k = tahrir, u = zakaz.umumiy;
   if (joy === "s") {
     if (qiymat === u[kalit]) delete k[kalit]; else k[kalit] = qiymat;
@@ -1095,8 +1109,10 @@ function eshikFurnitura(k) {
   const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
   const bolim = (nom, kalit, royxat, asos) => {
     const std = ut[kalit] ?? asos;
+    if (!faqatShu) return `<div class="sz-bolim">${nom}</div>
+    <div class="sz-seg sz-fur">${royxat.map((x) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(x))}" class="${(t[kalit] ?? std) === x ? " faol" : ""}">${esc(x)}</button>`).join("")}</div>`;
     return `<div class="sz-bolim">${nom}</div>
-    <div class="sz-seg sz-fur">${[[null, `Standart <small>${esc(std || "—")}</small>`], ...royxat.map((x) => [x, esc(x)])]
+    <div class="sz-seg sz-fur">${[[null, `Zakazdagidek <small>${esc(std || "—")}</small>`], ...royxat.map((x) => [x, esc(x)])]
       .map(([v, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(v))}" class="${(v == null ? t[kalit] == null : t[kalit] === v) ? " faol" : ""}">${y}</button>`).join("")}</div>`;
   };
   return `<div class="sz-sarlavha">Eshik furniturasi</div>` +
@@ -1114,6 +1130,8 @@ function sozlamaOynasi() {
   const alohida = k.rama != null || k.oyna_qalinligi != null || (k.tanlov && Object.keys(k.tanlov).length);
   const gul = (o) => (o.toLowerCase().includes("gul") ? ";background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)" : "");
   $("k-maydon").innerHTML = `
+    <label class="belgi sz-rejim"><input type="checkbox" data-sz-faqat ${faqatShu ? "checked" : ""}> Faqat shu konstruksiyaga</label>
+    <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
     <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button></div>
     ${pvxmi(j.rama) ? `<div class="xira">Engelberg: hozircha faqat rom (gluxoy, tabaqa, impost); rezina va furnitura hali yoʻq.</div>` : ""}
 
@@ -1130,6 +1148,13 @@ function sozlamaOynasi() {
 
     <div class="sz-bolim">Podokonnik <span class="xira">(uzunligi L + 15 sm, rangi rom rangida)</span></div>
     <div class="sz-seg sz-pod">${[[null, "Yoʻq"], ...[15, 20, 25, 30, 35, 40, 45].map((v) => [v, String(v)])].map(([v, y]) => `<button data-sz="t:podokonnik" data-v="${JSON.stringify(v)}" class="${faol(j.pod === v)}">${y}</button>`).join("")}</div>
+
+    ${pvxmi(j.rama) ? "" : `<div class="sz-bolim">Impost soedineli</div>
+    <div class="sz-seg">${[["ugol", "01.553 ugol"], ["J01+J05", "236 J01 + J05"]].map(([v, y]) => `<button data-sz="t:impost_soedinitel" data-v="${esc(JSON.stringify(v))}" class="${faol(j.soed === v)}">${y}</button>`).join("")}</div>
+    <div class="sz-bolim">Vertikal shtapik</div>
+    <div class="sz-seg">${[["R", "G…-R (ovalniy)"], ["oddiy", "oddiy G"]].map(([v, y]) => `<button data-sz="t:vertikal_shtapik" data-v="${esc(JSON.stringify(v))}" class="${faol(j.sht === v)}">${y}</button>`).join("")}</div>`}
+    <div class="sz-bolim">Montaj (pena)</div>
+    <div class="sz-seg">${[[false, "Yoʻq"], [true, "Bor"]].map(([v, y]) => `<button data-sz="t:montaj" data-v="${v}" class="${faol(j.montaj === v)}">${y}</button>`).join("")}</div>
 
     ${pvxmi(j.rama) ? engFurnituraHtml(k, faol) : ""}
     ${pvxmi(j.rama) ? "" : `<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
@@ -1202,8 +1227,15 @@ function maydonOzgardi(e) {
 }
 
 // ---------- hodisalar ----------
-$("k-maydon").addEventListener("change", (e) => { saqlaTarix(); maydonOzgardi(e); });
-$("k-sozlama").addEventListener("click", sozlamaOynasi);
+$("k-maydon").addEventListener("change", (e) => {
+  if (e.target.matches("[data-sz-faqat]")) { faqatShu = e.target.checked; sozlamaOynasi(); return; }
+  saqlaTarix(); maydonOzgardi(e);
+});
+$("k-sozlama").addEventListener("click", () => {
+  const k = tahrir;
+  faqatShu = !!(k.rama != null || k.oyna_qalinligi != null || (k.tanlov && Object.keys(k.tanlov).length));
+  sozlamaOynasi();
+});
 $("sozlama-yop").addEventListener("click", () => { $("sozlama-oyna").hidden = true; });
 $("k-bolimlar").addEventListener("click", (e) => {
   const b = e.target.closest("button");
@@ -1269,50 +1301,20 @@ $("k-tozala").addEventListener("click", () => {
 });
 
 // ---------- umumiy tanlovlar ----------
-// Rang aniq tanlanadi (foydalanuvchi, 2026-11-09): grey, z/d … — turkum (narx uchun) oʻzi chiqadi,
-// sklad shu rang boʻyicha avtomatik qidiriladi (tanlov.rang_nomi).
-function rangTanlovi(t, rama) {
-  const v = [];
-  for (const [turkum, , ranglar] of RANG_TURKUMLARI) {
-    if (pvxmi(rama) && turkum !== "Oq" && turkum !== "Laminatsiya") continue;
-    for (const [nomi, yorliq] of ranglar) v.push([[turkum, nomi], turkum === "Laminatsiya" ? `${yorliq} (laminatsiya)` : turkum === "Svetnoy (kraska)" ? `${yorliq} (kraska)` : yorliq]);
-  }
-  const bitta = RANG_TURKUMLARI.find((r) => r[0] === t.rang && r[2].length === 1);
-  const joriy = [t.rang, t.rang_nomi ?? (bitta ? bitta[2][0][0] : null)];
-  if (!v.some(([x]) => x[0] === joriy[0] && x[1] === joriy[1])) v.unshift([joriy, `${t.rang || "—"} (rang tanlanmagan)`]);
-  return tanlov("r:rang", joriy, v);
-}
-
 function sozlamaniChiz() {
   const u = zakaz.umumiy, t = u.tanlov || (u.tanlov = {});
   // tanlanmasa standart (foydalanuvchi, 2026-11-07)
   if (t.ruchka == null) t.ruchka = ESHIK_RUCHKA[0];
   if (t.zamok == null) t.zamok = ZAMOKLAR[0];
-  const qator = (yorliq, html) => `<label>${yorliq}${html}</label>`;
-  const qoshib = (royxat, qiymat) => (qiymat != null && !royxat.includes(qiymat) ? [qiymat, ...royxat] : royxat).map((x) => [x, x]);
-  $("sozlama").innerHTML = `<div class="panjara">
-    ${qator("Zakaz nomi", `<input data-s="nom" value="${esc(zakaz.nom || "")}">`)}
-    ${qator("Rama", tanlov("s:rama", u.rama, [["F702", "F702"], ["F703", "F703"], ["7051", "PVX Engelberg 7051"]]))}
-    ${qator("Rang", rangTanlovi(t, u.rama))}
-    ${qator("Steklopaket", tanlov("t:oyna_turi", t.oyna_turi, qoshib(oynaTurlari(), t.oyna_turi)))}
-    ${qator("Oyna qalinligi", tanlov("s:oyna_qalinligi", u.oyna_qalinligi ?? 24, [[24, "24 mm"], [32, "32 mm"]]))}
-    ${qator("Eshik ruchkasi", tanlov("t:ruchka", t.ruchka, qoshib(ESHIK_RUCHKA, t.ruchka)))}
-    ${qator("Zamok", tanlov("t:zamok", t.zamok, qoshib(ZAMOKLAR, t.zamok)))}
-    ${qator("Petlya", tanlov("t:petlya", t.petlya ?? PETLYALAR[0], qoshib(PETLYALAR, t.petlya)))}
-    ${qator("Impost soedineli", tanlov("t:impost_soedinitel", t.impost_soedinitel ?? "ugol", [["ugol", "01.553 ugol"], ["J01+J05", "236 J01 + J05"]]))}
-    ${qator("Vertikal shtapik", tanlov("t:vertikal_shtapik", t.vertikal_shtapik ?? "R", [["R", "G…-R"], ["oddiy", "oddiy G"]]))}
-    ${qator("Montaj (pena)", tanlov("t:montaj", !!t.montaj, [[false, "yoʻq"], [true, "bor"]]))}
-  </div>`;
+  // Umumiy tanlovlar ⚙ ga koʻchirildi (foydalanuvchi, 2026-11-09): bu yerda faqat zakaz nomi
+  $("sozlama").innerHTML = `<label>Zakaz nomi<input data-s="nom" value="${esc(zakaz.nom || "")}"></label>
+    <p class="xira">Rama, rang, oyna va furnitura — konstruksiya ichida ⚙ da (butun zakazga yoki faqat shu konstruksiyaga).</p>`;
 }
 
 $("sozlama").addEventListener("change", (e) => {
   const el = e.target;
   if (el.dataset.s === "nom") zakaz.nom = el.value;
-  else if (el.dataset.m === "r:rang") {
-    const [turkum, nomi] = JSON.parse(el.value);
-    zakaz.umumiy.tanlov.rang = turkum;
-    if (nomi == null) delete zakaz.umumiy.tanlov.rang_nomi; else zakaz.umumiy.tanlov.rang_nomi = nomi;
-  } else if (el.dataset.m) {
+  else if (el.dataset.m) {
     const [joy, kalit] = el.dataset.m.split(":");
     const v = JSON.parse(el.value);
     const obj = joy === "s" ? zakaz.umumiy : zakaz.umumiy.tanlov;
