@@ -11,6 +11,7 @@ const PETLYALAR = ["(A8060) 2SK TERMO Petlya (Tr)", "(A8060) 2SK TERMO Petlya (U
 const nusxa = (x) => JSON.parse(JSON.stringify(x));
 let tahrir = null;      // tahrirlanayotgan konstruksiya (nusxa)
 let tahrirIndeks = -1;  // zakazdagi oʻrni, yangi boʻlsa -1
+let tanlanganImpost = null;  // "yoʻl|i" — tanlangan impost yoki lapsha (🗑 bilan olinadi)
 let tanlangan = "";     // tanlangan boʻlak yoʻli: "" ildiz, "1.0" ...
 let bolim = "impost";   // asboblar boʻlimi
 let asbob = null;       // tanlangan asbob yoki null (tanlash rejimi)
@@ -138,6 +139,25 @@ function bolish(p, yonalish, n = 2) {
   almashtir(p, { tur: "bolinish", yonalish, olchamlar: Array(n).fill(null), bolaklar: bolalar });
 }
 
+// Impost (yoki lapsha) olinadi (foydalanuvchi, 2026-11-09): ikki qoʻshni boʻlak bittaga qoʻshiladi.
+// Qoladigan boʻlak — chap/tepadagisi; u gluxoy, ikkinchisi gluxoy boʻlmasa — ikkinchisi.
+function impostOl(p, i) {
+  const b = tugun(tahrir.bolak, p);
+  if (!b || b.tur !== "bolinish" || !(i > 0) || i >= b.bolaklar.length) return false;
+  const a = b.bolaklar[i - 1], c = b.bolaklar[i], kal = lapshaKalit(b);
+  const qol = a.tur === "gluxoy" && c.tur !== "gluxoy" ? c : a;
+  const x = b.olchamlar[i - 1], y = b.olchamlar[i];
+  const yangi = x != null && y != null ? Math.round((Number(x) + Number(y) + (b.lapsha ? LAPSHA_ENI : 0)) * 100) / 100 : null;
+  if (kal) { const ka = a[kal], kc = c[kal]; delete qol[kal]; if (ka != null && kc != null) qol[kal] = Math.max(Number(ka), Number(kc)); }
+  b.bolaklar.splice(i - 1, 2, qol);
+  b.olchamlar.splice(i - 1, 2, yangi);
+  if (b.bolaklar.length === 1) {
+    if (kal) delete qol[kal];
+    almashtir(p, qol);
+  } else if (b.olchamlar.every((z) => z != null)) b.olchamlar[b.olchamlar.length - 1] = null;
+  return true;
+}
+
 function ochir(p) {
   const o = ota(p);
   if (!o) return false;
@@ -230,7 +250,7 @@ function joyla(b, x, y, w, h, p, g, chuqur = 0, tY = null, pY = null) {
         // lapsha tasmasi: qoʻshni ikki ramaning umumiy qismi
         const a0 = v ? Math.max(avvalgi.y, rr.y) : Math.max(avvalgi.x, rr.x);
         const a1 = v ? Math.min(avvalgi.y + avvalgi.h, rr.y + rr.h) : Math.min(avvalgi.x + avvalgi.w, rr.x + rr.w);
-        g.lapshalar.push(v ? { x: q - LAPSHA_ENI, y: a0, w: LAPSHA_ENI, h: a1 - a0 } : { x: a0, y: q - LAPSHA_ENI, w: a1 - a0, h: LAPSHA_ENI });
+        g.lapshalar.push(v ? { x: q - LAPSHA_ENI, y: a0, w: LAPSHA_ENI, h: a1 - a0, p, i } : { x: a0, y: q - LAPSHA_ENI, w: a1 - a0, h: LAPSHA_ENI, p, i });
       }
       if (c[kal] != null) g.qisqalar.push({ ...rr, p: bolaYoli(p, i), kal });
       ramaJoyla(c, rr, bolaYoli(p, i), g, chuqur + 1, c[kal] != null ? kal : null, p);
@@ -256,7 +276,7 @@ function joyla(b, x, y, w, h, p, g, chuqur = 0, tY = null, pY = null) {
     let q = v ? x : y;
     const oxiri = s.length - 1;
     s.forEach((o, i) => {
-      if (i > 0) g.impostlar.push(v ? { x1: q, y1: y, x2: q, y2: y + h, tY, pY } : { x1: x, y1: q, x2: x + w, y2: q, tY, pY });
+      if (i > 0) g.impostlar.push(v ? { x1: q, y1: y, x2: q, y2: y + h, tY, pY, p, i } : { x1: x, y1: q, x2: x + w, y2: q, tY, pY, p, i });
       if (v) joyla(b.bolaklar[i], q, y, o, h, bolaYoli(p, i), g, chuqur + 1, tY, pY);
       else joyla(b.bolaklar[i], x, q, w, o, bolaYoli(p, i), g, chuqur + 1, i === 0 ? tY : null, i === oxiri ? pY : null);
       q += o;
@@ -595,6 +615,19 @@ function chizmaSVG(k, opts = {}) {
       s += nishon(cx, cy, belgi[o.p]);
       const bosCls = "bos" + (o.p === opts.tanlangan ? " tanl" : "");
       s += o.u ? `<path d="${uYol(o, 0)}" class="${bosCls}" data-p="${o.p}"/>` : yuza(o.x, o.y, o.w, o.h, 0, bosCls, `data-p="${o.p}"`, o.tY, o.pY);
+    }
+  }
+  // Impost va lapsha bosiladigan (tanlab 🗑 bilan olinadi): ingichka boʻlgani uchun kengroq yashirin joy
+  if (!opts.kichik) {
+    const k_ = t * 2.4;
+    const bosq = (x, y, w, h, kal) => rect(x, y, w, h, "impbos" + (kal === opts.tanlanganImpost ? " tanl" : ""), `data-imp="${kal}"`);
+    for (const c of g.impostlar) {
+      if (c.p == null) continue;
+      s += c.x1 === c.x2 ? bosq(c.x1 - k_ / 2, c.y1 + t, k_, c.y2 - c.y1 - 2 * t, `${c.p}|${c.i}`) : bosq(c.x1 + t, c.y1 - k_ / 2, c.x2 - c.x1 - 2 * t, k_, `${c.p}|${c.i}`);
+    }
+    for (const l of g.lapshalar) {
+      const v = l.w < l.h, cx = l.x + l.w / 2, cy = l.y + l.h / 2;
+      s += v ? bosq(cx - k_ / 2, l.y, k_, l.h, `${l.p}|${l.i}`) : bosq(l.x, cy - k_ / 2, l.w, k_, `${l.p}|${l.i}`);
     }
   }
   // F1 / C1 / E1 belgisi: yumaloq taxtacha
@@ -1093,7 +1126,7 @@ function yangila() {
   saqla("qoralama", JSON.stringify({ tahrir, indeks: tahrirIndeks, orqaga: orqaga.slice(-20) }));
   $("k-nom").innerHTML = `<b>${esc(tahrir.nom || "")}</b><span>${yx(Number(tahrir.L))} × ${yx(Number(tahrir.H))} sm${(tahrir.soni ?? 1) > 1 ? " · " + tahrir.soni + " dona" : ""}</span>`;
   asboblarniChiz();
-  $("k-chizma").innerHTML = chizmaSVG(tahrir, { tanlangan: asbob ? null : tanlangan });
+  $("k-chizma").innerHTML = chizmaSVG(tahrir, { tanlangan: asbob || tanlanganImpost ? null : tanlangan, tanlanganImpost });
   panelniChiz();
   oldindanHisobla();
 }
@@ -1101,6 +1134,12 @@ function yangila() {
 const tugmalar = (amal, qiymat, variantlar) => `<div class="seg">${variantlar.map(([v, y]) => `<button data-amal="${amal}" data-v="${esc(JSON.stringify(v))}" class="${JSON.stringify(v) === JSON.stringify(qiymat) ? "faol" : ""}">${esc(y)}</button>`).join("")}</div>`;
 
 function panelniChiz() {
+  if (tanlanganImpost) {
+    const [ip] = tanlanganImpost.split("|"), lap = tugun(tahrir.bolak, ip)?.lapsha;
+    $("k-panel").innerHTML = `<div class="panel-bosh"><b>${lap ? "Lapsha" : "Impost"} tanlandi</b></div>
+      <div class="xira">🗑 bosing — ${lap ? "lapsha" : "impost"} olinadi, ikki ${lap ? "rama" : "boʻlak"} bittaga qoʻshiladi (↶ bilan qaytariladi).</div>`;
+    return;
+  }
   const b = tugun(tahrir.bolak, tanlangan);
   if (!b || b.tur === "bolinish") { $("k-panel").innerHTML = ""; return; }
   const g = geometriya(tahrir);
@@ -1377,8 +1416,18 @@ $("k-asboblar").addEventListener("click", (e) => {
 $("k-chizma").addEventListener("click", (e) => {
   const ol_ = e.target.closest("[data-ol]");
   if (ol_) { olchamniOzgartir(ol_.dataset.ol); return; }
+  const im = e.target.closest("[data-imp]");
+  if (im && (!asbob || asbob === "ochir")) {
+    const [ip, ii] = im.dataset.imp.split("|");
+    if (asbob === "ochir") { saqlaTarix(); impostOl(ip, +ii); tanlanganImpost = null; tanlanganniTuzat(); yangila(); return; }
+    tanlanganImpost = tanlanganImpost === im.dataset.imp ? null : im.dataset.imp;
+    if (tanlanganImpost) xabar("Impost tanlandi: 🗑 bosing — olinadi");
+    yangila();
+    return;
+  }
   const r = e.target.closest("[data-p]");
   if (!r) return;
+  tanlanganImpost = null;
   if (asbob) { asbobniQolla(r.dataset.p); return; }
   tanlangan = r.dataset.p;
   yangila();
@@ -1412,20 +1461,23 @@ $("k-panel").addEventListener("click", (e) => {
 });
 $("k-saqla").addEventListener("click", () => konstruktorniYop(true));
 $("k-bekor").addEventListener("click", () => konstruktorniYop(false));
-// 🗑 (foydalanuvchi, 2026-11-09): tanlangan boʻlak impost(i) bilan olinadi, joyi qoʻshnisiga oʻtadi;
-// boʻlak bitta qolganda — ikki marta bosib hammasini tozalash
+function tanlanganniTuzat() {
+  if (!tugun(tahrir.bolak, tanlangan) || tugun(tahrir.bolak, tanlangan).tur === "bolinish") tanlangan = geometriya(tahrir).barglar[0].p;
+}
+// 🗑 (foydalanuvchi, 2026-11-09): tanlangan impost yoki lapsha olinadi (impost/lapshaga bosib tanlanadi);
+// impost tanlanmagan boʻlsa — ikki marta bosib hammasini tozalash
 $("k-tozala").addEventListener("click", () => {
   const b = $("k-tozala");
-  if (tanlangan && ota(tanlangan) && tugun(tahrir.bolak, tanlangan)) {
+  if (tanlanganImpost) {
+    const [ip, ii] = tanlanganImpost.split("|");
     saqlaTarix();
-    if (ochir(tanlangan)) {
-      if (!tugun(tahrir.bolak, tanlangan) || tugun(tahrir.bolak, tanlangan).tur === "bolinish") tanlangan = geometriya(tahrir).barglar[0].p;
-      xabar("Boʻlak olindi (↶ bilan qaytariladi)");
-    } else orqaga.pop();
+    if (impostOl(ip, +ii)) xabar("Impost olindi (↶ bilan qaytariladi)"); else orqaga.pop();
+    tanlanganImpost = null;
+    tanlanganniTuzat();
     yangila();
     return;
   }
-  if (!b.classList.contains("tasdiq")) { b.classList.add("tasdiq"); setTimeout(() => b.classList.remove("tasdiq"), 3000); xabar("Hammasini tozalash uchun yana bosing"); return; }
+  if (!b.classList.contains("tasdiq")) { b.classList.add("tasdiq"); setTimeout(() => b.classList.remove("tasdiq"), 3000); xabar("Impostni olish: avval impostning oʻziga bosing, keyin 🗑. Hammasini tozalash — yana 🗑"); return; }
   b.classList.remove("tasdiq");
   saqlaTarix();
   tahrir.bolak = { tur: "gluxoy" };
