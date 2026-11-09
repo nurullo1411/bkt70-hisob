@@ -1269,6 +1269,20 @@ $("k-tozala").addEventListener("click", () => {
 });
 
 // ---------- umumiy tanlovlar ----------
+// Rang aniq tanlanadi (foydalanuvchi, 2026-11-09): grey, z/d … — turkum (narx uchun) oʻzi chiqadi,
+// sklad shu rang boʻyicha avtomatik qidiriladi (tanlov.rang_nomi).
+function rangTanlovi(t, rama) {
+  const v = [];
+  for (const [turkum, , ranglar] of RANG_TURKUMLARI) {
+    if (pvxmi(rama) && turkum !== "Oq" && turkum !== "Laminatsiya") continue;
+    for (const [nomi, yorliq] of ranglar) v.push([[turkum, nomi], turkum === "Laminatsiya" ? `${yorliq} (laminatsiya)` : turkum === "Svetnoy (kraska)" ? `${yorliq} (kraska)` : yorliq]);
+  }
+  const bitta = RANG_TURKUMLARI.find((r) => r[0] === t.rang && r[2].length === 1);
+  const joriy = [t.rang, t.rang_nomi ?? (bitta ? bitta[2][0][0] : null)];
+  if (!v.some(([x]) => x[0] === joriy[0] && x[1] === joriy[1])) v.unshift([joriy, `${t.rang || "—"} (rang tanlanmagan)`]);
+  return tanlov("r:rang", joriy, v);
+}
+
 function sozlamaniChiz() {
   const u = zakaz.umumiy, t = u.tanlov || (u.tanlov = {});
   // tanlanmasa standart (foydalanuvchi, 2026-11-07)
@@ -1279,7 +1293,7 @@ function sozlamaniChiz() {
   $("sozlama").innerHTML = `<div class="panjara">
     ${qator("Zakaz nomi", `<input data-s="nom" value="${esc(zakaz.nom || "")}">`)}
     ${qator("Rama", tanlov("s:rama", u.rama, [["F702", "F702"], ["F703", "F703"], ["7051", "PVX Engelberg 7051"]]))}
-    ${qator("Rang", tanlov("t:rang", t.rang, qoshib(RANGLAR, t.rang)))}
+    ${qator("Rang", rangTanlovi(t, u.rama))}
     ${qator("Steklopaket", tanlov("t:oyna_turi", t.oyna_turi, qoshib(oynaTurlari(), t.oyna_turi)))}
     ${qator("Oyna qalinligi", tanlov("s:oyna_qalinligi", u.oyna_qalinligi ?? 24, [[24, "24 mm"], [32, "32 mm"]]))}
     ${qator("Eshik ruchkasi", tanlov("t:ruchka", t.ruchka, qoshib(ESHIK_RUCHKA, t.ruchka)))}
@@ -1294,7 +1308,11 @@ function sozlamaniChiz() {
 $("sozlama").addEventListener("change", (e) => {
   const el = e.target;
   if (el.dataset.s === "nom") zakaz.nom = el.value;
-  else if (el.dataset.m) {
+  else if (el.dataset.m === "r:rang") {
+    const [turkum, nomi] = JSON.parse(el.value);
+    zakaz.umumiy.tanlov.rang = turkum;
+    if (nomi == null) delete zakaz.umumiy.tanlov.rang_nomi; else zakaz.umumiy.tanlov.rang_nomi = nomi;
+  } else if (el.dataset.m) {
     const [joy, kalit] = el.dataset.m.split(":");
     const v = JSON.parse(el.value);
     const obj = joy === "s" ? zakaz.umumiy : zakaz.umumiy.tanlov;
