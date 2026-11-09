@@ -53,7 +53,7 @@ function joriyOchilish(k) { const e = eshiklar(k && k.bolak)[0]; return e ? e.oc
 let orqaga = [], oldinga = [];
 let oldindanTaymer = null;
 
-const LAMBRI = "Lambri", LAMBRI_ENI = 8.6;  // hisob.LAMBRI, tasma eni sm
+const LAMBRI = "Lambri", LAMBRI_ENI = 10;  // hisob.LAMBRI, tasma eni sm
 function oynaTurlari() {
   // Katalogda yashirilgan turlar tanlovda chiqmaydi (eski zakazda qolgani narxi bilan hisoblanadi)
   try { const n = JSON.parse(ol("narxlar")), y = new Set(n.oyna_yashirin || []); return Object.keys(n.steklopaket_som || {}).filter((t) => !y.has(t)); } catch (e) { return ["Oq+oq"]; }
@@ -456,7 +456,7 @@ function chizmaSVG(k, opts = {}) {
     return q + yoyB(xb, xa) + `L${f(xa - d)} ${f(ys)}L${f(xa - d)} ${f(ul - d)}L${f(x + d)} ${f(ul - d)}Z`;
   }
 
-  // Lambri (foydalanuvchi, 2026-11-09): profil rangida, tik tasmalar 8,6 sm
+  // Lambri (foydalanuvchi, 2026-11-09): PVX, profil rangida, tik tasmalar 10 sm
   function lambriChiz(x, y, w, h) {
     let q = rect(x, y, Math.max(w, 0), Math.max(h, 0), "lb");
     for (let xx = x + LAMBRI_ENI; xx < x + w - 0.5; xx += LAMBRI_ENI) q += chiziq(xx, y, xx, y + h, "lb-ch");

@@ -77,12 +77,12 @@ REZINA_CHET = "EPDM 5025"
 REZINA_QANOT = "EPDM 5108"
 
 
-# Lambri (foydalanuvchi, 2026-11-09; ProfOkna "СТ Ламбри" Termo 20×86, "Вагонка"): oyna oʻrniga, boʻlakka
-# oyna_turi = "Lambri" berilsa. Tik teriladi: tasma soni = (ichki eni − 1) : 8,6 yuqoriga, uzunligi = ichki boʻyi − 1.
-# Shtapik, rezina, podstavka — hech narsa kerak emas. Hivich 6 m, diller "Lambri Termo 116".
+# Lambri (foydalanuvchi, 2026-11-09): PVX lambri, tasma 10 sm, hivich 6 m (diller "Lambri II (N)", ProfOkna 1080
+# "Lambri II"). Oyna oʻrniga, boʻlakka oyna_turi = "Lambri" berilsa. Tik teriladi: tasma soni = (ichki eni − 1) : 10
+# yuqoriga, uzunligi = ichki boʻyi − 1. Shtapik, rezina, podstavka — hech narsa kerak emas.
 LAMBRI = "Lambri"
-LAMBRI_PROFIL = "L116"
-LAMBRI_ENI = D("8.6")
+LAMBRI_PROFIL = "LII"
+LAMBRI_ENI = D(10)
 LAMBRI_AYIRMA = D(1)
 HIVICH_6 = {LAMBRI_PROFIL}
 

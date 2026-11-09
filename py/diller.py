@@ -104,19 +104,19 @@ def eng_profil_nomi(profil, rang):
     return f"ENG 7000 ({r}) {ENG_LAM_NOM.get(profil, profil)} {ll} (N)"
 
 
+# PVX lambri diller nomi sklad rangi boʻyicha (laminat — bir tomoni rangli emas, ikkala tomoni)
+LAMBRI_NOM = {"oq": "Lambri II (N)", "grey": "TRIO 6000 (Anthrazit Grey) Lambri LAM LL (N)",
+              "alux": "TRIO 6000 (Alyuks) Lambri New LAM (N)", "sh/d": "TRIO 6000 (Sheffal Dub) Lambri LAM LL (N)",
+              "z/d": "TRIO 6000 (Zol Dub) Lambri LAM (N)", "d/m": "TRIO 6000 (Dub Mokko) Lambri New LAM (N)"}
+
+
 def profil_nomi(profil, rang):
     """Diller roʻyxatidagi hivich nomi. rang — sklad rangi (grey, z/d, …, 306g, oq, anod) yoki None."""
     kod = profil.replace("-", "")
     if profil in ENGELBERG_PROFILLARI:
         return eng_profil_nomi(profil, rang)
-    if profil == "L116":  # lambri (foydalanuvchi, 2026-11-09): diller "Lambri Termo 116", 6 m
-        if rang == "oq":
-            return "Lambri Termo 116 (R) (Oq)"
-        if rang in ("306g", "anod"):
-            return f"Lambri Termo 116 ({DILLER_RANGI.get(rang, 'anod rangi?')})"
-        lam = {"grey": "7011-Anthrazit Grey LL", "alux": "7011-Alyuks LL", "sh/d": "7011-Sheffal Dub LL",
-               "z/d": "8017-Zol Dub", "d/m": "8017-Dub Mokko"}.get(rang or "", "rangi?")
-        return f"T LAM ({lam}) Lambri Termo 116"
+    if profil == "LII":  # PVX lambri 10 sm, 6 m (foydalanuvchi, 2026-11-09)
+        return LAMBRI_NOM.get(rang or "", "Lambri II (N) — rangi?")
     if rang in ("oq", "306g", "anod"):
         r = DILLER_RANGI.get(rang, "anod rangi?")
         return f"TERMO BKT 70 {kod} {TERMO_NOM.get(profil, '')} ({r}) (6.5m)".replace("  ", " ")
