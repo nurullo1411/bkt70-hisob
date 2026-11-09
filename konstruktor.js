@@ -811,7 +811,7 @@ function asboblarniChiz() {
   const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
   $("k-maslahat").textContent = asbob === "ochir" ? "Impostni olib tashlash: impost yonidagi boʻlakka bosing — shu boʻlak va uning chap/tepa impost(i) olinadi, joyi qoʻshnisiga oʻtadi"
-    : nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbob tanlang yoki boʻlakka bosib sozlang. Oʻlchamni oʻzgartirish uchun raqamga bosing.";
+    : nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbobni bosib turib boʻlakka suring. Boʻlak yoki impostga bosib tanlang, oʻlcham — raqamga bosing.";
 }
 
 function saqlaTarix() { orqaga.push(nusxa(tahrir)); if (orqaga.length > 50) orqaga.shift(); oldinga = []; }
@@ -1410,7 +1410,11 @@ $("k-asboblar").addEventListener("click", (e) => {
   if (surildi) { surildi = false; return; }  // surib tashlangandan keyingi "click" hisoblanmaydi
   if (bolim === "shakl" && b.dataset.asbob) { shaklniQolla(b.dataset.asbob); return; }
   if (b.dataset.ochilish != null) eshikOchilish = eshikOchilish === "ichkariga" ? "tashqariga" : "ichkariga";
-  else asbob = asbob === b.dataset.asbob ? null : b.dataset.asbob;
+  else if (b.dataset.asbob) {
+    // Faqat surib qoʻllanadi (foydalanuvchi, 2026-11-09): tanlab, chizmaga tegib ketganda tasodifan qoʻshilmasin
+    asbob = null;
+    xabar("Asbobni bosib turing va kerakli boʻlakka surib olib boring");
+  }
   yangila();
 });
 $("k-chizma").addEventListener("click", (e) => {
