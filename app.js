@@ -532,7 +532,9 @@ const RASM_KODLAR = RASMLAR.map((f) => [f.replace("_", "."), f]).sort((a, b) => 
 const RASM_NOM = [[/A9211\.3/, "A9211_3"], [/4514/, "A4514"], [/1076\.92\.28|komfort dver/i, "1076_92_28"], [/stublina 1177|1177\.85/i, "1177"],
   [/roto lux/i, "ROTO_LUX"], [/petlya 100/i, "PETLYA_100"], [/krishka podokonnik/i, "KRISHKA_POD"], [/ct 203|takos pvh/i, "CT203"],
   [/takos regul/i, "TAKOS_REG"], [/soedinitel 7000/i, "SOED_7000"], [/M(115)?35/, "M535"], [/W02/, "W02"], [/W03/, "W03"],
-  [/J01/, "J01"], [/J05/, "J05"], [/5025/, "EPDM_5025"], [/5108/, "EPDM_5108"]];
+  [/J01/, "J01"], [/J05/, "J05"], [/5025/, "EPDM_5025"], [/5108/, "EPDM_5108"],
+  // AKFA "Механизмы" rasmi Fornax/Roto uchun (foydalanuvchi: deyarli bir xil)
+  [/ispanilet/i, "ISPANILET"], [/sredniy prijim/i, "SREDNIY_ZAPOR"], [/petli komplekt/i, "PETLYA_OPORA"]];
 const BELGILAR = [[/ruchka/i, "✋"], [/zamok|serdtsevina|otvetka|a4202|cylinder/i, "🔒"], [/petlya|nojnitsa|dv\. otk/i, "🔗"],
   [/tij/i, "📏"], [/samorez|yhbm|3,9×19/i, "🔩"], [/kley|k188/i, "🧴"], [/pena|mk 01/i, "🧯"], [/podokonnik/i, "▭"],
   [/zatsep|zapor|prijim|ogranichitel|shpingalet|a4514/i, "🔧"], [/takos|ct 203/i, "▪"], [/soed|w0|m535|j0|01\.553/i, "📐"], [/arka/i, "◠"]];
