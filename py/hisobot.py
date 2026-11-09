@@ -351,6 +351,8 @@ def _dvaynoy_furnitura(s, r):
         tij += (boy - 10) + (en - TIJ_AYIRMA)
         if boy > DVAYNOY_PRIJIM_BOY:
             tij += (boy - 10) / 2
+        if boy > DVAYNOY_BALAND_BOY:
+            tij += boy / 2 - 40  # Master 3400F.32: H/2 − 400 mm (foydalanuvchi, 2026-11-09)
     r.qosh("Furnitura", ROM_TIJ, tij / 100, "m")
 
 
