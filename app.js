@@ -534,7 +534,7 @@ const RASM_NOM = [[/A9211\.3/, "A9211_3"], [/4514/, "A4514"], [/1076\.92\.28|kom
   [/takos regul/i, "TAKOS_REG"], [/soedinitel 7000/i, "SOED_7000"], [/M(115)?35/, "M535"], [/W02/, "W02"], [/W03/, "W03"],
   [/J01/, "J01"], [/J05/, "J05"], [/5025/, "EPDM_5025"], [/5108/, "EPDM_5108"],
   // AKFA "Механизмы" rasmi Fornax/Roto uchun (foydalanuvchi: deyarli bir xil)
-  [/4207/, "ZATSEP_4207"], [/vadasliv/i, "VADASLIV"], [/ispanilet/i, "ISPANILET"], [/sredniy prijim/i, "SREDNIY_ZAPOR"], [/petli komplekt/i, "PETLYA_OPORA"]];
+  [/4207/, "ZATSEP_4207"], [/vadasliv/i, "VADASLIV"], [/zatsepka/i, "ZATSEP_PVX"], [/ispanilet/i, "ISPANILET"], [/sredniy prijim/i, "SREDNIY_ZAPOR"], [/petli komplekt/i, "PETLYA_OPORA"]];
 const BELGILAR = [[/ruchka/i, "✋"], [/zamok|serdtsevina|otvetka|a4202|cylinder/i, "🔒"], [/petlya|nojnitsa|dv\. otk/i, "🔗"],
   [/tij/i, "📏"], [/samorez|yhbm|3,9×19/i, "🔩"], [/kley|k188/i, "🧴"], [/pena|mk 01/i, "🧯"], [/podokonnik/i, "▭"],
   [/zatsep|zapor|prijim|ogranichitel|shpingalet|a4514/i, "🔧"], [/takos|ct 203/i, "▪"], [/soed|w0|m535|j0|01\.553/i, "📐"], [/arka/i, "◠"]];
