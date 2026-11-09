@@ -24,7 +24,15 @@ DVAYNOY_RUCHKA = "(A6011.10) Ruchka COMFORT Okon Dv. Otk"
 DVAYNOY_MEXANIZM = "(A3420F.1) Dv. Otk 160kg"
 NOJNITSA_SREDNIY = "(A3400.21) Nojnitsa Sredniy"
 NOJNITSA_DLINNIY = "(A3400.22) Nojnitsa Dlinniy"
+NOJNITSA_KALTA = "(A3400.20) Nojnitsa Korotkiy"
 NOJNITSA_CHEGARA = D(65)  # tabaqa eni 65 sm gacha — sredniy, kattasi — dlinniy (ProfOkna, tasdiqlangan)
+# Master "Ween" T&T qogʻozi (foydalanuvchi, 2026-11-09): nojnitsa 3400.20 37–45, .21 45,1–65, .22 65,1–120 sm;
+# prijim (3420F.31) boʻyi 140 dan baland; 3400F.32 boʻyi 220 dan baland; 120 dan keng — qoʻyib boʻlmaydi
+NOJNITSA_KALTA_CHEGARA = D(45)
+DVAYNOY_EN_MIN, DVAYNOY_EN_MAX = D(37), D(120)
+DVAYNOY_BOY_MIN, DVAYNOY_BOY_MAX = D(50), D(270)
+DVAYNOY_BALAND = "(A3400F.32) Dv. Otk qoʻshimcha zapor"
+DVAYNOY_BALAND_BOY = D(220)
 # Fortochka (foydalanuvchi, 2026-11-05; ProfOkna "откидная створка")
 CHIT_CHIT = "(A1501.5) Chit-Chit"
 OGRANICHITEL = {"kichik": "(A1115.2) Ogranichitel", "katta": "(A1115.1) Ogranichitel"}  # boʻyi 60 sm gacha / kattasi (ProfOkna)
@@ -33,7 +41,7 @@ ZATSEP = "Termo Zatsep (4207)"
 FORTOCHKA_ZATSEP = ZATSEP  # ruchkali fortochkada 2 ta
 FORTOCHKA_PETLYA_EN = D(100)  # eni 1 m dan katta — 3 petlya, aks holda 2
 DVAYNOY_PRIJIM = "Dvaynoy uchun Prijiim (zatsepi bilan)"
-DVAYNOY_PRIJIM_BOY = D(120)
+DVAYNOY_PRIJIM_BOY = D(140)  # Master: H > 1400 mm (avval ProfOkna 120)
 # Burchak soedineli, katalog "Установка угловых соединителей": har burchakka bittadan
 RAMA_BURCHAGI = {"F702": ["263 W02", "108 W02"], "F703": ["263 W03", "108 W03"]}
 TABAQA_BURCHAGI = {"V702": ["184 W02", "078 W02"], "V707": ["184 M535", "078 M535"], "V708": ["184 M535", "078 M535"]}
@@ -315,17 +323,32 @@ def _dvaynoy_furnitura(s, r):
     tabaqalar = [(D(e), D(b)) for e, b in s.get("dvaynoylar", [])]
     if not tabaqalar:
         return
+    for en, boy in tabaqalar:
+        if en < DVAYNOY_EN_MIN:
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa eni {en} sm — Master furniturasida eng kalta nojnitsa (3400.20) {DVAYNOY_EN_MIN} sm dan")
+        if en > DVAYNOY_EN_MAX:
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa eni {en} sm — {DVAYNOY_EN_MAX} sm dan keng tabaqaga Master qoʻshimcha detal (3420F.31 + 3400.35) talab qiladi, dasturda yoʻq")
+        if boy < DVAYNOY_BOY_MIN:
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa boʻyi {boy} sm — Master jadvali {DVAYNOY_BOY_MIN} sm dan boshlanadi")
+        if boy > DVAYNOY_BOY_MAX:
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa boʻyi {boy} sm — Master jadvali {DVAYNOY_BOY_MAX} sm gacha")
     soni = len(tabaqalar)
     r.qosh("Furnitura", DVAYNOY_RUCHKA, soni, "dona")
     r.qosh("Furnitura", DVAYNOY_MEXANIZM, soni, "dona")
-    sredniy = sum(1 for en, _ in tabaqalar if en <= NOJNITSA_CHEGARA)
+    kalta = sum(1 for en, _ in tabaqalar if en <= NOJNITSA_KALTA_CHEGARA)
+    sredniy = sum(1 for en, _ in tabaqalar if NOJNITSA_KALTA_CHEGARA < en <= NOJNITSA_CHEGARA)
+    if kalta:
+        r.qosh("Furnitura", NOJNITSA_KALTA, kalta, "dona")
     if sredniy:
         r.qosh("Furnitura", NOJNITSA_SREDNIY, sredniy, "dona")
-    if soni - sredniy:
-        r.qosh("Furnitura", NOJNITSA_DLINNIY, soni - sredniy, "dona")
-    prijim = sum(1 for _, b in tabaqalar if b >= DVAYNOY_PRIJIM_BOY)
+    if soni - sredniy - kalta:
+        r.qosh("Furnitura", NOJNITSA_DLINNIY, soni - sredniy - kalta, "dona")
+    prijim = sum(1 for _, b in tabaqalar if b > DVAYNOY_PRIJIM_BOY)
     if prijim:
         r.qosh("Furnitura", DVAYNOY_PRIJIM, prijim, "dona")
+    baland = sum(1 for _, b in tabaqalar if b > DVAYNOY_BALAND_BOY)
+    if baland:
+        r.qosh("Furnitura", DVAYNOY_BALAND, baland, "dona")
     # Prijim qoʻshilsa, rolik-zatsep komplektidan yana bittasi (foydalanuvchi, 2026-11-02)
     r.qosh("Furnitura", ZATSEP, len(tabaqalar) * 3 + prijim, "dona")
     tij = D(0)
@@ -333,7 +356,7 @@ def _dvaynoy_furnitura(s, r):
         if en <= TIJ_AYIRMA:
             raise HisobXato(f"Dvaynoy tabaqa juda tor, poliamid tij sigʻmaydi: {en} sm")
         tij += (boy - 10) + (en - TIJ_AYIRMA)
-        if boy >= DVAYNOY_PRIJIM_BOY:
+        if boy > DVAYNOY_PRIJIM_BOY:
             tij += (boy - 10) / 2
     r.qosh("Furnitura", ROM_TIJ, tij / 100, "m")
 
