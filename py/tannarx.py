@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 from hisob import HisobXato, hivich_metr, narx_kaliti
-from hisobot import ARKA_OYNA, LAPSHA_SAMOREZ, narxlarni_oqi
+from hisobot import ARKA_OYNA, LAPSHA_SAMOREZ, MEDVED_SAMOREZ, narxlarni_oqi
 from zakaz import hisobla_zakaz
 
 
@@ -28,7 +28,7 @@ def _narx(kalit, narxlar, kurs):
     if artikul == "01.553":
         komp = narxlar["narx"].get("Soedinitel Urta 19 ugl")
         return None if komp is None else komp / 4
-    if artikul in (ARKA_OYNA, LAPSHA_SAMOREZ):
+    if artikul in (ARKA_OYNA, LAPSHA_SAMOREZ, MEDVED_SAMOREZ):
         som = narxlar["narx"].get(artikul)
         return None if som is None else som / kurs
     if artikul == "K188":

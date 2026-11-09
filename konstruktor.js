@@ -1276,8 +1276,8 @@ function sozlamaOynasi() {
     <div class="sz-seg">${[["ugol", "01.553 ugol"], ["J01+J05", "236 J01 + J05"]].map(([v, y]) => `<button data-sz="t:impost_soedinitel" data-v="${esc(JSON.stringify(v))}" class="${faol(j.soed === v)}">${y}</button>`).join("")}</div>
     <div class="sz-bolim">Vertikal shtapik</div>
     <div class="sz-seg">${[["R", "G…-R (ovalniy)"], ["oddiy", "oddiy G"]].map(([v, y]) => `<button data-sz="t:vertikal_shtapik" data-v="${esc(JSON.stringify(v))}" class="${faol(j.sht === v)}">${y}</button>`).join("")}</div>`}
-    <div class="sz-bolim">Montaj (pena)</div>
-    <div class="sz-seg">${[[false, "Yoʻq"], [true, "Bor"]].map(([v, y]) => `<button data-sz="t:montaj" data-v="${v}" class="${faol(j.montaj === v)}">${y}</button>`).join("")}</div>
+    <div class="sz-bolim">Montaj <span class="xira">(montajli — pena + medved samorez)</span></div>
+    <div class="sz-seg">${[[false, "Montajsiz"], [true, "Montajli"]].map(([v, y]) => `<button data-sz="t:montaj" data-v="${v}" class="${faol(j.montaj === v)}">${y}</button>`).join("")}</div>
 
     ${pvxmi(j.rama) ? engFurnituraHtml(k, faol) : ""}
     ${pvxmi(j.rama) ? "" : `<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>

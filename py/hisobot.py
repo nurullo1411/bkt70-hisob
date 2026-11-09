@@ -46,6 +46,7 @@ PODOKONNIK_ENLARI = (15, 20, 25, 30, 35, 40, 45)  # sm, Romchidagidek tanlov (fo
 PODOKONNIK_ZAPAS = D(15)                          # uzunlik = L + 15 sm
 PODOKONNIK_KRISHKA = "Krishka Podokonnik"         # har podokonnikka 2 dona
 ARKA_EGISH = "Arka egish"        # $ / m egiladigan profil
+MEDVED_SAMOREZ = "Medved samorez soʻm"   # montaj samorezi, dona, soʻmda (foydalanuvchi, 2026-11-09: 1 300 soʻm)
 LAPSHA_SAMOREZ = "Lapsha samorez soʻm"   # dona, soʻmda (foydalanuvchi, 2026-11-09: 300 soʻm), kursga boʻlinadi
 ARKA_OYNA = "Arka oyna soʻm"     # soʻm / m² arkali oyna ustamasi (narx soʻmda, kursga boʻlinadi)
 
@@ -432,7 +433,12 @@ def hisobot(k, narxlar):
         r.qosh("Podokonnik", f"Podokonnik {int(pod)} | {rang}", metr, "m")  # nomi = narx kaliti (zakaz, tannarx)
         r.qosh("Podokonnik", PODOKONNIK_KRISHKA, 2, "dona")
     if tanlov.get("montaj"):
+        # Montajli (foydalanuvchi, 2026-11-09): pena + medved samorez (1 300 soʻm), montajsizda ikkalasi ham yoʻq
         r.qosh("Montaj", "MK 01", D(s["rama_perimetri"]) / 100 * PENA_METRGA, "ballon")
+        if s.get("medved_samorez"):
+            dona = D(s["medved_samorez"])
+            som = r.narx.get(MEDVED_SAMOREZ)
+            r.summa_bilan("Montaj", MEDVED_SAMOREZ, dona, "dona", None if som is None else dona * D(som) / kurs, MEDVED_SAMOREZ)
 
     return {
         "n": n,

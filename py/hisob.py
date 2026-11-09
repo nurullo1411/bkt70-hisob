@@ -167,6 +167,7 @@ class Hisob:
         self.impost_soni = 0
         self.armatura_samorez = 0
         self.lapsha_samorez = 0
+        self.medved_samorez = 0
         self.eshiklar = []
         self.markaziy_rezina = D(0)
         self.oyna_rezinasi = D(0)
@@ -286,6 +287,7 @@ class Hisob:
         self.oyna(joy, en - ayirma, boy - ayirma, D("1.5") if fortochka is not None else self.seriya.tabaqa_oyna, arka, past)
 
     def rama(self, profil, en, boy):
+        self.medved_samorez += medved_soni(en, boy)
         if self.segment:
             # Yarim aylana (foydalanuvchi, 2026-11-07): past + arka, yon yoʻq; 2 burchakka ugl soedinitel
             a = D(str(self.arka.a))
@@ -650,7 +652,16 @@ def _rama_hisobi(profil, impost, en, boy, bolak, h):
     _bolak(bolak, Zona(en, boy, r, r, r, r, tepa_yoy=h.arka), h, ctx)
 
 
-LAPSHA_SAMOREZ_QADAM = D(100)   # har metr lapshaga 1 samorez (foydalanuvchi, 2026-11-09)
+LAPSHA_SAMOREZ_QADAM = D(100)
+
+
+def medved_soni(en, boy):
+    """Montaj samorezi (medved), bitta rama uchun (foydalanuvchi, 2026-11-09): har tomoniga alohida.
+    Yon (chap, oʻng): boʻyi 180 gacha — 2 ta, balandi — har metriga 1 ta (yuqoriga).
+    Tepa va past: eni 160 dan kichik — urilmaydi, aks holda har metriga 1 ta (yuqoriga)."""
+    yon = 2 if boy <= 180 else math.ceil(D(boy) / 100)
+    tepa = 0 if en < 160 else math.ceil(D(en) / 100)
+    return 2 * yon + 2 * tepa   # har metr lapshaga 1 samorez (foydalanuvchi, 2026-11-09)
 
 
 def _lapshami(b):
@@ -768,6 +779,7 @@ def hisobla(k):
             "impost_soni": h.impost_soni,
             "armatura_samorez": h.armatura_samorez,
             "lapsha_samorez": h.lapsha_samorez,
+            "medved_samorez": h.medved_samorez,
             "eshiklar": h.eshiklar,
             "markaziy_rezina": float(h.markaziy_rezina),
             "oyna_rezinasi": float(h.oyna_rezinasi),
