@@ -29,8 +29,7 @@ NOJNITSA_CHEGARA = D(65)  # tabaqa eni 65 sm gacha — sredniy, kattasi — dlin
 # prijim (3420F.31) boʻyi 140 dan baland; 3400F.32 boʻyi 220 dan baland; 120 dan keng — qoʻyib boʻlmaydi
 DVAYNOY_EN_MIN, DVAYNOY_EN_MAX = D(37), D(120)
 DVAYNOY_BOY_MIN, DVAYNOY_BOY_MAX = D(50), D(270)
-DVAYNOY_BALAND = "(A3400F.32) Dv. Otk qoʻshimcha zapor"
-DVAYNOY_BALAND_BOY = D(220)
+DVAYNOY_BALAND_BOY = D(220)  # Master 3400F.32 = rolikli zapor 4207.1 (foydalanuvchi) → zatsep + 1
 # Fortochka (foydalanuvchi, 2026-11-05; ProfOkna "откидная створка")
 CHIT_CHIT = "(A1501.5) Chit-Chit"
 OGRANICHITEL = {"kichik": "(A1115.2) Ogranichitel", "katta": "(A1115.1) Ogranichitel"}  # boʻyi 60 sm gacha / kattasi (ProfOkna)
@@ -342,10 +341,9 @@ def _dvaynoy_furnitura(s, r):
     if prijim:
         r.qosh("Furnitura", DVAYNOY_PRIJIM, prijim, "dona")
     baland = sum(1 for _, b in tabaqalar if b > DVAYNOY_BALAND_BOY)
-    if baland:
-        r.qosh("Furnitura", DVAYNOY_BALAND, baland, "dona")
-    # Prijim qoʻshilsa, rolik-zatsep komplektidan yana bittasi (foydalanuvchi, 2026-11-02)
-    r.qosh("Furnitura", ZATSEP, len(tabaqalar) * 3 + prijim, "dona")
+    # Prijim qoʻshilsa, rolik-zatsep komplektidan yana bittasi (foydalanuvchi, 2026-11-02);
+    # boʻyi 220 dan baland — Master 3400F.32, bu ham 4207.1 zatsep (foydalanuvchi, 2026-11-09)
+    r.qosh("Furnitura", ZATSEP, len(tabaqalar) * 3 + prijim + baland, "dona")
     tij = D(0)
     for en, boy in tabaqalar:
         if en <= TIJ_AYIRMA:
