@@ -484,6 +484,15 @@ function chizmaSVG(k, opts = {}) {
     ol.forEach((len, j) => {
       const bola = (node.bolaklar || [])[j], yy = [...yol, j];
       const [bx, by, bw, bh] = v ? [x + off, y, len, h] : [x, y + off, w, len];
+      // boʻlak oʻlchami chizmada (foydalanuvchi, 2026-11-09: "impostni 60 ga qanday qoʻyaman"): bosib kiritiladi
+      if (p != null && !opts.kichik) {
+        const yoz = (node.olchamlar[j] == null ? "≈" : "") + String(yx(len)).replace(".", ",");
+        const pw = shrift * (0.6 + 0.5 * yoz.length), ph = shrift * 1.15;
+        const mx = v ? bx + bw / 2 : bx + pw / 2 + shrift * 0.4, my = v ? by + bh * 0.85 : by + bh * 0.62;
+        ichkiImpBos.push(rect(mx - pw / 2, my - ph / 2, pw, ph, "ol-fon bosiladi", `rx="${f(ph / 2)}"`) +
+          matn(mx, my, yoz, 0.8, "yoz olch" + (node.olchamlar[j] == null ? " avto" : "")) +
+          rect(mx - pw * 0.8, my - ph, pw * 1.6, ph * 2, "olbos", `data-ol="${p}|ii${yol.join(".")}:${j}"`));
+      }
       if (bola && bola.olchamlar) q += ichkiChiz(bola, bx, by, bw, bh, yy, p);
       else if (p != null) ichkiBos.push(rect(bx, by, Math.max(bw, 0.1), Math.max(bh, 0.1), "bos ii", `data-p="${p}" data-ii="${yy.join(".")}"`));
       off += len + ICHKI_IMPOST;
