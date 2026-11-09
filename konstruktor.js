@@ -1433,7 +1433,9 @@ function engFurnituraHtml(k, faol) {
   const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
   const v = (kalit, std) => t[kalit] ?? ut[kalit] ?? std;
   const seg = (kalit, std, royxat) => `<div class="sz-seg">${royxat.map(([q, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(q))}" class="${faol(v(kalit, std) === q)}">${esc(y)}</button>`).join("")}</div>`;
-  return `<div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Engelberg)</span></div>
+  return `<div class="sz-bolim">Metall <span class="xira">(armatura, Romchi kabi)</span></div>
+    ${seg("eng_metall", "1.5", [["1.5", "1,5 mm"], ["2", "2 mm"]])}
+    <div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Engelberg)</span></div>
     ${seg("eng_mexanizm", "fornax", [["fornax", "Fornax"], ["roto", "Roto"]])}
     ${seg("eng_petlya", "prostoe", [["prostoe", "Prostoe Otkr komplekt"], ["100", "Petlya 100 mm (2–3 ta)"]])}
     <div class="sz-bolim">Fortochka <span class="xira">(doim ruchka bilan)</span></div>

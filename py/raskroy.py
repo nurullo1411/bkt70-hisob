@@ -17,7 +17,7 @@ from zakaz import _birlashtir
 
 HIVICH = 650
 # PVX Engelberg 7000 hivichi 6 m (foydalanuvchi, 2026-11-08)
-HIVICH_PROFIL = {p: 600 for p in ("7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703")}
+HIVICH_PROFIL = {p: 600 for p in ("7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2")}
 
 
 def hivich(profil):
@@ -31,13 +31,13 @@ AYLANTIRISH = {}
 # Bu profillarda sklad boʻlagi qoldigʻi 10 sm dan oshsa ham olinadi:
 # A701 ning 190 sm dan kichigi baribir ishlatilmaydi (foydalanuvchi, 2026-11-03).
 CHEGARASIZ = {"A701"}
-TOGRI_KESIM = {"M702", "A701", "H702", "7053", "0701", "0703"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
+TOGRI_KESIM = {"M702", "A701", "H702", "7053", "0701", "0703", "0701-2", "0703-2"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
 SKLAD_NOMI = {
     "F702": "Kosa F702", "F703": "Kosa F703", "M702": "O'rta M702", "V702": "Qanot V702",
     "V707": "Balkon o'rta V707", "V708": "Balkon qanot V708", "A701": "Shtulp A701", "H702": "Lapsha lam",
 }
 TARTIB = ["F702", "F703", "V702", "V707", "V708", "M702", "A701", "H702", "G24", "G24-R", "G32", "G32-R",
-          "7051", "7052", "7053", "7056", "7057", "0701", "0703"]
+          "7051", "7052", "7053", "7056", "7057", "0701", "0703", "0701-2", "0703-2"]
 
 
 def _b(x):
@@ -231,7 +231,7 @@ OTXOD_CHEGARA = {
     "G24": 40, "G24-R": 180, "M702": 100, "H702": 220,
     "G32": 60, "G32-R": 180,  # foydalanuvchi, 2026-11-04
     # Engelberg 7000 (foydalanuvchi, 2026-11-08)
-    "7051": 70, "7052": 45, "7053": 65, "7056": 36, "7057": 36, "0701": 25, "0703": 25,
+    "7051": 70, "7052": 45, "7053": 65, "7056": 36, "7057": 36, "0701": 25, "0703": 25, "0701-2": 25, "0703-2": 25,
 }
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
 
@@ -531,6 +531,7 @@ PROFIL_NOMI = {
     "A701": "Shtulp", "H702": "Lapsha", "A703": "90-Gradus", "H701": "Usilitel",
     "7051": "Kosa", "7052": "Kanat", "7053": "Urta", "7056": "Shtapik", "7057": "Shtapik",
     "0701": "Armatura Kosa-Qanot", "0703": "Armatura Urta",
+    "0701-2": "Armatura Kosa-Qanot 2 mm", "0703-2": "Armatura Urta 2 mm",
 }
 
 

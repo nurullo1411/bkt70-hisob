@@ -7,7 +7,8 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import ARMATURA_SAMOREZ, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti
+from hisob import (ARMATURA_SAMOREZ, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
+                   profil_narxi)
 
 PETLYA_CHEGARA = 260
 K188_BURCHAKKA_G = 7
@@ -103,7 +104,7 @@ def _profillar(n, rang, narxlar, r):
         artikul = narx_kaliti(p["profil"])
         jami_metr[artikul] = jami_metr.get(artikul, D(0)) + D(p["uzunlik"]) * p["soni"] / 100
     for artikul, metr in jami_metr.items():
-        hivich = narxlar["profil_hivich"].get(artikul, {}).get(rang)
+        hivich = profil_narxi(narxlar, artikul, rang)
         summa = None if hivich is None else metr * D(hivich) / D(hivich_metr(artikul, narxlar["hivich_m"]))
         r.summa_bilan("Profil", artikul, metr, "m", summa, f"{artikul} ({rang})")
 
@@ -172,7 +173,7 @@ ENG_DRENAJ = "Vadasliv krishka"                     # har oyna ostiga 1 ta
 def _eng_aksessuar(s, k, r):
     if s["impost_soni"]:
         soed = 2 * s["impost_soni"]
-        r.qosh("Aksessuar", ENG_SOEDINITEL, soed, "dona", komplekt=150)  # narx 150 talik paketga
+        r.qosh("Aksessuar", ENG_SOEDINITEL, soed, "dona")  # narx bir donaga (foydalanuvchi, 2026-11-09)
         r.qosh("Aksessuar", ENG_SOEDINITEL_SAMOREZ, soed * 8, "dona")
     # podstavka Termo 70 dagidek: gluxoyga CT 203 × 2, tabaqa oynasiga Takos (paket qalinligi boʻyicha) × 2
     if s["gluxoy_oyna_soni"]:
@@ -213,7 +214,8 @@ ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Oq) (Uz)", "Ruchka Okon (ROTO LUX) (Oq
                  "Ruchka Okon HOPPE NY (Oq) (Tr)", "Ruchka Okon HOPPE NY (Seriy) (Tr)",
                  "Ruchka Okon HOPPE NY (Bronza) (Tr)", "Ruchka Okon HOPPE NY (Tem Kor) (Tr)"]
 ENG_PETLYA_PROSTOE = "(Prostoe Otkr) Petli Komplekt (FORNAX)"
-ENG_PETLYA_100 = "Petlya 100 mm (Uz)"
+# Petlya 100 mm rangga qarab (foydalanuvchi, 2026-11-09): oq — (Oq) (120sht), qolgani — (Laminant)
+ENG_PETLYA_100 = {"Oq": "Petlya 100 mm (Oq) (120sht) (Uz)", "Laminatsiya": "Petlya 100 mm (Laminant) (Uz)"}
 ENG_BLOKIRATOR = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)"]
 ENG_ISPANILET_SAMOREZ = "3,9×25 YHB S"  # ProfOkna: har ispaniletga jadvaldagicha, prijimga 4
 ENG_PRIJIM = "(13) Sredniy Prijim Skritiy (FORNAX)"  # framujniy; Prostoe Otkr bilan, qanot 100 sm dan baland
@@ -317,7 +319,7 @@ def _eng_furnitura(s, tanlov, r):
             samorez += 4 * prijim
     else:
         # 100 sm dan baland tabaqaga 3 ta, qolganiga 2 ta (foydalanuvchi)
-        r.qosh("Furnitura", ENG_PETLYA_100, sum(3 if b > 100 else 2 for b in boylar), "dona")
+        r.qosh("Furnitura", ENG_PETLYA_100.get(tanlov.get("rang"), ENG_PETLYA_100["Laminatsiya"]), sum(3 if b > 100 else 2 for b in boylar), "dona")
     if fortochkalar:
         # fortochka (foydalanuvchi, 2026-11-08): har biriga Ogranichitel Dlya Fortochki (Uz / Kinglong);
         # "100" tanlansa ustiga Petlya 100 mm × 2. Blokirator yoʻq.
@@ -327,7 +329,7 @@ def _eng_furnitura(s, tanlov, r):
             raise HisobXato(f"Fortochka petlyasi notoʻgʻri: {fp} / {og}")
         r.qosh("Furnitura", ENG_OGRANICHITEL[og], len(fortochkalar), "dona")
         if fp == "100":
-            r.qosh("Furnitura", ENG_PETLYA_100, 2 * len(fortochkalar), "dona")
+            r.qosh("Furnitura", ENG_PETLYA_100.get(tanlov.get("rang"), ENG_PETLYA_100["Laminatsiya"]), 2 * len(fortochkalar), "dona")
     isp = {}
     zatsep = 0
     for o, jadval in [(b, None) for b in boylar] + [(e, ENG_ISPANILET_FORT) for e in fortochkalar]:

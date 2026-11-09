@@ -84,15 +84,31 @@ def _son(x):
     return s.replace(".", ",")
 
 
+# Engelberg 7000 diller nomlari (AKFA roʻyxati 04.11.2026). Laminat: sklad rangi → diller rangi
+ENG_LAM_RANGI = {"grey": "7011-Anthrazit Grey", "alux": "7011-Alyuks", "sh/d": "7011-Sheffal Dub",
+                 "z/d": "Zol Dub", "d/m": "Dub Mokko"}
+ENG_OQ_NOM = {"7051": "7000 ENG Kosa (Oq) (N)", "7052": "7000 ENG Kanot (Oq) (N)", "7053": "7000 ENG Urta (Oq) (N)",
+              "7056": "7000 ENG Shtapik Dv. Steklo (Oq) (24mm) (N)", "7057": "7000 ENG Shtapik Tr. Steklo (Oq) (32mm) (N)"}
+ENG_LAM_NOM = {"7051": "Kosa", "7052": "Kanot", "7053": "Urta", "7056": "Shtapik (TPV) (24mm)", "7057": "Shtapik (TPV) (32mm)"}
+ENG_METALL_NOM = {"0701": "Metall Vst. KOSA QANOT 7000 (1.5mm)", "0701-2": "Metall Vst. KOSA QANOT 7000 (2mm)",
+                  "0703": "Metall Vst. URTA 7000 (1.5mm)", "0703-2": "Metall Vst. URTA 7000 (2mm)"}
+
+
+def eng_profil_nomi(profil, rang):
+    if profil in ENG_METALL_NOM:
+        return ENG_METALL_NOM[profil]
+    if rang in (None, "oq") and profil in ENG_OQ_NOM:
+        return ENG_OQ_NOM[profil]
+    r = ENG_LAM_RANGI.get(rang or "", "rangi?")
+    ll = "LAM LL" if r.startswith("7011") else "LAM"
+    return f"ENG 7000 ({r}) {ENG_LAM_NOM.get(profil, profil)} {ll} (N)"
+
+
 def profil_nomi(profil, rang):
     """Diller roʻyxatidagi hivich nomi. rang — sklad rangi (grey, z/d, …, 306g, oq, anod) yoki None."""
     kod = profil.replace("-", "")
     if profil in ENGELBERG_PROFILLARI:
-        # Engelberg 7000: diller qogʻozidagi aniq nom hali olinmagan (2026-11-08)
-        nom = {"7051": "Kosa", "7052": "Kanat", "7053": "Urta", "7056": "Shtapik 24", "7057": "Shtapik 32",
-               "0701": "Armatura Kosa-Qanot", "0703": "Armatura Urta"}.get(profil, "")
-        r = "Oq" if rang in (None, "oq") else DILLER_RANGI.get(rang, rang)
-        return f"PVX Engelberg 7000 {nom} {kod} ({r}) (6m)".replace("  ", " ")
+        return eng_profil_nomi(profil, rang)
     if rang in ("oq", "306g", "anod"):
         r = DILLER_RANGI.get(rang, "anod rangi?")
         return f"TERMO BKT 70 {kod} {TERMO_NOM.get(profil, '')} ({r}) (6.5m)".replace("  ", " ")

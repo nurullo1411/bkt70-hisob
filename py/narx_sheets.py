@@ -72,6 +72,12 @@ def tuz(manba):
             profil[nom] = {t: son(_q(q, j + 1)) for j, t in enumerate(turkumlar) if t and son(_q(q, j + 1)) is not None}
         elif nom.lower().startswith("hivich uzunligi"):
             hivich_m = son(_q(q, 1))
+    # Engelberg 7000 (2026-11-09): Narxlar dagi "ENG 7051 | Oq" (hivich 6 m narxi) qatorlari;
+    # metall rangga bogʻliq emas: "ENG 0701 | *"
+    for kalit, qiymat in narx.items():
+        m = re.match(r"^(ENG \S+) \| (.+)$", kalit)
+        if m:
+            profil.setdefault(m.group(1), {})[m.group(2)] = qiymat
 
     xato = [n for n, v in (("narx", narx), ("profil", profil), ("steklopaket", stekl)) if not v]
     if xato or not hivich_m or not k188_g or not k188_narx:

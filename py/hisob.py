@@ -60,7 +60,10 @@ class Seriya:
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
 ENGELBERG = Seriya("Engelberg 7000", "7053", "7052", D("2.2"), D("1.5"), D("0.5"), True, {24: "7056", 32: "7057"}, False)
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG}
-ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703"}
+ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2"}
+# Metall (armatura) qalinligi (foydalanuvchi, 2026-11-09, Romchi kabi tanlov): 1,5 mm (standart) yoki 2 mm.
+# 2 mm armatura alohida kod bilan ("0701-2"): raskroy, diller roʻyxati va narx oʻzi ajraladi.
+ENG_METALL = ("1.5", "2")
 # Armatura (foydalanuvchi, 2026-11-08): hamma detalga; uzunlik = kesish uzunligi − ayirma (laminatda ham shu),
 # 6 m hivichdan raskroy. Samorez 3,9×16: armatura uzunligi 70 dan kalta — 2 ta, aks holda uzunlik : 35 yuqoriga.
 ARMATURA = {"7051": ("0701", D(13)), "7052": ("0701", D(13)), "7053": ("0703", D("0.5"))}
@@ -77,6 +80,12 @@ REZINA_QANOT = "EPDM 5108"
 def hivich_metr(kalit, standart):
     """Profil narxi qaysi hivich uzunligiga (m): Engelberg 6 m (foydalanuvchi, 2026-11-08), qolgani narxlardagi."""
     return 6 if narx_kaliti(kalit).startswith("ENG ") else standart
+
+
+def profil_narxi(narxlar, artikul, rang):
+    """Hivich narxi: rang boʻyicha; armatura (metall) rangga bogʻliq emas — "*" kaliti."""
+    d = narxlar["profil_hivich"].get(artikul, {})
+    return d.get(rang, d.get("*"))
 
 
 def narx_kaliti(profil):
@@ -148,8 +157,11 @@ class Zona:
 
 
 class Hisob:
-    def __init__(self, oyna_qalinligi, vertikal_r=True, lam=D(0), seriya=None):
+    def __init__(self, oyna_qalinligi, vertikal_r=True, lam=D(0), seriya=None, metall="1.5"):
         self.seriya = seriya or TERMO70
+        if metall not in ENG_METALL:
+            raise HisobXato(f"Metall qalinligi notoʻgʻri: {metall} (1.5 yoki 2)")
+        self.metall = metall
         self.lam = lam  # laminatsiyada 0,08, aks holda 0
         self.shtapik = SHTAPIK_QALINLIGI + lam
         if oyna_qalinligi not in SHTAPIK_TURLARI:
@@ -205,6 +217,8 @@ class Hisob:
             u = uzunlik - ayirma
             if u <= 0:
                 raise HisobXato(f"{nomi} juda kalta, armatura sigʻmaydi: {uzunlik}")
+            if self.metall == "2":
+                arm += "-2"
             akey = (f"Armatura ({nomi.lower()})", arm, u)
             self.profillar[akey] = self.profillar.get(akey, 0) + soni
             bitta = 2 if u < ARMATURA_KALTA else math.ceil(u / ARMATURA_QADAM)
@@ -781,7 +795,8 @@ def hisobla(k):
     if vertikal not in ("R", "oddiy"):
         raise HisobXato(f"vertikal_shtapik faqat R yoki oddiy: {vertikal}")
     lam = LAMINAT_QOSHIMCHA if (k.get("tanlov") or {}).get("rang") == "Laminatsiya" else D(0)
-    h = Hisob(k.get("oyna_qalinligi", 24), vertikal_r=vertikal == "R", lam=lam, seriya=seriya)
+    metall = str((k.get("tanlov") or {}).get("eng_metall") or "1.5")
+    h = Hisob(k.get("oyna_qalinligi", 24), vertikal_r=vertikal == "R", lam=lam, seriya=seriya, metall=metall)
     if seriya is ENGELBERG:
         pass  # Engelberg 7000: eshik, portal, egilgan impost hali yoʻq (_bolak_ichi da xato)
     if not seriya.eshik and k.get("arka"):
