@@ -1613,10 +1613,14 @@ function nishonniKorsat(p, id) {
   }
 }
 
+// Impostning bosiladigan yashirin joyi (kengroq) ostidagi boʻlakni toʻsmasin: past qatlamlardan birinchi boʻlak
+// (foydalanuvchi, 2026-11-09: past framugaga tik impost tushmasdi — impost zonasi framuganing yarmini egallardi)
 function barmoqOstidagiBolak(x, y) {
-  const el = document.elementFromPoint(x, y);
-  const r = el && el.closest && el.closest("#k-chizma [data-p]");
-  return r ? r.dataset.p : null;
+  for (const el of document.elementsFromPoint(x, y)) {
+    const r = el.closest && el.closest("#k-chizma [data-p]");
+    if (r) return r.dataset.p;
+  }
+  return null;
 }
 
 $("k-asboblar").addEventListener("pointerdown", (e) => {
