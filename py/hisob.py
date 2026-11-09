@@ -17,6 +17,9 @@ def D(x):
 RAMA_R = {"F702": D("3.8"), "F703": D("5.8")}
 IMPOST_YARMI = {"M702": D("1.9")}
 TABAQA_AYIRMA = {"V702": D("11.1"), "V707": D("18.4"), "V708": D("17.1")}
+# Tabaqa ichidagi impost (ProfOkna "Импост - Створка" T-ulanish, ikki uchi; foydalanuvchi, 2026-11-09):
+# laminatsiz shu, laminatda +0,16 (TABAQA_AYIRMA bilan birga oʻzgaradi, farqi bir xil qoladi)
+TABAQA_IMPOST_AYIRMA = {"V702": D("11.08"), "V707": D("18.08"), "V708": D("17.08")}
 ESHIK_PROFILI = {"ichkariga": "V708", "tashqariga": "V707"}  # Balkon Qanot / Balkon Oʻrta
 ROM_TABAQA_PROFILI = "V702"
 SHTAPIK_TURLARI = {24, 32}
@@ -289,17 +292,22 @@ class Hisob:
         if ichki_impost:
             if not self.seriya.eshik:
                 raise HisobXato(f"{self.seriya.nomi}: tabaqa ichiga impost hozircha yoʻq")
-            self._tabaqa_ichi(joy, en - ayirma, boy - ayirma, oyna_ayirma, ichki_impost, arka or past)
+            # impost tabaqaga tegadigan har uchida ichki chetdan shuncha chuqur kiradi (V707 0,16; V708, V702 0,01)
+            chuqur = (TABAQA_AYIRMA[profil] - TABAQA_IMPOST_AYIRMA[profil]) / 2
+            self._tabaqa_ichi(joy, en - ayirma, boy - ayirma, oyna_ayirma, ichki_impost, arka or past,
+                              chuqur, (True, True, True, True))
         else:
             self.oyna(joy, en - ayirma, boy - ayirma, oyna_ayirma, arka, past)
 
-    def _tabaqa_ichi(self, joy, ichki_en, ichki_boy, oyna_ayirma, ii, yoy):
+    def _tabaqa_ichi(self, joy, ichki_en, ichki_boy, oyna_ayirma, ii, yoy, chuqur=D(0), tabaqada=(True,) * 4):
         """Tabaqa ichidagi M702 impost (foydalanuvchi, 2026-11-09; eshik va rom tabaqasi).
 
         ii = {"yonalish", "olchamlar", "bolaklar"?}: olchamlar — har boʻlakning ichki oʻlchami (tabaqa ichki
         chetidan yoki impost chetidan impost chetigacha; tepadan / chapdan), null — qolgani teng. bolaklar[i]
         null boʻlsa oyna, aks holda shu boʻlak ichida yana impost (tik va yotiq aralash, ichma-ich).
-        Impost uzunligi = boʻlak ichki eni (yotiq) yoki boʻyi (tik); uchlariga 01.553 × 2 (impost_soni).
+        Impost uzunligi = boʻlak ichki eni (yotiq) yoki boʻyi (tik) + tabaqaga tegadigan har uchiga `chuqur`
+        (ProfOkna ayirmasi, TABAQA_IMPOST_AYIRMA); impostga tegadigan uchi — chetigacha. tabaqada = (chap, oʻng,
+        tepa, past) tomonlar tabaqa profilimi. Uchlariga 01.553 × 2 (impost_soni).
         Har boʻlak oynasi = ichki − oyna ayirmasi (tabaqada 2, fortochkada 1,5), shtapik va rezina har oynaga.
         """
         if yoy:
@@ -325,12 +333,16 @@ class Hisob:
         if any(x <= 0 for x in olch):
             raise HisobXato(f"Tabaqa ichiga impost sigʻmaydi: ichki {ichki_en} × {ichki_boy}")
         n = len(olch) - 1
-        self.detal("Tabaqa ichi impost", "M702", ichki_boy if vertikal else ichki_en, n)
+        chap, ong, tepa, past = tabaqada
+        uchlar = (tepa, past) if vertikal else (chap, ong)
+        self.detal("Tabaqa ichi impost", "M702", (ichki_boy if vertikal else ichki_en) + chuqur * sum(uchlar), n)
         self.impost_soni += n
-        for x, bola in zip(olch, bolaklar):
+        for i, (x, bola) in enumerate(zip(olch, bolaklar)):
             en, boy = (x, ichki_boy) if vertikal else (ichki_en, x)
+            boshi, oxiri = i == 0, i == n
+            yon = (chap and boshi, ong and oxiri, tepa, past) if vertikal else (chap, ong, tepa and boshi, past and oxiri)
             if bola and bola.get("olchamlar"):
-                self._tabaqa_ichi(joy, en, boy, oyna_ayirma, bola, yoy)
+                self._tabaqa_ichi(joy, en, boy, oyna_ayirma, bola, yoy, chuqur, yon)
             else:
                 self.oyna(joy, en, boy, oyna_ayirma)
 
