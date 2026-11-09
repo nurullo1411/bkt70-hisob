@@ -476,6 +476,11 @@ function chizmaSVG(k, opts = {}) {
     const v = node.yonalish === "vertikal", { ol, imp } = ichkiBolaklar(node, v ? w : h);
     let q = "", off = 0;
     for (const [a, b] of imp) q += v ? rect(x + a, y, b - a, h, "ra im") : rect(x, y + a, w, b - a, "ra im");
+    // surish uchun kengroq yashirin joy (data-iimp: boʻlak | tugun yoʻli | chap/tepa boʻlak indeksi | jami)
+    if (p != null) imp.forEach(([a, b], k) => {
+      const kk = t * 2.4, m = (a + b) / 2, at = `data-p="${p}" data-iimp="${p}|${yol.join(".")}|${k}|${v ? w : h}"`;
+      ichkiImpBos.push(v ? rect(x + m - kk / 2, y, kk, h, "impbos", at) : rect(x, y + m - kk / 2, w, kk, "impbos", at));
+    });
     ol.forEach((len, j) => {
       const bola = (node.bolaklar || [])[j], yy = [...yol, j];
       const [bx, by, bw, bh] = v ? [x + off, y, len, h] : [x, y + off, w, len];
@@ -485,7 +490,7 @@ function chizmaSVG(k, opts = {}) {
     });
     return q;
   }
-  const ichkiBos = [];
+  const ichkiBos = [], ichkiImpBos = [];
   function tabaqa(x, y, w, h, petlya, dvaynoy, ruchkaBor, fortochka, d0, tY = null, pY = null, eshik = false, ii = null) {
     // tabaqa rama/impost ichki chetidan kattaroq — ustiga kirib turadi (foydalanuvchi, 2026-11-08)
     // eshik tabaqasi (Balkon Oʻrta V707 / Qanot V708) rom tabaqasidan (V702) kengroq (foydalanuvchi, 2026-11-08)
@@ -637,7 +642,7 @@ function chizmaSVG(k, opts = {}) {
       const bosCls = "bos" + (o.p === opts.tanlangan ? " tanl" : "");
       s += o.u ? `<path d="${uYol(o, 0)}" class="${bosCls}" data-p="${o.p}"/>` : yuza(o.x, o.y, o.w, o.h, 0, bosCls, `data-p="${o.p}"`, o.tY, o.pY);
     }
-    s += ichkiBos.join("");
+    s += ichkiBos.join("") + ichkiImpBos.join("");
   }
   // Impost va lapsha bosiladigan (tanlab 🗑 bilan olinadi): ingichka boʻlgani uchun kengroq yashirin joy
   if (!opts.kichik) {
@@ -838,7 +843,7 @@ function asboblarniChiz() {
   const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
   $("k-maslahat").textContent = asbob === "ochir" ? "Impostni olib tashlash: impost yonidagi boʻlakka bosing — shu boʻlak va uning chap/tepa impost(i) olinadi, joyi qoʻshnisiga oʻtadi"
-    : nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbobni bosib turib boʻlakka suring. Boʻlak yoki impostga bosib tanlang, oʻlcham — raqamga bosing.";
+    : nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbobni bosib turib boʻlakka suring. Boʻlak yoki impostga bosib tanlang, impostni surib joyini oʻzgartiring, oʻlcham — raqamga bosing.";
 }
 
 // Tabaqa ichi impost joylari (hisob.py _tabaqa_ichi kabi): jami — ichki oʻlcham; boʻsh boʻlaklar teng
@@ -1309,7 +1314,7 @@ $("oyna-qalqib").addEventListener("click", (e) => {
 $("k-chizma").addEventListener("pointerdown", (e) => {
   clearTimeout(bosibTaymer); bosibTurildi = false;
   const r = e.target.closest("[data-p]");
-  if (!r || asbob || e.target.closest("[data-imp]") || e.target.closest("[data-ol]")) return;
+  if (!r || asbob || e.target.closest("[data-imp]") || e.target.closest("[data-iimp]") || e.target.closest("[data-ol]")) return;
   const x0 = e.clientX, y0 = e.clientY, p = r.dataset.p;
   const bekor = () => { clearTimeout(bosibTaymer); document.removeEventListener("pointermove", sur); document.removeEventListener("pointerup", bekor); document.removeEventListener("pointercancel", bekor); };
   const sur = (m) => { if (Math.hypot(m.clientX - x0, m.clientY - y0) > 10) bekor(); };
@@ -1317,6 +1322,74 @@ $("k-chizma").addEventListener("pointerdown", (e) => {
   bosibTaymer = setTimeout(() => { bekor(); bosibTurildi = true; oynaQalqib(p); }, OYNA_BOSIB_MS);
 });
 $("k-chizma").addEventListener("contextmenu", (e) => e.preventDefault());
+
+// Impostni surish (foydalanuvchi, 2026-11-09: "impostni xohlagan joyimga sura olishim kerak"): impostni bosib
+// barmoq bilan suriladi, qoʻshni ikki boʻlak oʻlchami oʻzgaradi (0,5 sm qadam), qolganlari joyida qoladi.
+// Oddiy impost (data-imp) va tabaqa ichidagi impost (data-iimp). Sigʻmasa — eski holat (tekshirib).
+const SURISH_QADAM = 0.5;
+let impSurildi = false;
+function svgNuqta(e) {
+  const svg = $("k-chizma").querySelector("svg"), m = svg && svg.getScreenCTM();
+  if (!m) return null;
+  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(m.inverse());
+}
+// olchamlar — oʻzgaradigan roʻyxat, s — haqiqiy oʻlchamlar, i — chap/tepa boʻlak, d — siljish (sm)
+function ikkiBolak(olchamlar, s, i, d) {
+  const jami = s[i] + s[i + 1], a = Math.round((s[i] + d) / SURISH_QADAM) * SURISH_QADAM;
+  if (a < BOLAK_MIN || jami - a < BOLAK_MIN) return false;
+  olchamlar[i] = a;
+  const boshqaBosh = olchamlar.some((x, j) => j !== i && j !== i + 1 && x == null);
+  olchamlar[i + 1] = boshqaBosh ? Math.round((jami - a) * 100) / 100 : null;
+  return [a, jami - a];
+}
+$("k-chizma").addEventListener("pointerdown", (e) => {
+  if (asbob || e.button > 0) return;
+  const el = e.target.closest("[data-imp]") || e.target.closest("[data-iimp]");
+  if (!el) return;
+  const nuqta0 = svgNuqta(e);
+  if (!nuqta0) return;
+  const asl = nusxa(tahrir), x0 = e.clientX, y0 = e.clientY;
+  let qoll = null, v = true, boshlandi = false;
+  if (el.dataset.imp) {
+    const [ip, ii] = el.dataset.imp.split("|"), i = +ii - 1;
+    const bl = geometriya(tahrir).bolinishlar.find((b) => b.p === ip);
+    const b = tugun(tahrir.bolak, ip);
+    if (!bl || !b || b.lapsha || b.egilgan || !b.olchamlar) return;
+    v = bl.v;
+    const s = bl.s.slice();
+    qoll = (d) => { const o = b.olchamlar.slice(), r = ikkiBolak(o, s, i, d); if (r) tugun(tahrir.bolak, ip).olchamlar = o; return r; };
+  } else {
+    const [p, y, k, jami] = el.dataset.iimp.split("|"), yol = iiYol(y), i = +k;
+    const node0 = iiTugun(tugun(asl.bolak, p), yol);
+    if (!node0) return;
+    v = node0.yonalish === "vertikal";
+    const s = ichkiBolaklar(node0, +jami).ol;
+    qoll = (d) => { const o = node0.olchamlar.slice(), r = ikkiBolak(o, s, i, d); if (r) iiTugun(tugun(tahrir.bolak, p), yol).olchamlar = o; return r; };
+  }
+  const sur = (m) => {
+    if (!boshlandi) {
+      if (Math.hypot(m.clientX - x0, m.clientY - y0) < 8) return;
+      boshlandi = true; impSurildi = true; clearTimeout(bosibTaymer);
+    }
+    m.preventDefault();
+    const n = svgNuqta(m);
+    if (!n) return;
+    tahrir = nusxa(asl);
+    const r = qoll(v ? n.x - nuqta0.x : n.y - nuqta0.y);
+    if (r) xabar(`${v ? "Chap" : "Tepa"} ${yx(r[0])} sm · ${v ? "oʻng" : "past"} ${yx(r[1])} sm`);
+    $("k-chizma").innerHTML = chizmaSVG(tahrir, { tanlangan: null, tanlanganImpost });
+  };
+  const tugat = () => {
+    document.removeEventListener("pointermove", sur); document.removeEventListener("pointerup", tugat); document.removeEventListener("pointercancel", tugat);
+    if (!boshlandi) return;
+    const yangi = tahrir;
+    tahrir = asl;
+    if (JSON.stringify(yangi) !== JSON.stringify(asl)) tekshirib(() => { saqlaTarix(); tahrir = yangi; });
+    yangila();
+  };
+  document.addEventListener("pointermove", sur, { passive: false }); document.addEventListener("pointerup", tugat); document.addEventListener("pointercancel", tugat);
+});
 
 // Tabaqa ichi impostlari paneli: har tugun — yoʻnalishi, boʻlak oʻlchamlari (bosib kiritiladi), olish
 function ichkiPanel(b, bosh) {
@@ -1628,6 +1701,7 @@ $("k-asboblar").addEventListener("click", (e) => {
 });
 $("k-chizma").addEventListener("click", (e) => {
   if (bosibTurildi) { bosibTurildi = false; return; }
+  if (impSurildi) { impSurildi = false; return; }
   const ol_ = e.target.closest("[data-ol]");
   if (ol_) { olchamniOzgartir(ol_.dataset.ol); return; }
   const im = e.target.closest("[data-imp]");

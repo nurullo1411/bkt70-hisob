@@ -82,7 +82,7 @@ footer { text-align: center; padding: 0 16px 24px; }
 .chizma .fon { paint-order: stroke; stroke: var(--karta); stroke-width: .8; }
 .chizma .belgi-fon { fill: var(--karta); fill-opacity: .88; stroke: var(--rama-chiziq); stroke-width: .2; }
 .chizma .bos { fill: transparent; stroke: none; cursor: pointer; }
-.chizma .impbos { fill: transparent; stroke: none; cursor: pointer; }
+.chizma .impbos { fill: transparent; stroke: none; cursor: grab; touch-action: none; }
 .chizma .impbos.tanl { fill: rgba(230, 81, 0, .45); stroke: var(--tanl); stroke-width: .8; }
 .chizma .bos.tanl { fill: rgba(230, 81, 0, .12); stroke: var(--tanl); stroke-width: 1.2; stroke-dasharray: 3 1.5; }
 .chizma.kichik .ra, .chizma.kichik .tb { stroke-width: .8; }
