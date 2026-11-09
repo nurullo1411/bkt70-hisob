@@ -471,6 +471,21 @@ function chizmaSVG(k, opts = {}) {
   }
 
   // d0 — boʻlak katagi chetidan tabaqa chetigacha masofa (arka chegarasi uchun)
+  // tabaqa ichi impostlari (ichma-ich); har barg boʻlakka bosiladigan yashirin joy (data-ii — boʻlak yoʻli)
+  function ichkiChiz(node, x, y, w, h, yol, p) {
+    const v = node.yonalish === "vertikal", { ol, imp } = ichkiBolaklar(node, v ? w : h);
+    let q = "", off = 0;
+    for (const [a, b] of imp) q += v ? rect(x + a, y, b - a, h, "ra im") : rect(x, y + a, w, b - a, "ra im");
+    ol.forEach((len, j) => {
+      const bola = (node.bolaklar || [])[j], yy = [...yol, j];
+      const [bx, by, bw, bh] = v ? [x + off, y, len, h] : [x, y + off, w, len];
+      if (bola && bola.olchamlar) q += ichkiChiz(bola, bx, by, bw, bh, yy, p);
+      else if (p != null) ichkiBos.push(rect(bx, by, Math.max(bw, 0.1), Math.max(bh, 0.1), "bos ii", `data-p="${p}" data-ii="${yy.join(".")}"`));
+      off += len + ICHKI_IMPOST;
+    });
+    return q;
+  }
+  const ichkiBos = [];
   function tabaqa(x, y, w, h, petlya, dvaynoy, ruchkaBor, fortochka, d0, tY = null, pY = null, eshik = false, ii = null) {
     // tabaqa rama/impost ichki chetidan kattaroq — ustiga kirib turadi (foydalanuvchi, 2026-11-08)
     // eshik tabaqasi (Balkon Oʻrta V707 / Qanot V708) rom tabaqasidan (V702) kengroq (foydalanuvchi, 2026-11-08)
@@ -480,12 +495,7 @@ function chizmaSVG(k, opts = {}) {
     const tepa = (xx) => tepaY(tY, xx, y + ic, d0 + ic);  // oyna tepasi shu nuqtada
     const past = (xx) => pastY(pY, xx, y + h - ic, d0 + ic);  // oyna pasti
     // tabaqa ichidagi M702 impost (foydalanuvchi, 2026-11-09): boʻlaklar ichki chetdan impost chetigacha
-    if (ii && !tY && !pY) {
-      const v = ii.yonalish === "vertikal", y1 = y + ic, y2 = y + h - ic;
-      for (const [a, b] of ichkiBolaklar(ii, v ? x2 - x1 : y2 - y1).imp) {
-        q += v ? rect(x1 + a, y1, b - a, y2 - y1, "ra im") : rect(x1, y1 + a, x2 - x1, b - a, "ra im");
-      }
-    }
+    if (ii && ii.ii && !tY && !pY) q += ichkiChiz(ii.ii, x1, y + ic, x2 - x1, h - 2 * ic, [], opts.kichik ? null : ii.p);
     if (!opts.kichik) {
       const pt = (px, py, pw, ph) => rect(px, py, pw, ph, "pt", `rx="${f(Math.min(pw, ph) * 0.3)}"`);
       const a = t * 0.32, b = t * 1.5;  // petlya qalinligi va uzunligi
@@ -607,14 +617,14 @@ function chizmaSVG(k, opts = {}) {
       continue;
     }
     if (b.tur === "gluxoy") s += oyna(x + t * 0.3, y + t * 0.3, w - t * 0.6, h - t * 0.6, d + t * 0.3, tY, pY);
-    else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka, d, tY, pY);
+    else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka, d, tY, pY, false, { ii: b.tabaqa_impost, p: o.p });
     else if (b.tur === "eshik") {
       if (b.tabaqa_soni === 2) {
         const aktiv = b.aktiv || "ong", e = o.esh;
         // tabaqalar L1 / L2 nisbatida (ruchkali — L1)
         const wc = e && e.jami > 0 ? w * Math.min(0.9, Math.max(0.1, (aktiv === "chap" ? e.L1 : e.L2) / e.jami)) : w / 2;
-        s += tabaqa(x, y, wc, h, "chap", false, aktiv === "chap", false, d, tY, pY, true, b.tabaqa_impost) + tabaqa(x + wc, y, w - wc, h, "ong", false, aktiv === "ong", false, d, tY, pY, true, b.tabaqa_impost);
-      } else s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", false, true, false, d, tY, pY, true, b.tabaqa_impost);
+        s += tabaqa(x, y, wc, h, "chap", false, aktiv === "chap", false, d, tY, pY, true, { ii: b.tabaqa_impost, p: o.p }) + tabaqa(x + wc, y, w - wc, h, "ong", false, aktiv === "ong", false, d, tY, pY, true, { ii: b.tabaqa_impost, p: o.p });
+      } else s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", false, true, false, d, tY, pY, true, { ii: b.tabaqa_impost, p: o.p });
     } else s += rect(x, y, w, h, "xt");
   }
   if (!opts.kichik) {
@@ -627,6 +637,7 @@ function chizmaSVG(k, opts = {}) {
       const bosCls = "bos" + (o.p === opts.tanlangan ? " tanl" : "");
       s += o.u ? `<path d="${uYol(o, 0)}" class="${bosCls}" data-p="${o.p}"/>` : yuza(o.x, o.y, o.w, o.h, 0, bosCls, `data-p="${o.p}"`, o.tY, o.pY);
     }
+    s += ichkiBos.join("");
   }
   // Impost va lapsha bosiladigan (tanlab 🗑 bilan olinadi): ingichka boʻlgani uchun kengroq yashirin joy
   if (!opts.kichik) {
@@ -841,13 +852,32 @@ function ichkiBolaklar(ii, jami) {
   for (let i = 0; i < n - 1; i++) { q += ol[i]; imp.push([q, q + ICHKI_IMPOST]); q += ICHKI_IMPOST; }
   return { ol, imp };
 }
-// Eshikka tik/yotiq asbob: impost tabaqa ichiga (Romchi kabi); 2 tabaqada ikkalasiga
-function eshikIchiImpost(b, yonalish, n) {
-  const ii = b.tabaqa_impost;
-  if (ii && ii.yonalish !== yonalish) { xabar("Tabaqa ichida impost bitta yoʻnalishda boʻladi: avval borini oling"); return false; }
-  if (!ii) b.tabaqa_impost = { yonalish, olchamlar: Array(n).fill(null) };
-  else for (let j = 1; j < n; j++) ii.olchamlar.push(null);
-  return true;
+// Tabaqa ichi daraxti: tugun {yonalish, olchamlar, bolaklar?}; boʻlak yoʻli — indekslar roʻyxati ([] — butun tabaqa)
+const iiYol = (str) => (str === "" || str == null ? [] : String(str).split(".").map(Number));
+function iiTugun(b, yol) { let t = b.tabaqa_impost; for (const j of yol) t = t && t.bolaklar && t.bolaklar[j]; return t; }
+// Tik/yotiq asbob tabaqa ichidagi boʻlakka: ota tugun shu yoʻnalishda boʻlsa unga qoʻshiladi, aks holda boʻlak boʻlinadi
+function ichkiImpostQosh(b, yol, yonalish, n) {
+  const yangi = () => ({ yonalish, olchamlar: Array(n).fill(null), bolaklar: Array(n).fill(null) });
+  if (!yol.length) {
+    const t = b.tabaqa_impost;
+    if (t && t.yonalish === yonalish) {
+      if (!t.bolaklar) t.bolaklar = t.olchamlar.map(() => null);
+      for (let j = 1; j < n; j++) { t.olchamlar.push(null); t.bolaklar.push(null); }
+    } else if (t) b.tabaqa_impost = { yonalish, olchamlar: Array(n).fill(null), bolaklar: [t, ...Array(n - 1).fill(null)] };
+    else b.tabaqa_impost = yangi();
+    return;
+  }
+  const ota_ = iiTugun(b, yol.slice(0, -1)), j = yol[yol.length - 1];
+  if (!ota_.bolaklar) ota_.bolaklar = ota_.olchamlar.map(() => null);
+  if (ota_.yonalish === yonalish) {
+    const x = ota_.olchamlar[j];
+    for (let k = 1; k < n; k++) { ota_.olchamlar.splice(j + k, 0, null); ota_.bolaklar.splice(j + k, 0, null); }
+    if (x != null) ota_.olchamlar[j] = null;
+  } else ota_.bolaklar[j] = yangi();
+}
+function ichkiImpostOl(b, yol) {
+  if (!yol.length) { delete b.tabaqa_impost; return; }
+  iiTugun(b, yol.slice(0, -1)).bolaklar[yol[yol.length - 1]] = null;
 }
 
 // Oʻlcham yoki impost konstruksiyaga sigʻmasa — oʻzgarish qabul qilinmaydi (foydalanuvchi, 2026-11-09:
@@ -858,11 +888,15 @@ function olchamXatosi(k) {
   for (const o of [...g.barglar, ...g.bolinishlar]) {
     if (!(o.x >= -e && o.y >= -e && o.x + o.w <= L + e && o.y + o.h <= H + e)) return "Boʻlaklar konstruksiyadan katta chiqdi";
     if (!(o.w >= BOLAK_MIN && o.h >= BOLAK_MIN)) return `Boʻlak juda kichik chiqdi (${yx(Math.min(o.w, o.h))} sm; kamida ${BOLAK_MIN} sm)`;
-    const ii = o.b && o.b.tur === "eshik" && o.b.tabaqa_impost;
+    const ii = o.b && (o.b.tur === "eshik" || o.b.tur === "tabaqa") && o.b.tabaqa_impost;
     if (ii) {
-      // taxminiy tabaqa ichki oʻlchami (rama + tabaqa ≈ 22 sm); aniq tekshiruv hisob.py da
-      const v = ii.yonalish === "vertikal", jami = (v ? o.w / (o.b.tabaqa_soni === 2 ? 2 : 1) : o.h) - 22;
-      if (ichkiBolaklar(ii, jami).ol.some((x) => x < BOLAK_MIN)) return "Tabaqa ichidagi boʻlak sigʻmaydi";
+      // taxminiy tabaqa ichki oʻlchami (eshik ≈ 22 sm, rom tabaqasi ≈ 16 sm kam); aniq tekshiruv hisob.py da
+      const kam = o.b.tur === "eshik" ? 22 : 16, w = o.w / (o.b.tabaqa_soni === 2 ? 2 : 1) - kam, h = o.h - kam;
+      const tekshir = (t, w, h) => {
+        const v = t.yonalish === "vertikal", { ol } = ichkiBolaklar(t, v ? w : h);
+        return ol.every((x, j) => x >= BOLAK_MIN && (!(t.bolaklar || [])[j] || tekshir(t.bolaklar[j], v ? x : w, v ? h : x)));
+      };
+      if (!tekshir(ii, w, h)) return "Tabaqa ichidagi boʻlak sigʻmaydi";
     }
   }
   return null;
@@ -892,7 +926,8 @@ function asbobniQolla(p) {
   tekshirib(() => asbobniQollaIchki(p));
 }
 
-function asbobniQollaIchki(p) {
+function asbobniQollaIchki(kalit) {
+  const [p, iiYol_] = String(kalit).includes("#") ? String(kalit).split("#") : [kalit, null];
   if (asbob === "lapsha" || asbob === "lapsha_y") {
     saqlaTarix();
     if (!lapshaBolish(p, asbob === "lapsha" ? "vertikal" : "gorizontal")) orqaga.pop();
@@ -915,9 +950,10 @@ function asbobniQollaIchki(p) {
     xabar("Portal atrofidagi U oyna faqat gluxoy boʻladi");
     return;
   }
-  if (b && b.tur === "eshik" && ["tik", "yotiq", "tik3", "yotiq3"].includes(asbob)) {
+  // eshikka (har doim) yoki tabaqa ichidagi boʻlakka tik/yotiq — impost tabaqa ichiga (foydalanuvchi, 2026-11-09)
+  if (b && (b.tur === "eshik" || (b.tur === "tabaqa" && iiYol_ != null)) && ["tik", "yotiq", "tik3", "yotiq3"].includes(asbob)) {
     saqlaTarix();
-    if (!eshikIchiImpost(b, asbob.startsWith("tik") ? "vertikal" : "gorizontal", asbob.endsWith("3") ? 3 : 2)) { orqaga.pop(); return; }
+    ichkiImpostQosh(b, iiYol(iiYol_ || ""), asbob.startsWith("tik") ? "vertikal" : "gorizontal", asbob.endsWith("3") ? 3 : 2);
     yangila();
     return;
   }
@@ -1059,8 +1095,8 @@ async function olchamniOzgartirIchki(kalit) {
     const [p, i] = kalit.split("|");
     const b = tugun(tahrir.bolak, p);
     if (b.tur === "portal") { await portalOlchami(p, b, i); return; }
-    if (b.tur === "eshik" && i.startsWith("ii")) {
-      const j_ = +i.slice(2), ii = b.tabaqa_impost;
+    if ((b.tur === "eshik" || b.tur === "tabaqa") && i.startsWith("ii")) {
+      const [y_, js_] = i.slice(2).split(":"), j_ = +js_, ii = iiTugun(b, iiYol(y_));
       const j = await soraSon(`Tabaqa ichi boʻlagi, ichki chetdan impost chetigacha, sm (Teng — avtomatik)`, ii.olchamlar[j_], true);
       if (!j) return;
       saqlaTarix();
@@ -1282,6 +1318,21 @@ $("k-chizma").addEventListener("pointerdown", (e) => {
 });
 $("k-chizma").addEventListener("contextmenu", (e) => e.preventDefault());
 
+// Tabaqa ichi impostlari paneli: har tugun — yoʻnalishi, boʻlak oʻlchamlari (bosib kiritiladi), olish
+function ichkiPanel(b, bosh) {
+  if (!b.tabaqa_impost) return bosh ? `<div class="xira">${bosh}</div>` : "";
+  let q = `<div class="sarlavha">Tabaqa ichida impost (M702) · ichki oʻlcham, impost chetigacha · boʻlakka yana asbob surish mumkin</div>`;
+  const yur = (t, yol, nom) => {
+    const v = t.yonalish === "vertikal", y = yol.join(".");
+    q += `<div class="xira">${nom}${v ? "tik" : "yotiq"} (${v ? "chapdan" : "tepadan"})</div><div class="tugmalar">${t.olchamlar.map((x, j) =>
+      `<button class="tugma" data-ol="${tanlangan}|ii${y}:${j}">${j + 1}: ${x != null ? yx(Number(x)) : "teng"}</button>`).join("")}
+      <button class="tugma" data-amal="ii_ol" data-v='${JSON.stringify(y)}'>Olish</button></div>`;
+    (t.bolaklar || []).forEach((c, j) => { if (c && c.olchamlar) yur(c, [...yol, j], `${nom}${j + 1}-boʻlak ichida → `); });
+  };
+  yur(b.tabaqa_impost, [], "");
+  return q;
+}
+
 function panelniChiz() {
   if (tanlanganImpost) {
     const [ip] = tanlanganImpost.split("|"), lap = tugun(tahrir.bolak, ip)?.lapsha;
@@ -1303,15 +1354,11 @@ function panelniChiz() {
       ? `<div class="sarlavha">Petlya</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "past", [["past", "Pastda"], ["tepa", "Tepada"]])}
          ${pvxmi(joriy(tahrir).rama) ? "" : `<div class="sarlavha">Yopilishi</div>${tugmalar("ruchka", !!b.ruchka, [[false, "Chit-chit"], [true, "Ruchka"]])}`}`
       : "";
+    if (!pvxmi(joriy(tahrir).rama)) p += b.tabaqa_impost ? ichkiPanel(b, "")
+      : `<div class="sarlavha">Tabaqa ichiga impost (M702)</div><div class="tugmalar"><button class="tugma" data-amal="ii_qosh" data-v='"gorizontal"'>Yotiq</button><button class="tugma" data-amal="ii_qosh" data-v='"vertikal"'>Tik</button></div>`;
   } else if (b.tur === "eshik") {
     p += `<div class="xira">${b.ochilish === "tashqariga" ? "Balkon Oʻrta V707 (tashqariga)" : "Balkon Qanot V708 (ichkariga)"} — ⚙ sozlamada almashtiriladi. Tabaqa soni va ruchka tomoni tepadagi asboblarda.</div>`;
-    const ii = b.tabaqa_impost;
-    if (ii) {
-      const v = ii.yonalish === "vertikal";
-      p += `<div class="sarlavha">Tabaqa ichida impost (M702) · ${v ? "tik" : "yotiq"} · ichki oʻlcham, impost chetigacha</div>
-        <div class="tugmalar">${ii.olchamlar.map((x, j) => `<button class="tugma" data-ol="${tanlangan}|ii${j}">${v ? ["Chap", "Oʻrta", "Oʻng"][j === 0 ? 0 : j === ii.olchamlar.length - 1 ? 2 : 1] : ["Tepa", "Oʻrta", "Past"][j === 0 ? 0 : j === ii.olchamlar.length - 1 ? 2 : 1]}: ${x != null ? yx(Number(x)) : "teng"}</button>`).join("")}
-        <button class="tugma" data-amal="ii_ol" data-v="null">Impostni olish</button></div>`;
-    } else p += `<div class="xira">Tabaqa ichiga impost: tik yoki yotiq asbobni eshikka suring.</div>`;
+    p += ichkiPanel(b, "Tabaqa ichiga impost: tik yoki yotiq asbobni eshikka suring.");
   } else p += `<div class="xira">Turini almashtirish uchun tepadan asbob tanlab, boʻlakka bosing.</div>`;
   // Lapsha bilan ulangan rama: oʻlchami, kalta qilish va tekislash
   const rm = o.rama;
@@ -1613,7 +1660,8 @@ $("k-panel").addEventListener("click", (e) => {
   const b = tugun(tahrir.bolak, tanlangan);
   saqlaTarix();
   const v = JSON.parse(el.dataset.v);
-  if (el.dataset.amal === "ii_ol") delete b.tabaqa_impost;
+  if (el.dataset.amal === "ii_ol") ichkiImpostOl(b, iiYol(v));
+  else if (el.dataset.amal === "ii_qosh") ichkiImpostQosh(b, [], v, 2);
   else if (el.dataset.amal === "tekislash") {
     const o = geometriya(tahrir).barglar.find((x) => x.p === tanlangan);
     tugun(tahrir.bolak, o.rama.guruh).tekislash = v;
@@ -1689,6 +1737,13 @@ function nishonniTozala() {
 function nishonniKorsat(p, id) {
   nishonniTozala();
   if (p == null) return;
+  if (String(p).includes("#")) {
+    // tabaqa ichidagi boʻlak: faqat shu boʻlak yashil
+    const [bp, ii] = String(p).split("#");
+    const el = document.querySelector(`#k-chizma [data-p="${bp}"][data-ii="${ii}"]`);
+    if (el) el.classList.add("nishon");
+    return;
+  }
   const rect = document.querySelector(`#k-chizma [data-p="${p}"]`);
   if (!rect) return;
   rect.classList.add("nishon");
@@ -1713,7 +1768,7 @@ function nishonniKorsat(p, id) {
 function barmoqOstidagiBolak(x, y) {
   for (const el of document.elementsFromPoint(x, y)) {
     const r = el.closest && el.closest("#k-chizma [data-p]");
-    if (r) return r.dataset.p;
+    if (r) return r.dataset.ii != null ? r.dataset.p + "#" + r.dataset.ii : r.dataset.p;
   }
   return null;
 }

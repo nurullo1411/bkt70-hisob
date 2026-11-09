@@ -287,16 +287,20 @@ class Hisob:
         # fortochka oynasi qanot ichki − 1,5, boshqa tabaqalarda − 2 (foydalanuvchi, 2026-11-07); Engelberg − 1,5
         oyna_ayirma = D("1.5") if fortochka is not None else self.seriya.tabaqa_oyna
         if ichki_impost:
+            if not self.seriya.eshik:
+                raise HisobXato(f"{self.seriya.nomi}: tabaqa ichiga impost hozircha yoʻq")
             self._tabaqa_ichi(joy, en - ayirma, boy - ayirma, oyna_ayirma, ichki_impost, arka or past)
         else:
             self.oyna(joy, en - ayirma, boy - ayirma, oyna_ayirma, arka, past)
 
     def _tabaqa_ichi(self, joy, ichki_en, ichki_boy, oyna_ayirma, ii, yoy):
-        """Tabaqa ichidagi M702 impost (foydalanuvchi, 2026-11-09). ii = {"yonalish", "olchamlar"}.
+        """Tabaqa ichidagi M702 impost (foydalanuvchi, 2026-11-09; eshik va rom tabaqasi).
 
-        olchamlar — har boʻlakning tabaqa ichki chetidan (yoki impost chetidan) impost chetigacha ichki oʻlchami
-        (tepadan / chapdan); null — qolgani teng. Impost uzunligi = tabaqa ichki eni (yotiq) yoki boʻyi (tik),
-        uchlariga 01.553 × 2 (impost_soni). Har boʻlak oynasi = ichki − 2, shtapik va rezina har oynaga.
+        ii = {"yonalish", "olchamlar", "bolaklar"?}: olchamlar — har boʻlakning ichki oʻlchami (tabaqa ichki
+        chetidan yoki impost chetidan impost chetigacha; tepadan / chapdan), null — qolgani teng. bolaklar[i]
+        null boʻlsa oyna, aks holda shu boʻlak ichida yana impost (tik va yotiq aralash, ichma-ich).
+        Impost uzunligi = boʻlak ichki eni (yotiq) yoki boʻyi (tik); uchlariga 01.553 × 2 (impost_soni).
+        Har boʻlak oynasi = ichki − oyna ayirmasi (tabaqada 2, fortochkada 1,5), shtapik va rezina har oynaga.
         """
         if yoy:
             raise HisobXato("Arkali tabaqa ichiga impost hozircha yoʻq")
@@ -306,6 +310,9 @@ class Hisob:
         olch = list(ii.get("olchamlar") or [])
         if len(olch) < 2:
             raise HisobXato("Tabaqa ichi impostida kamida 2 boʻlak boʻladi")
+        bolaklar = list(ii.get("bolaklar") or [None] * len(olch))
+        if len(bolaklar) != len(olch):
+            raise HisobXato("Tabaqa ichi: bolaklar va olchamlar soni bir xil boʻlishi kerak")
         tana = 2 * (IMPOST_YARMI["M702"] + self.lam / 2)
         jami = (ichki_en if vertikal else ichki_boy) - tana * (len(olch) - 1)
         berilgan = [D(str(x)) for x in olch if x is not None]
@@ -320,8 +327,12 @@ class Hisob:
         n = len(olch) - 1
         self.detal("Tabaqa ichi impost", "M702", ichki_boy if vertikal else ichki_en, n)
         self.impost_soni += n
-        for x in olch:
-            self.oyna(joy, x if vertikal else ichki_en, ichki_boy if vertikal else x, oyna_ayirma)
+        for x, bola in zip(olch, bolaklar):
+            en, boy = (x, ichki_boy) if vertikal else (ichki_en, x)
+            if bola and bola.get("olchamlar"):
+                self._tabaqa_ichi(joy, en, boy, oyna_ayirma, bola, yoy)
+            else:
+                self.oyna(joy, en, boy, oyna_ayirma)
 
     def rama(self, profil, en, boy):
         self.medved_samorez += medved_soni(en, boy)
@@ -668,11 +679,11 @@ def _bolak_ichi(b, z, h, ctx):
         ruchka = bool(b.get("ruchka")) or not h.seriya.eshik  # Engelberg fortochkasida doim ruchka
         q = h.seriya.tabaqa_qoshimcha
         h.tabaqa("Fortochka", h.seriya.rom_tabaqa, z.ichki_en + q, z.ichki_boy + q, rom=True,
-                 fortochka=ruchka, arka=arka, past=past)
+                 fortochka=ruchka, arka=arka, past=past, ichki_impost=b.get("tabaqa_impost"))
     elif tur == "tabaqa":
         q = h.seriya.tabaqa_qoshimcha
         h.tabaqa("Rom tabaqasi", h.seriya.rom_tabaqa, z.ichki_en + q, z.ichki_boy + q, rom=True,
-                 dvaynoy=bool(b.get("dvaynoy")), arka=arka, past=past)
+                 dvaynoy=bool(b.get("dvaynoy")), arka=arka, past=past, ichki_impost=b.get("tabaqa_impost"))
     elif tur == "eshik":
         _eshik(b, z, h, arka)
     elif tur == "portal":
