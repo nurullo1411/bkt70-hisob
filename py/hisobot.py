@@ -244,6 +244,9 @@ ENG_PETLYA_PROSTOE = "(Prostoe Otkr) Petli Komplekt (FORNAX)"
 ENG_PETLYA_100 = {"Oq": "Petlya 100 mm (Oq) (120sht) (Uz)", "Laminatsiya": "Petlya 100 mm (Laminant) (Uz)"}
 ENG_BLOKIRATOR = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)"]
 ENG_ISPANILET_SAMOREZ = "3,9×25 YHB S"  # ProfOkna: har ispaniletga jadvaldagicha, prijimga 4
+# Fortochka petlya komplekti (foydalanuvchi, 2026-11-10): har komplektga samorez 3,9×38 × 6
+ENG_FRAMUGA_PETLYA = "Komplekt Petel Dlya Framujnoe Okna 13mm (Uz)"
+ENG_FRAMUGA_PETLYA_SAMOREZ = 6
 ENG_PRIJIM = "(13) Sredniy Prijim Skritiy (FORNAX)"  # framujniy; Prostoe Otkr bilan, qanot 100 sm dan baland
 
 
@@ -352,15 +355,18 @@ def _eng_furnitura(s, tanlov, r):
         r.qosh("Furnitura", ENG_PETLYA_100.get(tanlov.get("rang"), ENG_PETLYA_100["Laminatsiya"]), sum(3 if b > 100 else 2 for b in boylar), "dona")
     if fortochkalar:
         # fortochka (foydalanuvchi, 2026-11-08): har biriga Ogranichitel Dlya Fortochki (Uz / Kinglong);
-        # "100" tanlansa ustiga Petlya 100 mm × 2. Blokirator yoʻq.
+        # "100" tanlansa ustiga Petlya 100 mm × 2; "komplekt" — framujniy petlya komplekti × 1 + samorez 6. Blokirator yoʻq.
         fp = tanlov.get("eng_fortochka_petlya") or "ogranichitel"
         og = tanlov.get("eng_ogranichitel") or "Uz"
-        if fp not in ("ogranichitel", "100") or og not in ENG_OGRANICHITEL:
+        if fp not in ("ogranichitel", "100", "komplekt") or og not in ENG_OGRANICHITEL:
             raise HisobXato(f"Fortochka petlyasi notoʻgʻri: {fp} / {og}")
         for b in fort_boylar:
             r.qosh("Furnitura", eng_ogranichitel(og, b), 1, "dona")
         if fp == "100":
             r.qosh("Furnitura", ENG_PETLYA_100.get(tanlov.get("rang"), ENG_PETLYA_100["Laminatsiya"]), 2 * len(fortochkalar), "dona")
+        elif fp == "komplekt":
+            r.qosh("Furnitura", ENG_FRAMUGA_PETLYA, len(fortochkalar), "komplekt")
+            r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_FRAMUGA_PETLYA_SAMOREZ * len(fortochkalar), "dona")
     isp = {}
     zatsep = 0
     for o, jadval in [(b, None) for b in boylar] + [(e, ENG_ISPANILET_FORT) for e in fortochkalar]:
