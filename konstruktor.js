@@ -1539,7 +1539,7 @@ function engFurnituraHtml(k, faol) {
     ${seg("eng_mexanizm", "fornax", [["fornax", "Fornax"], ["roto", "Roto"]])}
     ${seg("eng_petlya", "prostoe", [["prostoe", "Prostoe Otkr komplekt"], ["100", "Petlya 100 mm (2–3 ta)"]])}
     <div class="sz-bolim">Fortochka <span class="xira">(doim ruchka bilan)</span></div>
-    ${seg("eng_fortochka_petlya", "ogranichitel", [["ogranichitel", "Ogranichitel"], ["100", "Petlya 100 mm × 2 + ogranichitel"], ["komplekt", "Framujniy petlya komplekti + ogranichitel"]])}
+    ${seg("eng_fortochka_petlya", "ogranichitel", [["ogranichitel", "Ogranichitel"], ["100", "Petlya 100 mm × 2 + ogranichitel"]])}
     ${seg("eng_ogranichitel", "Uz", [["Uz", "Ogranichitel Uz"], ["Kinglong", "Ogranichitel Kinglong"]])}
     <div class="sz-bolim">Ruchka <span class="xira">(dvaynoyda petlya qopqogʻi shu rangda)</span></div>
     ${seg("eng_ruchka", ENG_RUCHKALAR[0][0], ENG_RUCHKALAR)}`;
