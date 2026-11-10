@@ -537,7 +537,7 @@ const RASM_NOM = [[/A6004|A6011|cremone|comfort okon/i, "RUCHKA_ROM"], [/nojnits
   // AKFA "Механизмы" rasmi Fornax/Roto uchun (foydalanuvchi: deyarli bir xil)
   [/4207/, "ZATSEP_4207"], [/vadasliv/i, "VADASLIV"], [/zatsepka/i, "ZATSEP_PVX"], [/ispanilet/i, "ISPANILET"], [/sredniy prijim/i, "SREDNIY_ZAPOR"], [/petli komplekt/i, "PETLYA_OPORA"]];
 const BELGILAR = [[/ruchka/i, "✋"], [/zamok|serdtsevina|otvetka|a4202|cylinder/i, "🔒"], [/petlya|nojnitsa|dv\. otk/i, "🔗"],
-  [/tij/i, "📏"], [/samorez|yhbm|3,9×19/i, "🔩"], [/kley|k188/i, "🧴"], [/pena|mk 01/i, "🧯"], [/podokonnik/i, "▭"],
+  [/tij/i, "📏"], [/samorez|yhbm|ysbm|3,9×/i, "🔩"], [/kley|k188/i, "🧴"], [/pena|mk 01/i, "🧯"], [/podokonnik/i, "▭"],
   [/zatsep|zapor|prijim|ogranichitel|shpingalet|a4514/i, "🔧"], [/takos|ct 203/i, "▪"], [/soed|w0|m535|j0|01\.553/i, "📐"], [/arka/i, "◠"]];
 function materialRasm(artikul, kichik = true) {
   const a = String(artikul || "");

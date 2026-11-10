@@ -44,6 +44,10 @@ DVAYNOY_PRIJIM_BOY = D(140)  # Master: H > 1400 mm (avval ProfOkna 120)
 RAMA_BURCHAGI = {"F702": ["263 W02", "108 W02"], "F703": ["263 W03", "108 W03"]}
 TABAQA_BURCHAGI = {"V702": ["184 W02", "078 W02"], "V707": ["184 M535", "078 M535"], "V708": ["184 M535", "078 M535"]}
 IMPOST_UGOL = "ugol"  # asosiy: 01.553 (19 mm ugol soedinitel), har uchiga 2 ta
+# Termo soedinitel (01.553, J01+J05) samorezi — armatura samorezi bilan bitta:
+# "Samarez IDEAL 3.9*16mm YHB (1000) (Tr)" 3,33 (foydalanuvchi, 2026-11-10; avval 3,9×19)
+SOEDINITEL_SAMOREZ = ARMATURA_SAMOREZ
+
 IMPOST_J = "J01+J05"  # tanlov: katalog 9-12
 TIJ_AYIRMA_ESHIK ={"Stublina 1177": D(50), "Stublina 1177 (Uz)": D(50)}  # foydalanuvchi tasdiqlagan, 2026-11-02
 
@@ -134,7 +138,7 @@ def _aksessuar(s, narxlar, r, tanlov=None):
     seg = s.get("segment_ramalar", 0)
     if seg:
         r.qosh("Aksessuar", "01.553", 2 * seg, "dona", kalit="Soedinitel Urta 19 ugl", komplekt=4)
-        r.qosh("Aksessuar", "3,9×19 YHBM", 2 * seg * 2, "dona")
+        r.qosh("Aksessuar", SOEDINITEL_SAMOREZ, 2 * seg * 2, "dona")
     rama_soni, tabaqa_soni = sum(s["ramalar"].values()), sum(s["tabaqalar"].values())
     r.qosh("Aksessuar", "A10-001", 4 * rama_soni, "dona")
     if tabaqa_soni:
@@ -149,13 +153,13 @@ def _aksessuar(s, narxlar, r, tanlov=None):
         if tur == IMPOST_UGOL:
             soedinitel = 4 * s["impost_soni"]  # har uchiga 2 ta
             r.qosh("Aksessuar", "01.553", soedinitel, "dona", kalit="Soedinitel Urta 19 ugl", komplekt=4)
-            r.qosh("Aksessuar", "3,9×19 YHBM", soedinitel * 2, "dona")
+            r.qosh("Aksessuar", SOEDINITEL_SAMOREZ, soedinitel * 2, "dona")
         elif tur == IMPOST_J:
             # Katalog 9-12: M702 uchiga 236 J01 + 236 J05, bittadan
             r.qosh("Aksessuar", "236 J01", 2 * s["impost_soni"], "dona")
             r.qosh("Aksessuar", "236 J05", 2 * s["impost_soni"], "dona")
             # impostning bir uchiga 2 ta samorez (01.553 da 4 ta) (foydalanuvchi, 2026-11-04)
-            r.qosh("Aksessuar", "3,9×19 YHBM", 2 * s["impost_soni"] * 2, "dona")
+            r.qosh("Aksessuar", SOEDINITEL_SAMOREZ, 2 * s["impost_soni"] * 2, "dona")
         else:
             raise HisobXato(f"Impost soedineli notoʻgʻri: {tur} ({IMPOST_UGOL} yoki {IMPOST_J})")
     if s["tabaqa_oyna_soni"]:
