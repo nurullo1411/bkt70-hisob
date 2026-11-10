@@ -409,7 +409,7 @@ def _birlashtir_karta(kartalar):
 
 
 # Sklad rangi → narx turkumi (foydalanuvchi, 2026-11-03): oq alohida, 306g svetnoy, qolgani laminatsiya.
-SKLAD_TURKUM = {"oq": "Oq", "306g": "Svetnoy (kraska)"}
+SKLAD_TURKUM = {"oq": "Oq", "306g": "Svetnoy (kraska)", "anod": "Anod"}
 
 
 def rang_turkumi(sklad_rangi):
@@ -453,7 +453,7 @@ def sklad_ranglari(qatorlar):
     return ranglar
 
 
-TURKUM_RANG = {"Oq": "oq", "Svetnoy (kraska)": "306g"}  # bitta rangli turkumlar
+TURKUM_RANG = {"Oq": "oq", "Svetnoy (kraska)": "306g", "Anod": "anod"}  # bitta rangli turkumlar
 
 
 def _konstruksiya_rangi(umumiy_tanlov, k):

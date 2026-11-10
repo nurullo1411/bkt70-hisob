@@ -106,9 +106,10 @@ def eng_profil_nomi(profil, rang):
 
 
 # PVX lambri diller nomi sklad rangi boʻyicha (foydalanuvchi, 2026-11-10): laminatda ichi oq variant (11,70);
-# grey (ichi oq varianti yoʻq) va 306g ga alux antrazit
+# grey (ichi oq varianti yoʻq), 306g va anod ga alux antrazit
 _LAMBRI_ALUX = "TRIO 6000 (Alyuks-Oq) Lambri New LAM LL (N)"
 LAMBRI_NOM = {"oq": "Lambri II (N)", "grey": _LAMBRI_ALUX, "alux": _LAMBRI_ALUX, "306g": _LAMBRI_ALUX,
+              "anod": _LAMBRI_ALUX,
               "sh/d": "TRIO 6000 (Sheffal Dub-Oq) Lambri LAM LL (N)",
               "z/d": "TRIO 6000 (Zol Dub-Oq) Lambri LAM (N)", "d/m": "TRIO 6000 (Dub Mokko-Oq) Lambri LAM (N)"}
 
