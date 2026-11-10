@@ -241,6 +241,8 @@ ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Oq) (Uz)", "Ruchka Okon (ROTO LUX) (Oq
                  "Ruchka Okon HOPPE NY (Bronza) (Tr)", "Ruchka Okon HOPPE NY (Tem Kor) (Tr)"]
 ENG_PETLYA_PROSTOE = "(Prostoe Otkr) Petli Komplekt (FORNAX)"
 # Petlya 100 mm rangga qarab (foydalanuvchi, 2026-11-09): oq — (Oq) (120sht), qolgani — (Laminant)
+# har Petlya 100 mm ga samorez 3,9×38 × 8 (foydalanuvchi, 2026-11-10)
+ENG_PETLYA_100_SAMOREZ = 8
 ENG_PETLYA_100 = {"Oq": "Petlya 100 mm (Oq) (120sht) (Uz)", "Laminatsiya": "Petlya 100 mm (Laminant) (Uz)"}
 ENG_BLOKIRATOR = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)"]
 ENG_ISPANILET_SAMOREZ = "3,9×25 YHB S"  # ProfOkna: har ispaniletga jadvaldagicha, prijimga 4
@@ -255,7 +257,7 @@ ENG_PRIJIM = "(13) Sredniy Prijim Skritiy (FORNAX)"  # framujniy; Prostoe Otkr b
 # − 4,9 sm (mm); oraliqlar ustma-ust tushsa kichigi. Jadvaldan tashqari — dvaynoy qoʻyib boʻlmaydi.
 # Samorez soni ProfOkna Fornax 13 dvaynoyidan: zapor 1225 mm gacha 12, balandi 14 (3,9×25); petlya qismlariga
 # (tepa va past opora, qanot past petlyasi) 8 ta — "Samarez IDEAL 3.9*38mm YHB (500) (Tr)" 4,65
-# (foydalanuvchi, 2026-11-10; ProfOknada 4,2×38). Shu samorez Petlya 100 mm ga ham (soni hali berilmagan).
+# (foydalanuvchi, 2026-11-10; ProfOknada 4,2×38). Shu samorez Petlya 100 mm ga ham, har biriga 8 ta.
 ENG_DV_KOMPLEKT = "(13) KOMPLEKT Dvoy. Otkr (FORNAX)"
 ENG_DV_ISPANILET = [(885, 1300), (1185, 1600), (1385, 1800), (1585, 2000), (1985, 2400)]
 ENG_DV_NOJNITSA = [(395, 600), (595, 800), (795, 1000)]
@@ -352,7 +354,9 @@ def _eng_furnitura(s, tanlov, r):
             samorez += 4 * prijim
     else:
         # 100 sm dan baland tabaqaga 3 ta, qolganiga 2 ta (foydalanuvchi)
-        r.qosh("Furnitura", ENG_PETLYA_100.get(tanlov.get("rang"), ENG_PETLYA_100["Laminatsiya"]), sum(3 if b > 100 else 2 for b in boylar), "dona")
+        p100 = sum(3 if b > 100 else 2 for b in boylar)
+        r.qosh("Furnitura", ENG_PETLYA_100.get(tanlov.get("rang"), ENG_PETLYA_100["Laminatsiya"]), p100, "dona")
+        r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_PETLYA_100_SAMOREZ * p100, "dona")
     if fortochkalar:
         # fortochka (foydalanuvchi, 2026-11-08): har biriga Ogranichitel Dlya Fortochki (Uz / Kinglong);
         # "100" tanlansa ustiga Petlya 100 mm × 2; "komplekt" — framujniy petlya komplekti × 1 + samorez 6. Blokirator yoʻq.
@@ -364,6 +368,7 @@ def _eng_furnitura(s, tanlov, r):
             r.qosh("Furnitura", eng_ogranichitel(og, b), 1, "dona")
         if fp == "100":
             r.qosh("Furnitura", ENG_PETLYA_100.get(tanlov.get("rang"), ENG_PETLYA_100["Laminatsiya"]), 2 * len(fortochkalar), "dona")
+            r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_PETLYA_100_SAMOREZ * 2 * len(fortochkalar), "dona")
         elif fp == "komplekt":
             r.qosh("Furnitura", ENG_FRAMUGA_PETLYA, len(fortochkalar), "komplekt")
             r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_FRAMUGA_PETLYA_SAMOREZ * len(fortochkalar), "dona")
