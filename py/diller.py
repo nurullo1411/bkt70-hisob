@@ -71,8 +71,9 @@ DILLER_RANGI = {"grey": "Anthrazit Grey LL", "z/d": "Zol Dub", "d/m": "Dub Mokko
 
 # Rezina 1 metri vazni, kg (foydalanuvchi oʻlchab beradi; boʻsh boʻlsa metrda yoziladi)
 # 1 metr vazni, kg (foydalanuvchi oʻlchagan, 2026-11-08); dillerga kg da yoziladi
-REZINA_KG_M = {"A01-002": 0.064, "A01-003": 0.036, "EPDM Rezina Ю": 0.046, "A01-005": 0.180}
-REZINALAR = ("A01-005", "A01-003", "A01-002", "EPDM Rezina Ю")
+REZINA_KG_M = {"A01-002": 0.064, "A01-003": 0.036, "EPDM Rezina Ю": 0.046, "A01-005": 0.180,
+               "EPDM 5025": 0.050, "EPDM 5108": 0.092}  # Engelberg (foydalanuvchi, 2026-11-10)
+REZINALAR = ("A01-005", "A01-003", "A01-002", "EPDM Rezina Ю", "EPDM 5108", "EPDM 5025")
 
 # Dillerdan olinmaydi — eslatma (qizil)
 ESLATMA = {"3,9×19 YHBM": "Samorez 3,9×19", "Lapsha samorez soʻm": "Samorez (lapsha)", "Medved samorez soʻm": "Medved samorez (montaj)", "K188": "Kley K188 (Saudal)", "MK 01": "Pena"}
@@ -104,10 +105,12 @@ def eng_profil_nomi(profil, rang):
     return f"ENG 7000 ({r}) {ENG_LAM_NOM.get(profil, profil)} {ll} (N)"
 
 
-# PVX lambri diller nomi sklad rangi boʻyicha (laminat — bir tomoni rangli emas, ikkala tomoni)
-LAMBRI_NOM = {"oq": "Lambri II (N)", "grey": "TRIO 6000 (Anthrazit Grey) Lambri LAM LL (N)",
-              "alux": "TRIO 6000 (Alyuks) Lambri New LAM (N)", "sh/d": "TRIO 6000 (Sheffal Dub) Lambri LAM LL (N)",
-              "z/d": "TRIO 6000 (Zol Dub) Lambri LAM (N)", "d/m": "TRIO 6000 (Dub Mokko) Lambri New LAM (N)"}
+# PVX lambri diller nomi sklad rangi boʻyicha (foydalanuvchi, 2026-11-10): laminatda ichi oq variant (11,70);
+# grey (ichi oq varianti yoʻq) va 306g ga alux antrazit
+_LAMBRI_ALUX = "TRIO 6000 (Alyuks-Oq) Lambri New LAM LL (N)"
+LAMBRI_NOM = {"oq": "Lambri II (N)", "grey": _LAMBRI_ALUX, "alux": _LAMBRI_ALUX, "306g": _LAMBRI_ALUX,
+              "sh/d": "TRIO 6000 (Sheffal Dub-Oq) Lambri LAM LL (N)",
+              "z/d": "TRIO 6000 (Zol Dub-Oq) Lambri LAM (N)", "d/m": "TRIO 6000 (Dub Mokko-Oq) Lambri LAM (N)"}
 
 
 def profil_nomi(profil, rang):

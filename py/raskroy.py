@@ -232,6 +232,7 @@ OTXOD_CHEGARA = {
     "G32": 60, "G32-R": 180,  # foydalanuvchi, 2026-11-04
     # Engelberg 7000 (foydalanuvchi, 2026-11-08)
     "7051": 70, "7052": 45, "7053": 65, "7056": 36, "7057": 36, "0701": 25, "0703": 25, "0701-2": 25, "0703-2": 25,
+    "LII": 59,  # PVX lambri (foydalanuvchi, 2026-11-10)
 }
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
 
