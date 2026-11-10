@@ -246,6 +246,8 @@ ENG_PETLYA_100_SAMOREZ = 8
 ENG_PETLYA_100 = {"Oq": "Petlya 100 mm (Oq) (120sht) (Uz)", "Laminatsiya": "Petlya 100 mm (Laminant) (Uz)"}
 ENG_BLOKIRATOR = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)"]
 ENG_ISPANILET_SAMOREZ = "3,9×25 YHB S"  # ProfOkna: har ispaniletga jadvaldagicha, prijimga 4
+# (Prostoe Otkr) Petli Komplekt: (3,9×38 soni, 3,9×25 soni) har komplektga (foydalanuvchi, 2026-11-10)
+ENG_PROSTOE_SAMOREZ = (11, 4)
 # Fortochka ogranichiteli (Uz, Kinglong): har biriga samorez 3,9×25 × 16 (foydalanuvchi, 2026-11-10)
 ENG_OGRANICHITEL_SAMOREZ = 16
 # Framujniy petlya komplekti: har komplektga samorez 3,9×38 × 6 (foydalanuvchi, 2026-11-10).
@@ -350,6 +352,9 @@ def _eng_furnitura(s, tanlov, r):
         pass
     elif petlya == "prostoe":
         r.qosh("Furnitura", ENG_PETLYA_PROSTOE, soni, "komplekt")
+        # har komplektga samorez 3,9×38 × 11 va 3,9×25 × 4 (foydalanuvchi, 2026-11-10; ProfOknada yozilmagan)
+        r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_PROSTOE_SAMOREZ[0] * soni, "dona")
+        samorez += ENG_PROSTOE_SAMOREZ[1] * soni
         # framujniy prijim: Prostoe Otkr bilan, qanot 100 sm dan baland (foydalanuvchi, 2026-11-08)
         prijim = sum(1 for b in boylar if b > 100)
         if prijim:
