@@ -250,14 +250,17 @@ ENG_PRIJIM = "(13) Sredniy Prijim Skritiy (FORNAX)"  # framujniy; Prostoe Otkr b
 # Dvaynoy Fornax 13 (foydalanuvchi, 2026-11-09, diller roʻyxati): komplekt + ispanilet (boʻyi) + nojnitsa (eni)
 # + oʻrta zamok (boʻyi) + petlya qopqogʻi (ruchka rangida) + zatsepka 3 + blokirator (ramaga) 1. Oʻlcham = kesish
 # − 4,9 sm (mm); oraliqlar ustma-ust tushsa kichigi. Jadvaldan tashqari — dvaynoy qoʻyib boʻlmaydi.
-# Samorez ProfOkna Fornax 13 dvaynoyidan: zapor 1225 mm gacha 12, balandi 14; ruchkaga 4,2×38 × 8.
+# Samorez soni ProfOkna Fornax 13 dvaynoyidan: zapor 1225 mm gacha 12, balandi 14 (3,9×25); petlya qismlariga
+# (tepa va past opora, qanot past petlyasi) 8 ta — "Samarez IDEAL 3.9*38mm YHB (500) (Tr)" 4,65
+# (foydalanuvchi, 2026-11-10; ProfOknada 4,2×38). Shu samorez Petlya 100 mm ga ham (soni hali berilmagan).
 ENG_DV_KOMPLEKT = "(13) KOMPLEKT Dvoy. Otkr (FORNAX)"
 ENG_DV_ISPANILET = [(885, 1300), (1185, 1600), (1385, 1800), (1585, 2000), (1985, 2400)]
 ENG_DV_NOJNITSA = [(395, 600), (595, 800), (795, 1000)]
 ENG_DV_ZAMOK = [(700, 1150), (1150, 1500), (1350, 1800), (1850, 2100)]
 ENG_DV_ZATSEP = 3
 ENG_DV_BLOKIRATOR = "(13) Blokirator Ruchki Na Rame (FORNAX)"
-ENG_DV_RUCHKA_SAMOREZ = ("4,2×38", 8)
+ENG_PETLYA_SAMOREZ = "3,9×38 YHB"
+ENG_DV_PETLYA_SAMOREZ_SONI = 8
 ENG_KRISHKA_RANGLARI = ["Oq", "Bronza", "Seriy", "Tem Kor", "Mahagon", "Zol Dub"]
 
 
@@ -303,7 +306,7 @@ def _eng_dvaynoy(dvaynoylar, ruchka, r):
         r.qosh("Furnitura", f"Zamok Sredniy {k} (FORNAX)", n, "dona")
     r.qosh("Furnitura", f"Krishka Petlya ({eng_krishka_rangi(ruchka)}) (FORNAX)", soni, "dona")
     r.qosh("Furnitura", ENG_DV_BLOKIRATOR, soni, "dona")
-    r.qosh("Furnitura", ENG_DV_RUCHKA_SAMOREZ[0], ENG_DV_RUCHKA_SAMOREZ[1] * soni, "dona")
+    r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_DV_PETLYA_SAMOREZ_SONI * soni, "dona")
     return samorez
 
 
