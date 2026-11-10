@@ -250,11 +250,13 @@ ENG_ISPANILET_SAMOREZ = "3,9×25 YHB S"  # ProfOkna: har ispaniletga jadvaldagic
 ENG_PROSTOE_SAMOREZ = (11, 4)
 # Fortochka ogranichiteli (Uz, Kinglong): har biriga samorez 3,9×25 × 16 (foydalanuvchi, 2026-11-10)
 ENG_OGRANICHITEL_SAMOREZ = 16
+# Aldoks ogranichiteli: fortochkada Petlya 100 mm bilan, 1 dona, samorez 3,9×25 × 4 (foydalanuvchi, 2026-11-10)
+ENG_OGRANICHITEL_ALDOKS = {"Oq": "Ogranichitel (Oq) (500sht) (Uz)", "Laminatsiya": "(9005) Ogranichitel (Uz)"}
+ENG_OGRANICHITEL_ALDOKS_SAMOREZ = 4
 # Framujniy petlya komplekti: har komplektga samorez 3,9×38 × 6 (foydalanuvchi, 2026-11-10).
-# Fortochkada ISHLATILMAYDI (foydalanuvchi, 2026-11-10) — qayerga qoʻyilishi hali aytilmagan, hisobga kirmaydi.
+# Fortochkada ISHLATILMAYDI; Prostoe Otkr bilan, "(13) Sredniy Prijim Skritiy (FORNAX)" OʻRNIGA (foydalanuvchi, 2026-11-10).
 ENG_FRAMUGA_PETLYA = "Komplekt Petel Dlya Framujnoe Okna 13mm (Uz)"
 ENG_FRAMUGA_PETLYA_SAMOREZ = 6
-ENG_PRIJIM = "(13) Sredniy Prijim Skritiy (FORNAX)"  # framujniy; Prostoe Otkr bilan, qanot 100 sm dan baland
 
 
 # Dvaynoy Fornax 13 (foydalanuvchi, 2026-11-09, diller roʻyxati): komplekt + ispanilet (boʻyi) + nojnitsa (eni)
@@ -353,13 +355,13 @@ def _eng_furnitura(s, tanlov, r):
     elif petlya == "prostoe":
         r.qosh("Furnitura", ENG_PETLYA_PROSTOE, soni, "komplekt")
         # har komplektga samorez 3,9×38 × 11 va 3,9×25 × 4 (foydalanuvchi, 2026-11-10; ProfOknada yozilmagan)
-        r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_PROSTOE_SAMOREZ[0] * soni, "dona")
         samorez += ENG_PROSTOE_SAMOREZ[1] * soni
-        # framujniy prijim: Prostoe Otkr bilan, qanot 100 sm dan baland (foydalanuvchi, 2026-11-08)
-        prijim = sum(1 for b in boylar if b > 100)
-        if prijim:
-            r.qosh("Furnitura", ENG_PRIJIM, prijim, "dona")
-            samorez += 4 * prijim
+        # framujniy petlya komplekti (Sredniy Prijim oʻrniga; foydalanuvchi, 2026-11-10): Prostoe Otkr bilan,
+        # qanot (kesish) 100 sm dan baland boʻlsa (foydalanuvchi tasdiqladi, 2026-11-10), har biriga samorez 3,9×38 × 6
+        framuj = sum(1 for b in boylar if b > 100)
+        if framuj:
+            r.qosh("Furnitura", ENG_FRAMUGA_PETLYA, framuj, "komplekt")
+        r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_PROSTOE_SAMOREZ[0] * soni + ENG_FRAMUGA_PETLYA_SAMOREZ * framuj, "dona")
     else:
         # 100 sm dan baland tabaqaga 3 ta, qolganiga 2 ta (foydalanuvchi)
         p100 = sum(3 if b > 100 else 2 for b in boylar)
@@ -367,7 +369,7 @@ def _eng_furnitura(s, tanlov, r):
         r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_PETLYA_100_SAMOREZ * p100, "dona")
     if fortochkalar:
         # fortochka (foydalanuvchi, 2026-11-08): har biriga Ogranichitel Dlya Fortochki (Uz / Kinglong);
-        # "100" tanlansa ustiga Petlya 100 mm × 2 (+ samorez 8 tadan). Blokirator yoʻq.
+        # "100" tanlansa Petlya 100 mm × 2 (+ samorez 8 tadan) va Aldoks ogranichiteli. Blokirator yoʻq.
         # Framujniy petlya komplekti fortochkada ishlamaydi (foydalanuvchi, 2026-11-10); eski "komplekt" — ogranichitel.
         fp = tanlov.get("eng_fortochka_petlya") or "ogranichitel"
         if fp == "komplekt":
@@ -375,9 +377,15 @@ def _eng_furnitura(s, tanlov, r):
         og = tanlov.get("eng_ogranichitel") or "Uz"
         if fp not in ("ogranichitel", "100") or og not in ENG_OGRANICHITEL:
             raise HisobXato(f"Fortochka petlyasi notoʻgʻri: {fp} / {og}")
-        for b in fort_boylar:
-            r.qosh("Furnitura", eng_ogranichitel(og, b), 1, "dona")
-        samorez += ENG_OGRANICHITEL_SAMOREZ * len(fort_boylar)
+        if fp == "100":
+            # Petlya 100 mm bilan Uz/Kinglong emas, Aldoks ogranichiteli × 1 + samorez 3,9×25 × 4 (foydalanuvchi, 2026-11-10)
+            r.qosh("Furnitura", ENG_OGRANICHITEL_ALDOKS.get(tanlov.get("rang"), ENG_OGRANICHITEL_ALDOKS["Laminatsiya"]),
+                   len(fortochkalar), "dona")
+            samorez += ENG_OGRANICHITEL_ALDOKS_SAMOREZ * len(fortochkalar)
+        else:
+            for b in fort_boylar:
+                r.qosh("Furnitura", eng_ogranichitel(og, b), 1, "dona")
+            samorez += ENG_OGRANICHITEL_SAMOREZ * len(fort_boylar)
         if fp == "100":
             r.qosh("Furnitura", ENG_PETLYA_100.get(tanlov.get("rang"), ENG_PETLYA_100["Laminatsiya"]), 2 * len(fortochkalar), "dona")
             r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_PETLYA_100_SAMOREZ * 2 * len(fortochkalar), "dona")
