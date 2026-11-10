@@ -246,6 +246,8 @@ ENG_PETLYA_100_SAMOREZ = 8
 ENG_PETLYA_100 = {"Oq": "Petlya 100 mm (Oq) (120sht) (Uz)", "Laminatsiya": "Petlya 100 mm (Laminant) (Uz)"}
 ENG_BLOKIRATOR = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)"]
 ENG_ISPANILET_SAMOREZ = "3,9×25 YHB S"  # ProfOkna: har ispaniletga jadvaldagicha, prijimga 4
+# Fortochka ogranichiteli (Uz, Kinglong): har biriga samorez 3,9×25 × 16 (foydalanuvchi, 2026-11-10)
+ENG_OGRANICHITEL_SAMOREZ = 16
 # Framujniy petlya komplekti: har komplektga samorez 3,9×38 × 6 (foydalanuvchi, 2026-11-10).
 # Fortochkada ISHLATILMAYDI (foydalanuvchi, 2026-11-10) — qayerga qoʻyilishi hali aytilmagan, hisobga kirmaydi.
 ENG_FRAMUGA_PETLYA = "Komplekt Petel Dlya Framujnoe Okna 13mm (Uz)"
@@ -370,6 +372,7 @@ def _eng_furnitura(s, tanlov, r):
             raise HisobXato(f"Fortochka petlyasi notoʻgʻri: {fp} / {og}")
         for b in fort_boylar:
             r.qosh("Furnitura", eng_ogranichitel(og, b), 1, "dona")
+        samorez += ENG_OGRANICHITEL_SAMOREZ * len(fort_boylar)
         if fp == "100":
             r.qosh("Furnitura", ENG_PETLYA_100.get(tanlov.get("rang"), ENG_PETLYA_100["Laminatsiya"]), 2 * len(fortochkalar), "dona")
             r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_PETLYA_100_SAMOREZ * 2 * len(fortochkalar), "dona")
