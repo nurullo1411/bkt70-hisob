@@ -79,13 +79,15 @@ ENGELBERG = Seriya("Engelberg 7000", "7053", "7052", D("2.2"), D("1.5"), D("0.5"
                    eshik_kosa=D("1.3"), eshik_impost=D("1.2"), eshik_2_qoshimcha=D(1), shtulp="7058",
                    shtulp_ayirma=D("1.7"))
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG}
-ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2"}
+ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2"}
 # Metall (armatura) qalinligi (foydalanuvchi, 2026-11-09, Romchi kabi tanlov): 1,5 mm (standart) yoki 2 mm.
 # 2 mm armatura alohida kod bilan ("0701-2"): raskroy, diller roʻyxati va narx oʻzi ajraladi.
 ENG_METALL = ("1.5", "2")
 # Armatura (foydalanuvchi, 2026-11-08): hamma detalga; uzunlik = kesish uzunligi − ayirma (laminatda ham shu),
 # 6 m hivichdan raskroy. Samorez 3,9×16: armatura uzunligi 70 dan kalta — 2 ta, aks holda uzunlik : 35 yuqoriga.
-ARMATURA = {"7051": ("0701", D(13)), "7052": ("0701", D(13)), "7053": ("0703", D("0.5"))}
+ARMATURA = {"7051": ("0701", D(13)), "7052": ("0701", D(13)), "7053": ("0703", D("0.5")),
+            # eshik qanoti (foydalanuvchi, 2026-11-11): "Metall Vst. BALKON QANOT 7000 (2mm)", doim 2 mm, kesish − 13
+            "7054": ("0702-2", D(13)), "7055": ("0702-2", D(13))}
 ARMATURA_SAMOREZ = "3,9×16 YSBM"
 ARMATURA_QADAM = D(35)
 ARMATURA_KALTA = D(70)
@@ -252,7 +254,7 @@ class Hisob:
             u = uzunlik - ayirma
             if u <= 0:
                 raise HisobXato(f"{nomi} juda kalta, armatura sigʻmaydi: {uzunlik}")
-            if self.metall == "2":
+            if self.metall == "2" and not arm.endswith("-2"):
                 arm += "-2"
             akey = (f"Armatura ({nomi.lower()})", arm, u)
             self.profillar[akey] = self.profillar.get(akey, 0) + soni
@@ -708,8 +710,6 @@ def _eshik(b, z, h, arka=D(0)):
         return sum((sr.eshik_kosa if t == h.r else sr.eshik_impost) for t in tomonlar)
 
     H1 = z.ichki_boy + ustma(z.tepa, z.past)
-    if sr.pvx and profil not in ARMATURA:
-        _qoida_yoq(h, f"Eshik qanoti ({profil}) armaturasi hali oʻrgatilmagan")
     ii = b.get("tabaqa_impost")  # tabaqa ichida impost; 2 tabaqada ikkalasiga bir xil
     soni = b.get("tabaqa_soni")
     if soni == 1:

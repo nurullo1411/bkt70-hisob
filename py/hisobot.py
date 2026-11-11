@@ -394,7 +394,7 @@ def _eng_dvaynoy_roto(dvaynoylar, tomonlar, r, ruchka=""):
 # (Fornax / Roto / GU), oʻlchami aktiv qanot tayyor boʻyiga (kesish − 0,5, mm): 1840 gacha 1600, 2070 gacha 1800,
 # 2400 gacha 2000; zatsep "Zatsepka 7000" 3 / 3 / 4; zamokka samorez 3,9×25 × 12. Petlya tanlanadi, har qanotga 3,
 # qanot tayyor boʻyi 200–235 va eni 70–105 boʻlsa 4 (ProfOkna), har petlyaga samorez 4,2×45 × 7. Passiv qanotga
-# "Shpingalet PVH (Oq) (Tr)" × 2 (+ samorez 3,9×25 × 4), shtulp qopqogʻi × 2, shtulpga samorez 4,8×70 × 5.
+# "Shpingalet PVH (Oq) (Tr)" × 2 (+ samorez 3,9×25 × 4), shtulp qopqogʻi × 2, shtulpga samorez 4,8×60 × 5.
 ENG_ESHIK_ZAMOKLAR = ("fornax", "roto", "gu")
 ENG_ESHIK_ZAMOK_NOM = {"fornax": "FORNAX", "roto": "ROTO", "gu": "GU"}
 ENG_ESHIK_ZAMOK_OLCHAM = [(1840, 1600, 3), (2070, 1800, 3), (2400, 2000, 4)]
@@ -407,7 +407,7 @@ ENG_ESHIK_PETLYALAR = ["Petlya Dvernaya PVH (Oq) (40sht) (Uz)", "Petlya Dvernaya
 ENG_ESHIK_PETLYA_SAMOREZ = ("4,2×45 YHB", 7)
 ENG_SHPINGALET = "Shpingalet PVH (Oq) (Tr)"
 ENG_SHTULP_KRISHKA = "Krishka Shtulp Dlya Adap 7000 (Oq) (Uz)"
-ENG_SHTULP_SAMOREZ = ("4,8×70", 5)
+ENG_SHTULP_SAMOREZ = ("4,8×60 YSB", 5)  # "(A) Samarez 4.8 x 60 YSB (200)" (foydalanuvchi, 2026-11-11)
 
 
 def eng_eshik_zamok(boy_kesish, tur):
