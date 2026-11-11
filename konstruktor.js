@@ -1557,7 +1557,7 @@ function engEshikHtml(k, faol) {
   const seg = (kalit, std, royxat) => `<div class="sz-seg sz-fur">${royxat.map(([q, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(q))}" class="${faol(v(kalit, std) === q)}">${esc(y)}</button>`).join("")}</div>`;
   return `<div class="sz-sarlavha">Eshik furniturasi <span class="xira">(Engelberg)</span></div>
     <div class="sz-bolim">Zamok <span class="xira">(oʻlchami qanot boʻyiga qarab)</span></div>
-    ${seg("eng_eshik_zamok", null, [["fornax", "Fornax"], ["roto", "Roto"], ["gu", "GU"]])}
+    ${seg("eng_eshik_zamok", "fornax", [["fornax", "Fornax"], ["roto", "Roto"], ["gu", "GU"]])}
     <div class="sz-bolim">Ruchka</div>
     ${seg("eng_eshik_ruchka", ENG_ESHIK_RUCHKALAR[0][0], ENG_ESHIK_RUCHKALAR)}
     <div class="sz-bolim">Petlya</div>

@@ -237,16 +237,17 @@ class Hisob:
 
     def egilgan(self, nomi, profil, en, chuqurlik, egish=True):
         uzunlik = en + chuqurlik + self.seriya.arka_zapas
-        self.detal(nomi, profil, uzunlik, 1)
+        # egiladigan detalga armatura qoʻyilmaydi (Engelberg, foydalanuvchi 2026-11-11)
+        self.detal(nomi, profil, uzunlik, 1, armatura=False)
         if egish:
             self.arka_metr += uzunlik
 
-    def detal(self, nomi, profil, uzunlik, soni):
+    def detal(self, nomi, profil, uzunlik, soni, armatura=True):
         if uzunlik <= 0:
             raise HisobXato(f"{nomi} uzunligi musbat emas: {uzunlik}")
         key = (nomi, profil, uzunlik)
         self.profillar[key] = self.profillar.get(key, 0) + soni
-        if profil in ARMATURA and self.seriya is ENGELBERG:
+        if armatura and profil in ARMATURA and self.seriya is ENGELBERG:
             arm, ayirma = ARMATURA[profil]
             u = uzunlik - ayirma
             if u <= 0:

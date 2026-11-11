@@ -212,11 +212,15 @@ ENG_ISPANILET_FORT = {
              for a, b, k, z, s in ENG_ISPANILET["roto"] if a <= 1441],
 }
 # Ogranichitel (foydalanuvchi, 2026-11-09): Uz — "gradus <sm>" fortochka boʻyiga qarab: qanot tayyor boʻyi − 4,4
-# (= kesish − 4,9) 25 dan kichik — 20, 30 dan — 25, 35 dan — 30, aks holda 35. Kin Long — hozircha 12 (soʻraladi).
-ENG_OGRANICHITEL = {"Uz": "Ogranichitel Dlya Fortochki gradus {} sm (Uz)", "Kinglong": "Ogranichitel Dlya Fortochki 12 (Kin Long)"}
+# (= kesish − 4,9) 25 dan kichik — 20, 30 dan — 25, 35 dan — 30, aks holda 35. Kin Long (foydalanuvchi, 2026-11-11):
+# fortochka qanoti boʻyi (kesish) 50 gacha — 12, 60 gacha — 14, kattasi — 16; juft sotiladi, 1 dona.
+ENG_OGRANICHITEL = {"Uz": "Ogranichitel Dlya Fortochki gradus {} sm (Uz)", "Kinglong": "Ogranichitel Dlya Fortochki {} (Kin Long)"}
 
 
 def eng_ogranichitel(tur, boy_kesish):
+    if tur == "Kinglong":
+        b = D(str(boy_kesish))
+        return ENG_OGRANICHITEL[tur].format(12 if b <= 50 else 14 if b <= 60 else 16)
     o = D(str(boy_kesish)) - D("4.9")
     sm = 20 if o < 25 else 25 if o < 30 else 30 if o < 35 else 35
     return ENG_OGRANICHITEL[tur].format(sm)
@@ -407,8 +411,8 @@ def _eng_eshik(s, tanlov, r, qoida_yoq):
         return 0
     qanotlar = [(D(str(e)), D(str(b))) for e, b in s.get("eshik_qanotlari", [])]
     r.qosh("Furnitura", tanlov.get("eng_eshik_ruchka") or ENG_ESHIK_RUCHKALAR[0], len(eshiklar), "dona")
-    zamok = tanlov.get("eng_eshik_zamok")
-    if zamok and zamok not in ENG_ESHIK_ZAMOKLAR:
+    zamok = tanlov.get("eng_eshik_zamok") or "fornax"  # standart Fornax (foydalanuvchi, 2026-11-11)
+    if zamok not in ENG_ESHIK_ZAMOKLAR:
         raise HisobXato(f"Eshik zamogʻi faqat {', '.join(ENG_ESHIK_ZAMOKLAR)}: {zamok}")
     samorez, zatsep = 0, 0
     it = iter(qanotlar)
@@ -416,13 +420,10 @@ def _eng_eshik(s, tanlov, r, qoida_yoq):
         _, boy = next(it)  # aktiv qanot
         for _ in range(e - 1):
             next(it)
-        nom, z = eng_eshik_zamok(boy, zamok or "fornax")
+        nom, z = eng_eshik_zamok(boy, zamok)
         zatsep += z
-        if zamok:
-            r.qosh("Furnitura", nom, 1, "dona")
-            samorez += 12
-    if not zamok:
-        qoida_yoq.append("Engelberg eshik zamogʻi tanlanmagan (standart hali tasdiqlanmagan) — zamok hisobga kirmadi")
+        r.qosh("Furnitura", nom, 1, "dona")
+        samorez += 12
     r.qosh("Furnitura", ENG_ESHIK_ZATSEP, zatsep, "dona")
     petlya = sum(4 if 200 <= b - D("0.5") <= 235 and 70 <= e - D("0.5") <= 105 else 3 for e, b in qanotlar)
     r.qosh("Furnitura", tanlov.get("eng_eshik_petlya") or ENG_ESHIK_PETLYALAR[0], petlya, "dona")
