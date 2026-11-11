@@ -17,7 +17,8 @@ from zakaz import _birlashtir
 
 HIVICH = 650
 # PVX Engelberg 7000 hivichi 6 m (foydalanuvchi, 2026-11-08)
-HIVICH_PROFIL = {p: 600 for p in ("LII", "7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2")}
+HIVICH_PROFIL = {p: 600 for p in ("LII", "7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2",
+                                         "183", "181", "182", "105")}  # Aldoks ham 6 m (katalog)
 
 
 def hivich(profil):
@@ -27,17 +28,25 @@ ARRA = 0.4
 QOLDIQ_CHEGARA = 10
 # BKT 70 da hamma profil aylantirmasdan kesiladi (foydalanuvchi, 2026-11-03).
 # Boshqa tizimga kerak boʻlsa: {"profil": qoʻshiladigan sm}.
-AYLANTIRISH = {}
+# Aldoks (foydalanuvchi, 2026-11-11): 181 Qanot 45° aylantirib kesiladi — birinchi detal toʻliq, har keyingisi
+# 7,6 sm kam joy oladi (arra shu ichida): 600 − 69,9 − (69,9 − 7,6) − … Qoldiq uchi qiya — belgi "◣".
+# 182 Urta tabaqada ishlatilsa ham aylantiriladi; romda u impost (90°) — aylantirilmaydi.
+AYLANTIRISH = {"181": 7.6}
+AYLANTIRISH_BELGI = "◣"
+# 182 Urtaning qiya uchli qoldigʻidan 90° detal olinsa 5,95 ayriladi (foydalanuvchi; sklad bilan ishlashda)
+QIYA_AYIRMA = {"182": 5.95}
 # Bu profillarda sklad boʻlagi qoldigʻi 10 sm dan oshsa ham olinadi:
 # A701 ning 190 sm dan kichigi baribir ishlatilmaydi (foydalanuvchi, 2026-11-03).
 CHEGARASIZ = {"A701", "7058"}  # Engelberg shtulpi ham (200 sm dan kichigi otxod)
-TOGRI_KESIM = {"LII", "M702", "A701", "H702", "7053", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
+TOGRI_KESIM = {"LII", "M702", "A701", "H702", "7053", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2",
+               "182"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
 SKLAD_NOMI = {
     "F702": "Kosa F702", "F703": "Kosa F703", "M702": "O'rta M702", "V702": "Qanot V702",
     "V707": "Balkon o'rta V707", "V708": "Balkon qanot V708", "A701": "Shtulp A701", "LII": "Lambri II PVX", "H702": "Lapsha lam",
 }
 TARTIB = ["F702", "F703", "V702", "V707", "V708", "M702", "A701", "H702", "LII", "G24", "G24-R", "G32", "G32-R",
-          "7051", "7052", "7054", "7055", "7053", "7058", "7056", "7057", "0701", "0703", "0701-2", "0703-2", "0702-2"]
+          "7051", "7052", "7054", "7055", "7053", "7058", "7056", "7057", "0701", "0703", "0701-2", "0703-2", "0702-2",
+          "183", "181", "182", "105"]
 
 
 def _b(x):
@@ -234,6 +243,7 @@ OTXOD_CHEGARA = {
     "7051": 70, "7052": 45, "7053": 65, "7056": 36, "7057": 36, "0701": 25, "0703": 25, "0701-2": 25, "0703-2": 25, "0702-2": 25,
     "7054": 65, "7055": 65, "7058": 200,  # Engelberg eshik (foydalanuvchi, 2026-11-11)
     "LII": 59,  # PVX lambri (foydalanuvchi, 2026-11-10)
+    "183": 70, "181": 60, "182": 100, "105": 40,  # Aldoks (foydalanuvchi, 2026-11-11, Termodagidek)
 }
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
 
@@ -520,7 +530,8 @@ def _kesim_matni(profil):
         return (f"45°, aylantirilmaydi · Arra {_k(_b(ARRA))} sm · DIQQAT: har shtapik +{_k(_b(SHTAPIK_ZAPAS))} sm uzun "
                 "kesilgan, joyida aniq oʻlchab kaltalang")
     if profil in AYLANTIRISH:
-        return f"45°, aylantirib: har detalga +{_k(_b(AYLANTIRISH[profil]))} sm"
+        return (f"45°, aylantirib: birinchidan keyin har detal {_k(_b(AYLANTIRISH[profil]))} sm kam oladi · "
+                f"qoldiq uchi qiya ({AYLANTIRISH_BELGI})")
     if profil in TOGRI_KESIM:
         return f"□ Toʻgʻri (90°) · Arra {_k(_b(ARRA))} sm"
     return f"45°, aylantirilmaydi · Arra {_k(_b(ARRA))} sm"
@@ -535,6 +546,7 @@ PROFIL_NOMI = {
     "7054": "Balkon Urta", "7055": "Balkon Kanot", "7058": "Shtulp (Adaptor)",
     "0701": "Armatura Kosa-Qanot", "0703": "Armatura Urta",
     "0701-2": "Armatura Kosa-Qanot 2 mm", "0703-2": "Armatura Urta 2 mm", "0702-2": "Armatura Balkon Qanot 2 mm",
+    "183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P",  # Aldoks
 }
 
 
@@ -636,7 +648,8 @@ def pdf_yoz(reja, r, yol, sarlavha):
             belgi = "□ " if r["profil"] in TOGRI_KESIM else ""
             for d, n in qator:
                 matn(f"{belgi}{_k(d)} × {n}", olcham=11, x=x + 10)
-            matn(f"qoldiq: {_k(k['qoldiq'])} sm", "AB", 11, sariq, x + 10)
+            qiya = f" {AYLANTIRISH_BELGI}" if r["profil"] in AYLANTIRISH and k["qoldiq"] > 0 else ""
+            matn(f"qoldiq: {_k(k['qoldiq'])} sm{qiya}", "AB", 11, sariq, x + 10)
             pasti = min(pasti, yuq - bal)
             if ustun == 1:
                 boshi, ustun = pasti - 10, 0

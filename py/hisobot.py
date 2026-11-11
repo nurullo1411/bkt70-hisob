@@ -8,7 +8,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from hisob import (ARMATURA_SAMOREZ, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
-                   profil_narxi)
+                   oyna_qalinligi, profil_narxi)
 
 PETLYA_CHEGARA = 260
 K188_BURCHAKKA_G = 7
@@ -646,6 +646,72 @@ def _furnitura(s, tanlov, r):
     r.qosh("Furnitura", ROM_TIJ, tij / 100, "m")
 
 
+# ---------- Aldoks rom (foydalanuvchi, 2026-11-11; katalog "ALDOX System") ----------
+# Rezina: oyna shtapik tomoniga EPDM Ю, oyna profil tomoniga "Rezina Profil P (Bosma) (Qishki)" (100 m pachka),
+# ikkalasi oyna perimetri + har tomonga 2 sm; oyna tegmaydigan joyga (qanot prileganiesi) EPDM 01.18.30 =
+# qanot perimetri × 2 (qanot labida va kosa/impost labida), 1 metri 40 g. Kley yoʻq.
+ALD_REZINA_YU = "EPDM Rezina Ю"
+ALD_REZINA_QISHKI = "Rezina Profil P (Bosma) (Qishki)"
+ALD_REZINA_BOSMA = "Rezina EPDM (Champ 01.18.30)"
+# Burchak (kosa va qanot): "Soedinitel Chovush (4sm) (300sht) (Uz)" har burchakka 1 + samorez 3,9×16 × 8;
+# impostning har uchiga "Soedinitel (Bolshoy) (15sht) (Uz)" 1 + samorez 3,9×16 × 7.
+ALD_CHOVUSH = "Soedinitel Chovush (4sm) (300sht) (Uz)"
+ALD_BURCHAK_SAMOREZ = 8
+ALD_BOLSHOY = "Soedinitel (Bolshoy) (15sht) (Uz)"
+ALD_IMPOST_SAMOREZ = 7
+# Furnitura (har rom tabaqasiga): ruchka Delfin (oq romga oq, boshqasiga 9005), petlya "Petlya Aldoks (Oq) (Uz)"
+# 2 ta + qanot eni 65–100 boʻlsa 1 + boʻyi 120–200 boʻlsa 1 (ProfOkna), har petlyaga samorez 4,8×19 × 4;
+# tij 639/640 komplekt = qanot boʻyi − 25 sm (hivich 6 m), zaklepka 4×12 × 3; zatsep "Otvetniy Plast." × 2,
+# har biriga samorez 3,9×19 × 4. Tabaqa boʻyi 200 dan, eni 100 dan oshmaydi (ProfOkna).
+ALD_RUCHKA = {"Oq": "Ruchka DELFIN (Oq) (120sht) (Uz)", "*": "(9005) Ruchka DELFIN (Uz)"}
+ALD_PETLYA = "Petlya Aldoks (Oq) (Uz)"
+ALD_PETLYA_SAMOREZ = ("4,8×19 YSBM", 4)
+ALD_TIJ = "640/639 Tij (Komplekt) (Oq) (Adt)"
+ALD_TIJ_HIVICH = D(6)
+ALD_ZAKLEPKA = ("Zaklepka 4×12", 3)
+ALD_ZATSEP = {"Oq": "Otvetniy Plast. (Oq) (200sht) (Uz)", "*": "Otvetniy Plast. (9005) (200sht) (Uz)"}
+ALD_ZATSEP_SAMOREZ = ("3,9×19 YHBM", 4)
+ALD_TABAQA_MAX = (D(100), D(200))  # eni, boʻyi
+
+
+def _ald_hisobot(s, rang, r):
+    perimetr = D(s["markaziy_rezina"]) / 100  # rom tabaqasida = qanot perimetri
+    oyna = D(s["oyna_rezinasi"]) / 100
+    r.qosh("Rezina", ALD_REZINA_YU, oyna, "m")
+    r.qosh("Rezina", ALD_REZINA_QISHKI, oyna, "m")
+    if perimetr:
+        r.qosh("Rezina", ALD_REZINA_BOSMA, perimetr * 2, "m")
+    burchak = 4 * (sum(s["ramalar"].values()) + sum(s["tabaqalar"].values()))
+    samorez = burchak * ALD_BURCHAK_SAMOREZ
+    r.qosh("Aksessuar", ALD_CHOVUSH, burchak, "dona")
+    if s["impost_soni"]:
+        uch = 2 * s["impost_soni"]
+        r.qosh("Aksessuar", ALD_BOLSHOY, uch, "dona")
+        samorez += uch * ALD_IMPOST_SAMOREZ
+    r.qosh("Aksessuar", ARMATURA_SAMOREZ, samorez, "dona")
+    if s["tabaqa_oyna_soni"]:
+        r.qosh("Aksessuar", "Takos Regulirovichniy (24mm)", s["tabaqa_oyna_soni"] * 2, "dona")
+    if s["gluxoy_oyna_soni"]:
+        r.qosh("Aksessuar", "CT 203", s["gluxoy_oyna_soni"] * 2, "dona")
+    qanotlar = s.get("rom_qanotlari") or []
+    if not qanotlar:
+        return
+    for en, boy in qanotlar:
+        if D(str(en)) > ALD_TABAQA_MAX[0] or D(str(boy)) > ALD_TABAQA_MAX[1]:
+            raise HisobXato(f"Aldoks tabaqasi eni 100 dan, boʻyi 200 dan oshmaydi: {en} × {boy}")
+    soni = len(qanotlar)
+    rk = "Oq" if rang == "Oq" else "*"
+    r.qosh("Furnitura", ALD_RUCHKA[rk], soni, "dona")
+    petlya = sum(2 + (65 <= D(str(e)) <= 100) + (120 <= D(str(b)) <= 200) for e, b in qanotlar)
+    r.qosh("Furnitura", ALD_PETLYA, petlya, "dona")
+    r.qosh("Furnitura", ALD_PETLYA_SAMOREZ[0], petlya * ALD_PETLYA_SAMOREZ[1], "dona")
+    tij = sum((D(str(b)) - TIJ_AYIRMA for _, b in qanotlar), D(0)) / 100
+    r.qosh("Furnitura", ALD_TIJ, tij, "m")
+    r.qosh("Furnitura", ALD_ZAKLEPKA[0], soni * ALD_ZAKLEPKA[1], "dona")
+    r.qosh("Furnitura", ALD_ZATSEP[rk], soni * 2, "dona")
+    r.qosh("Furnitura", ALD_ZATSEP_SAMOREZ[0], soni * 2 * ALD_ZATSEP_SAMOREZ[1], "dona")
+
+
 def hisobot(k, narxlar):
     tanlov = k.get("tanlov", {})
     rang = _kerak(tanlov, "rang", "Rang")
@@ -656,7 +722,9 @@ def hisobot(k, narxlar):
     r = Royxat(narxlar["narx"])
 
     _profillar(n, rang, narxlar, r)
-    if n.get("seriya", "Termo 70") == "Termo 70":
+    if n.get("seriya") == "Aldoks":
+        _ald_hisobot(s, rang, r)
+    elif n.get("seriya", "Termo 70") == "Termo 70":
         _rezina(s, r)
         _aksessuar(s, narxlar, r, tanlov)
         _furnitura(s, tanlov, r)
@@ -676,7 +744,7 @@ def hisobot(k, narxlar):
         # Engelberg 7000: armatura samorezi; rezina, aksessuar, furnitura hali oʻrgatilmagan — hisob.qoida_yoq da
         r.qosh("Aksessuar", ARMATURA_SAMOREZ, s["armatura_samorez"], "dona")
 
-    qalinlik = str(k.get("oyna_qalinligi", 24))
+    qalinlik = str(oyna_qalinligi(k))
     # Oyna turi boʻlakka alohida berilishi mumkin: har tur oʻz m² qatori
     turlar = {}
     for o in n["oynalar"]:
@@ -747,7 +815,8 @@ def _k(x):
 
 def hisobot_matni(h):
     n = h["n"]
-    q = [f"BKT 70, {h['rang']}, {h['L']} × {h['H']} sm", "", "OʻLCHAMLAR"]
+    seriya = h["n"].get("seriya") or "Termo 70"
+    q = [f"{'BKT 70' if seriya == 'Termo 70' else seriya}, {h['rang']}, {h['L']} × {h['H']} sm", "", "OʻLCHAMLAR"]
     for p in n["profillar"]:
         q.append(f"  {p['nomi']} ({p['profil']}): {_k(p['uzunlik'])} sm × {p['soni']}")
     for o in n["oynalar"]:

@@ -1516,6 +1516,9 @@ const RAMALAR = [["F702", "Kosa (Sredniy)", "F702 · r = 3,8"], ["F703", "Kosa S
 // PVX Engelberg 7000 (foydalanuvchi, 2026-11-08): seriya rama kodidan; hozircha faqat rom, rang Oq yoki Laminatsiya
 const PVX_RAMALAR = [["7051", "Kosa 7051", "Engelberg · r = 5,4"]];
 const pvxmi = (rama) => rama === "7051";
+// Aldoks (alyumin; foydalanuvchi, 2026-11-11): kosa 183, oyna faqat 20 mm, hozircha faqat rom
+const aldmi = (rama) => rama === "183";
+const ALD_TURLARI = [["ADT", "Aldoks (ADT)"], ["N", "Aldoks (N)"], ["NEO", "Aldoks NEO"]];
 
 function oynaRangi(nom) {
   const n = nom.toLowerCase();
@@ -1571,7 +1574,7 @@ function joriy(k) {
     rang: t.rang ?? ut.rang, rangNomi: t.rang_nomi ?? ut.rang_nomi, oyna: t.oyna_turi ?? ut.oyna_turi,
     pod: t.podokonnik ?? ut.podokonnik ?? null,
     soed: t.impost_soedinitel ?? ut.impost_soedinitel ?? "ugol", sht: t.vertikal_shtapik ?? ut.vertikal_shtapik ?? "R",
-    montaj: !!(t.montaj ?? ut.montaj),
+    montaj: !!(t.montaj ?? ut.montaj), ald: t.ald_tur ?? ut.ald_tur ?? "ADT",
   };
 }
 
@@ -1627,14 +1630,16 @@ function sozlamaOynasi() {
   $("k-maydon").innerHTML = `
     <label class="belgi sz-rejim"><input type="checkbox" data-sz-faqat ${faqatShu ? "checked" : ""}> Faqat shu konstruksiyaga</label>
     <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
-    <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button></div>
+    <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama) && !aldmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button><button data-sz="s:rama" data-v='"183"' class="${faol(aldmi(j.rama))}">Aldoks</button></div>
     ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax / Roto), eshik, arka, portal, lambri.</div>` : ""}
+    ${aldmi(j.rama) ? `<div class="xira">Aldoks: hozircha faqat rom (gluxoy, tabaqa, impost), oyna 20 mm.</div>
+    <div class="sz-seg">${ALD_TURLARI.map(([v, y]) => `<button data-sz="t:ald_tur" data-v="${esc(JSON.stringify(v))}" class="${faol(j.ald === v)}">${y}</button>`).join("")}</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>
-    <div class="sz-seg">${[[24, "24 mm (ikki qavat)"], [32, "32 mm"]].map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
+    <div class="sz-seg">${(aldmi(j.rama) ? [[20, "20 mm"]] : [[24, "24 mm (ikki qavat)"], [32, "32 mm"]]).map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
     <div class="sz-oynalar">${oynaTurlari().map((o) => `<button data-sz="t:oyna_turi" data-v="${esc(JSON.stringify(o))}" class="sz-oyna${faol(j.oyna === o)}"><span class="namuna" style="background:${oynaRangi(o)}${gul(o)}"></span>${esc(o)}</button>`).join("")}</div>
 
-    ${pvxmi(j.rama) ? "" : `<div class="sz-bolim">Rama profili</div>
+    ${pvxmi(j.rama) || aldmi(j.rama) ? "" : `<div class="sz-bolim">Rama profili</div>
     <div class="sz-ramalar">${(pvxmi(j.rama) ? PVX_RAMALAR : RAMALAR).map(([v, y, iz]) => `<button data-sz="s:rama" data-v="${esc(JSON.stringify(v))}" class="sz-rama${faol(j.rama === v)}"><svg viewBox="0 0 40 40" class="ik"><path d="M6 34V6h28" fill="none" stroke="currentColor" stroke-width="${v === "F703" ? 6 : 3.5}"/></svg><b>${y}</b><span>${iz}</span></button>`).join("")}</div>`}
 
     <div class="sz-bolim">Rang</div>
@@ -1644,7 +1649,7 @@ function sozlamaOynasi() {
     <div class="sz-bolim">Podokonnik <span class="xira">(uzunligi L + 15 sm, rangi rom rangida)</span></div>
     <div class="sz-seg sz-pod">${[[null, "Yoʻq"], ...[15, 20, 25, 30, 35, 40, 45].map((v) => [v, String(v)])].map(([v, y]) => `<button data-sz="t:podokonnik" data-v="${JSON.stringify(v)}" class="${faol(j.pod === v)}">${y}</button>`).join("")}</div>
 
-    ${pvxmi(j.rama) ? "" : `<div class="sz-bolim">Impost soedineli</div>
+    ${pvxmi(j.rama) || aldmi(j.rama) ? "" : `<div class="sz-bolim">Impost soedineli</div>
     <div class="sz-seg">${[["ugol", "01.553 ugol"], ["J01+J05", "236 J01 + J05"]].map(([v, y]) => `<button data-sz="t:impost_soedinitel" data-v="${esc(JSON.stringify(v))}" class="${faol(j.soed === v)}">${y}</button>`).join("")}</div>
     <div class="sz-bolim">Vertikal shtapik</div>
     <div class="sz-seg">${[["R", "G…-R (ovalniy)"], ["oddiy", "oddiy G"]].map(([v, y]) => `<button data-sz="t:vertikal_shtapik" data-v="${esc(JSON.stringify(v))}" class="${faol(j.sht === v)}">${y}</button>`).join("")}</div>`}
@@ -1652,9 +1657,9 @@ function sozlamaOynasi() {
     <div class="sz-seg">${[[false, "Montajsiz"], [true, "Montajli"]].map(([v, y]) => `<button data-sz="t:montaj" data-v="${v}" class="${faol(j.montaj === v)}">${y}</button>`).join("")}</div>
 
     ${pvxmi(j.rama) ? engFurnituraHtml(k, faol) : ""}
-    <div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
+    ${aldmi(j.rama) ? "" : `<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
     <div class="sz-seg">${(pvxmi(j.rama) ? [["ichkariga", "Balkon Kanot 7055 · ichkariga"], ["tashqariga", "Balkon Urta 7054 · tashqariga"]]
-      : [["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]]).map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>
+      : [["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]]).map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>`}
     ${!eshiklar(k.bolak).length ? "" : pvxmi(j.rama) ? engEshikHtml(k, faol) : eshikFurnitura(k)}
 
     <p class="xira sz-izoh">${alohida ? "Bu konstruksiyada zakazdan farqli tanlov bor." : "Hamma tanlov zakazning umumiy tanlovi bilan bir xil."}</p>
@@ -1687,6 +1692,12 @@ $("k-maydon").addEventListener("click", (e) => {
     const [joy, kalit] = b.dataset.sz.split(":");
     const v = JSON.parse(b.dataset.v);
     ornat(joy, kalit, v);
+    // Aldoks oynasi faqat 20 mm, boshqa seriyada 20 mm yoʻq
+    if (kalit === "rama") {
+      const q = joriy(tahrir).qal;
+      if (aldmi(v) && q !== 20) ornat("s", "oyna_qalinligi", 20);
+      else if (!aldmi(v) && q === 20) ornat("s", "oyna_qalinligi", 24);
+    }
     // rang turkumi almashsa, rang nomi shu turkumning birinchisi boʻladi
     if (kalit === "rang") ornat("t", "rang_nomi", RANG_TURKUMLARI.find((r) => r[0] === v)[2][0][0]);
   } else return;

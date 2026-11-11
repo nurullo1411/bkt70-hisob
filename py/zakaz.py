@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from hisob import SERIYA_RAMA, HisobXato, narx_kaliti
+from hisob import SERIYA_RAMA, HisobXato, narx_kaliti, oyna_qalinligi
 from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
@@ -40,7 +40,7 @@ def _qator_kaliti(t, k):
     if t["bolim"] == "Profil":
         return ("Profil", t["nomi"], k["tanlov"]["rang"], t["birlik"])
     if t["bolim"] == "Oyna":
-        return ("Oyna", t.get("oyna_turi") or k["tanlov"]["oyna_turi"], int(k.get("oyna_qalinligi", 24)), t["birlik"])
+        return ("Oyna", t.get("oyna_turi") or k["tanlov"]["oyna_turi"], oyna_qalinligi(k), t["birlik"])
     if t["nomi"] == "K188 kley":
         return (t["bolim"], "K188", "", t["birlik"])
     return (t["bolim"], t["nomi"], "", t["birlik"])

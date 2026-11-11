@@ -13,12 +13,13 @@ tabaqada 2 sm dan, gluxoy va fortochkada 1,5 sm dan koʻp kichik boʻlsa — yuq
 
 from math import ceil, floor
 
-from hisob import ENGELBERG, ENGELBERG_PROFILLARI, SERIYA_RAMA, HisobXato
+from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG, ENGELBERG_PROFILLARI, SERIYA_RAMA, HisobXato, oyna_qalinligi
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
-    "4,2×45 YHB": "(C) Samarez 4.2 x 45 YHB (250) (12sht) (Uz)",
-    "4,8×60 YSB": "(A) Samarez 4.8 x 60 YSB (200) (12sht) (Uz)",  # Engelberg shtulpi (2026-11-11)  # Engelberg eshik petlyasi (2026-11-11)
+    "4,2×45 YHB": "(C) Samarez 4.2 x 45 YHB (250) (12sht) (Uz)",  # Engelberg eshik petlyasi (2026-11-11)
+    "4,8×60 YSB": "(A) Samarez 4.8 x 60 YSB (200) (12sht) (Uz)",
+    "Rezina EPDM (Champ 01.18.30)": "Rezina EPDM (Champ 01.18.30) (15kg)",  # Aldoks (2026-11-11)  # Engelberg shtulpi (2026-11-11)
     "Zamok Dver (3147) (Otvetka) (Tr)": "Zamok Dver (3147) (Otvetka) (Tr)",
     "TERMO Zamok Dvernoy GIESSE": "TERMO Zamok Dvernoy Giesse+Otvetka 85/35 (Tr)",
     "Serdtsevina 101 mm (DWG)": "Serdtsevina 101 mm (DWG) (Tr)",
@@ -74,11 +75,14 @@ DILLER_RANGI = {"grey": "Anthrazit Grey LL", "z/d": "Zol Dub", "d/m": "Dub Mokko
 # Rezina 1 metri vazni, kg (foydalanuvchi oʻlchab beradi; boʻsh boʻlsa metrda yoziladi)
 # 1 metr vazni, kg (foydalanuvchi oʻlchagan, 2026-11-08); dillerga kg da yoziladi
 REZINA_KG_M = {"A01-002": 0.064, "A01-003": 0.036, "EPDM Rezina Ю": 0.046, "A01-005": 0.180,
-               "EPDM 5025": 0.050, "EPDM 5108": 0.092}  # Engelberg (foydalanuvchi, 2026-11-10)
-REZINALAR = ("A01-005", "A01-003", "A01-002", "EPDM Rezina Ю", "EPDM 5108", "EPDM 5025")
+               "EPDM 5025": 0.050, "EPDM 5108": 0.092,  # Engelberg (foydalanuvchi, 2026-11-10)
+               "Rezina EPDM (Champ 01.18.30)": 0.040}  # Aldoks (foydalanuvchi, 2026-11-11)
+# Aldoks "Qishki Bosma" pachka (100 m) bilan sotiladi — dillerga metrda
+REZINALAR = ("A01-005", "A01-003", "A01-002", "EPDM Rezina Ю", "EPDM 5108", "EPDM 5025",
+             "Rezina EPDM (Champ 01.18.30)", "Rezina Profil P (Bosma) (Qishki)")
 
 # Dillerdan olinmaydi — eslatma (qizil)
-ESLATMA = {"3,9×19 YHBM": "Samorez 3,9×19", "3,9×16 YSBM": "Samorez 3,9×16 (IDEAL YHB)", "Lapsha samorez soʻm": "Samorez (lapsha)", "Medved samorez soʻm": "Medved samorez (montaj)", "K188": "Kley K188 (Saudal)", "MK 01": "Pena"}
+ESLATMA = {"3,9×19 YHBM": "Samorez 3,9×19", "4,8×19 YSBM": "Samorez 4,8×19", "Zaklepka 4×12": "Zaklepka 4×12", "3,9×16 YSBM": "Samorez 3,9×16 (IDEAL YHB)", "Lapsha samorez soʻm": "Samorez (lapsha)", "Medved samorez soʻm": "Medved samorez (montaj)", "K188": "Kley K188 (Saudal)", "MK 01": "Pena"}
 TASHLANADI = {"Oyna", "Arka", "Profil", "Profil otxod"}
 
 
@@ -119,9 +123,39 @@ LAMBRI_NOM = {"oq": "Lambri II (N)", "grey": _LAMBRI_ALUX, "alux": _LAMBRI_ALUX,
               "z/d": "TRIO 6000 (Zol Dub-Oq) Lambri LAM (N)", "d/m": "TRIO 6000 (Dub Mokko-Oq) Lambri LAM (N)"}
 
 
-def profil_nomi(profil, rang):
+# Aldoks (AKFA roʻyxati 04.11.2026): ADT / (N) / NEO — oʻlcham bir xil, nomi boshqa (tanlov.ald_tur)
+ALD_NOM = {"183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P"}
+ALD_NEO_KOD = {"183": "F0022", "181": "V0022", "182": "M0022", "105": "G0001"}
+ALD_TURLARI = ("ADT", "N", "NEO")
+
+
+# Laminat: "LAM (7011-Anthrazit Grey LL) Kosa Alum"; 306g: "(A) Kosa (SW306G)"; NEO rangli: "(A) NEO ADC50 F0022 Kosa (V Zol Dub)"
+ALD_LAM_RANGI = {"grey": "7011-Anthrazit Grey LL", "alux": "7011-Alyuks LL", "sh/d": "7011-Sheffal Dub LL",
+                 "d/m": "8017-Dub Mokko", "z/d": "8001-Zol Dub"}
+ALD_NEO_RANGI = {"z/d": "V Zol Dub", "d/m": "V Dub Mokko", "306g": "SW306G"}
+
+
+def ald_profil_nomi(profil, rang, tur="ADT"):
+    nom = ALD_NOM.get(profil, profil)
+    neo = f"(A) NEO ADC50 {ALD_NEO_KOD.get(profil, profil)} {nom}"
+    if rang in (None, "oq"):
+        if tur == "NEO":
+            return f"{neo} (Oq)"
+        return f"{profil} {nom} (Oq) ({'R) (N' if tur == 'N' else 'Adt'})"
+    if tur == "NEO":
+        return f"{neo} ({ALD_NEO_RANGI.get(rang, 'rangi?')})"
+    if rang == "306g":
+        return f"(A) {nom} (SW306G)"
+    if rang == "anod":
+        return f"(A) {nom} (anod rangi?)"
+    return f"LAM ({ALD_LAM_RANGI.get(rang, 'rangi?')}) {nom} Alum"
+
+
+def profil_nomi(profil, rang, ald_tur="ADT"):
     """Diller roʻyxatidagi hivich nomi. rang — sklad rangi (grey, z/d, …, 306g, oq, anod) yoki None."""
     kod = profil.replace("-", "")
+    if profil in ALDOKS_PROFILLARI:
+        return ald_profil_nomi(profil, rang, ald_tur)
     if profil in ENGELBERG_PROFILLARI:
         return eng_profil_nomi(profil, rang)
     if profil == "LII":  # PVX lambri 10 sm, 6 m (foydalanuvchi, 2026-11-09)
@@ -137,6 +171,7 @@ def _profil_qatorlari(zakaz, sklad):
     from raskroy import rang_guruhlari, sklad_rejasi
 
     qatorlar, izohlar = [], []
+    ald_tur = ((zakaz.get("umumiy") or {}).get("tanlov") or {}).get("ald_tur") or "ADT"
     for g in rang_guruhlari(zakaz):
         rang = g["rang"]
         if rang is None:
@@ -144,7 +179,7 @@ def _profil_qatorlari(zakaz, sklad):
         reja = sklad_rejasi(zakaz, sklad or [], rang or "grey", g)
         for r in reja["rejalar"]:
             if r["yangi_soni"]:
-                qatorlar.append({"nomi": profil_nomi(r["profil"], rang), "soni": r["yangi_soni"], "birlik": "hivich",
+                qatorlar.append({"nomi": profil_nomi(r["profil"], rang, ald_tur), "soni": r["yangi_soni"], "birlik": "hivich",
                                  "sklad": r["sklad_soni"]})
         izohlar += reja.get("izohlar") or []
     return qatorlar, izohlar
@@ -217,7 +252,7 @@ def oyna_royxati(zakaz, narxlar=None):
     guruh = {}
     for o in t["oynalar"]:
         k = t["konstruksiyalar"][o["i"]]
-        qal = int(faol[o["i"]].get("oyna_qalinligi") or umumiy.get("oyna_qalinligi") or 24)
+        qal = oyna_qalinligi(faol[o["i"]], umumiy)
         pvx = SERIYA_RAMA.get(faol[o["i"]].get("rama") or umumiy.get("rama")) is ENGELBERG
         en, boy = oyna_yaxlit(o["en"], o["joy"], pvx), oyna_yaxlit(o["boy"], o["joy"], pvx)
         kalit = (o.get("tur") or "", qal, en, boy)
