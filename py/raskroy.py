@@ -30,14 +30,14 @@ QOLDIQ_CHEGARA = 10
 AYLANTIRISH = {}
 # Bu profillarda sklad boʻlagi qoldigʻi 10 sm dan oshsa ham olinadi:
 # A701 ning 190 sm dan kichigi baribir ishlatilmaydi (foydalanuvchi, 2026-11-03).
-CHEGARASIZ = {"A701"}
-TOGRI_KESIM = {"LII", "M702", "A701", "H702", "7053", "0701", "0703", "0701-2", "0703-2"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
+CHEGARASIZ = {"A701", "7058"}  # Engelberg shtulpi ham (200 sm dan kichigi otxod)
+TOGRI_KESIM = {"LII", "M702", "A701", "H702", "7053", "7058", "0701", "0703", "0701-2", "0703-2"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
 SKLAD_NOMI = {
     "F702": "Kosa F702", "F703": "Kosa F703", "M702": "O'rta M702", "V702": "Qanot V702",
     "V707": "Balkon o'rta V707", "V708": "Balkon qanot V708", "A701": "Shtulp A701", "LII": "Lambri II PVX", "H702": "Lapsha lam",
 }
 TARTIB = ["F702", "F703", "V702", "V707", "V708", "M702", "A701", "H702", "LII", "G24", "G24-R", "G32", "G32-R",
-          "7051", "7052", "7053", "7056", "7057", "0701", "0703", "0701-2", "0703-2"]
+          "7051", "7052", "7054", "7055", "7053", "7058", "7056", "7057", "0701", "0703", "0701-2", "0703-2"]
 
 
 def _b(x):
@@ -232,6 +232,7 @@ OTXOD_CHEGARA = {
     "G32": 60, "G32-R": 180,  # foydalanuvchi, 2026-11-04
     # Engelberg 7000 (foydalanuvchi, 2026-11-08)
     "7051": 70, "7052": 45, "7053": 65, "7056": 36, "7057": 36, "0701": 25, "0703": 25, "0701-2": 25, "0703-2": 25,
+    "7054": 65, "7055": 65, "7058": 200,  # Engelberg eshik (foydalanuvchi, 2026-11-11)
     "LII": 59,  # PVX lambri (foydalanuvchi, 2026-11-10)
 }
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
@@ -531,6 +532,7 @@ PROFIL_NOMI = {
     "M702": "Urta", "V702": "Kanot", "G24": "Shtapik", "G24-R": "Shtapik", "G32": "Shtapik", "G32-R": "Shtapik",
     "A701": "Shtulp", "H702": "Lapsha", "A703": "90-Gradus", "H701": "Usilitel", "LII": "Lambri II PVX",
     "7051": "Kosa", "7052": "Kanat", "7053": "Urta", "7056": "Shtapik", "7057": "Shtapik",
+    "7054": "Balkon Urta", "7055": "Balkon Kanot", "7058": "Shtulp (Adaptor)",
     "0701": "Armatura Kosa-Qanot", "0703": "Armatura Urta",
     "0701-2": "Armatura Kosa-Qanot 2 mm", "0703-2": "Armatura Urta 2 mm",
 }

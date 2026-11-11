@@ -6,7 +6,7 @@ Ishga tushirish: python hisob.py konstruksiya.json
 import json
 import math
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 
 
@@ -42,6 +42,12 @@ IMPOST_YARMI["7053"] = D("2.2")
 TABAQA_AYIRMA["7052"] = D("0.5") + 2 * RAMA_R["7051"]   # qanot ichki = qanot − 0,5 − r − r (laminatda r + 0,08)
 # qanot ichidagi impost 7053 (ProfOkna T-ulanish 62 mm, foydalanuvchi 2026-11-09): qanot tayyor (kesish − 0,5) − 2 × 6,2
 TABAQA_IMPOST_AYIRMA["7052"] = D("0.5") + 2 * D("6.2")
+# Eshik (foydalanuvchi, 2026-11-11; ProfOkna 7054/7055): T (tashqariga) 7054 "Balkon Urta", Z (ichkariga) 7055
+# "Balkon Kanot". Qanot profili 120 mm (romniki 88) → qanot ichki = kesish − 0,5 − 8,6 − 8,6; ichidagi impost
+# T-ulanishi 94 mm → impost = qanot tayyor − 2 × 9,4. Kesish: kosaga tegadigan har tomoniga + 1,3, impostga + 1,2.
+for _p in ("7054", "7055"):
+    TABAQA_AYIRMA[_p] = D("0.5") + 2 * D("8.6")
+    TABAQA_IMPOST_AYIRMA[_p] = D("0.5") + 2 * D("9.4")
 
 
 @dataclass(frozen=True)
@@ -54,11 +60,24 @@ class Seriya:
     rama_payvand: D        # rama detaliga kesishda qoʻshiladi
     shtapik_45: bool       # True: shtapik eni ham, boʻyi ham ichki oʻlchamga teng, bitta profil
     shtapik: dict          # oyna qalinligi → shtapik profili
-    eshik: bool            # eshik, fortochka, dvaynoy, portal, arka, lapsha bormi
+    eshik: bool            # eshik, portal, arka, egilgan impost bormi
+    pvx: bool = False      # PVX: fortochkada doim ruchka, arka egish narxi PVX
+    arka_zapas: D = D(40)  # egiladigan detalga qoʻshiladi
+    eshik_profili: dict = field(default_factory=lambda: {"ichkariga": "V708", "tashqariga": "V707"})
+    eshik_kosa: D = D("0.6")    # eshik qanoti kesishi: kosaga tegadigan har tomoniga
+    eshik_impost: D = D("0.6")  # impostga tegadigan har tomoniga
+    eshik_2_qoshimcha: D = D("0.5")  # 2 tabaqa: L1 + L2 = ichki eni + shu
+    shtulp: str = "A701"
+    shtulp_ayirma: D = D(7)    # shtulp = tabaqa boʻyi − shu
 
 
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
-ENGELBERG = Seriya("Engelberg 7000", "7053", "7052", D("2.2"), D("1.5"), D("0.5"), True, {24: "7056", 32: "7057"}, False)
+# Engelberg eshigi (foydalanuvchi, 2026-11-11): 2 tabaqa — L1 = (kosa ichki eni + 1) : 2, 65 dan kam boʻlsa 65;
+# shtulp 7058 (Adaptor Bez Imposta) passiv qanot boʻyi − 1,7. Arka: egiladigan detal = eni + chuqurlik + 20.
+ENGELBERG = Seriya("Engelberg 7000", "7053", "7052", D("2.2"), D("1.5"), D("0.5"), True, {24: "7056", 32: "7057"}, True,
+                   pvx=True, arka_zapas=D(20), eshik_profili={"ichkariga": "7055", "tashqariga": "7054"},
+                   eshik_kosa=D("1.3"), eshik_impost=D("1.2"), eshik_2_qoshimcha=D(1), shtulp="7058",
+                   shtulp_ayirma=D("1.7"))
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG}
 ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2"}
 # Metall (armatura) qalinligi (foydalanuvchi, 2026-11-09, Romchi kabi tanlov): 1,5 mm (standart) yoki 2 mm.
@@ -192,11 +211,14 @@ class Hisob:
         self.tabaqa_boylari = []
         self.rom_tabaqa_boylari = []
         self.dvaynoylar = []
+        self.dvaynoy_tomonlari = []  # petlya tomoni (chap / ong) — Roto nojnitsa petlyasi va planka
         self.fortochkalar = []  # (en, boʻy, ruchka bilanmi)
         self.impost_soni = 0
         self.armatura_samorez = 0
         self.lapsha_samorez = 0
         self.medved_samorez = 0
+        self.r = D(0)  # joriy rama r (laminat bilan): eshik qanoti kosaga tegadimi
+        self.eshik_qanotlari = []  # (en, boʻy) har eshik qanoti (kesish), furnitura uchun
         self.eshiklar = []
         self.markaziy_rezina = D(0)
         self.oyna_rezinasi = D(0)
@@ -214,7 +236,7 @@ class Hisob:
         return yoy.chuqurlik(z.x, z.x + z.en) if yoy else D(0)
 
     def egilgan(self, nomi, profil, en, chuqurlik, egish=True):
-        uzunlik = en + chuqurlik + ARKA_ZAPAS
+        uzunlik = en + chuqurlik + self.seriya.arka_zapas
         self.detal(nomi, profil, uzunlik, 1)
         if egish:
             self.arka_metr += uzunlik
@@ -253,27 +275,28 @@ class Hisob:
             self.gluxoy_oyna_soni += 1
         else:
             self.tabaqa_oyna_soni += 1
-        g = self.qalinlik
-        if self.seriya.shtapik_45:
-            # Engelberg: 45° kesiladi, eni ham boʻyi ham ichki oʻlchamga teng (foydalanuvchi, 2026-11-08)
-            sht = self.seriya.shtapik[g]
-            self.detal("Shtapik gorizontal", sht, ichki_en, 2)
-            self.detal("Shtapik vertikal", sht, ichki_boy, yonlar)
-            return
         # shtapik profil bilan birga egiladi, xizmati profil narxiga kirgan
         tekis = 2 - (arka > 0) - (past > 0)
         if tekis:
-            self.detal("Shtapik gorizontal", f"G{g}", ichki_en, tekis)
+            self.detal("Shtapik gorizontal", self.sht_nomi(), ichki_en, tekis)
         for c in (arka, past):
             if c:
-                self.egilgan("Shtapik arka", f"G{g}", ichki_en, c, egish=False)
+                self.egilgan("Shtapik arka", self.sht_nomi(), ichki_en, c, egish=False)
         if yonlar:
-            self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}",
-                       ichki_boy - 2 * self.shtapik, yonlar)
+            self.detal("Shtapik vertikal", self.sht_nomi(True), ichki_boy - self.sht_ayirma(), yonlar)
+
+    def sht_nomi(self, vertikal=False):
+        """Termo: G24 (vertikal G24-R); Engelberg: 7056 / 7057 hamma tomonga (foydalanuvchi, 2026-11-08)."""
+        g = self.qalinlik
+        if self.seriya.shtapik_45:
+            return self.seriya.shtapik[g]
+        return f"G{g}-R" if vertikal and self.vertikal_r else f"G{g}"
+
+    def sht_ayirma(self):
+        """Vertikal shtapik ichki boʻydan qancha kalta: Termo 2 × qalinlik, Engelberg 45° — 0."""
+        return D(0) if self.seriya.shtapik_45 else 2 * self.shtapik
 
     def lambri(self, joy, ichki_en, ichki_boy, yoy=False):
-        if self.seriya is not TERMO70:
-            raise HisobXato(f"{self.seriya.nomi}: lambri hozircha yoʻq")
         if yoy:
             raise HisobXato("Arkali boʻlakka lambri hozircha yoʻq")
         en, boy = ichki_en - LAMBRI_AYIRMA, ichki_boy - LAMBRI_AYIRMA
@@ -298,17 +321,16 @@ class Hisob:
         self.oynalar[key] = self.oynalar.get(key, 0) + 1
         self.gluxoy_oyna_soni += 1
         self.arka_oyna_m2 += en * boy / 10000
-        g = self.qalinlik
         rezina = D(8) + sum(e + c for e, c in yoylar)
         for u in tekis_gor:
-            self.detal("Shtapik gorizontal", f"G{g}", u, 1)
+            self.detal("Shtapik gorizontal", self.sht_nomi(), u, 1)
             rezina += u
         for u in tekis_ver:
-            if u > 2 * self.shtapik:
-                self.detal("Shtapik vertikal", f"G{g}-R" if self.vertikal_r else f"G{g}", u - 2 * self.shtapik, 1)
+            if u > self.sht_ayirma():
+                self.detal("Shtapik vertikal", self.sht_nomi(True), u - self.sht_ayirma(), 1)
                 rezina += u
         for e, c in yoylar:
-            self.egilgan("Shtapik arka", f"G{g}", e, c, egish=False)
+            self.egilgan("Shtapik arka", self.sht_nomi(), e, c, egish=False)
         self.oyna_rezinasi += rezina
 
     def tabaqa(self, joy, profil, en, boy, shtulp_yonida=False, rom=False, dvaynoy=False, fortochka=None, arka=D(0), past=D(0),
@@ -409,8 +431,9 @@ class Hisob:
         if self.arka:
             a = D(str(self.arka.a))
             self.rama_perimetri += en + 2 * (boy - a) + en + a
-            self.detal("Rama eni", profil, en, 1)
-            self.detal("Rama boʻyi", profil, boy - a, 2)
+            zapas = self.seriya.rama_payvand
+            self.detal("Rama eni", profil, en + zapas, 1)
+            self.detal("Rama boʻyi", profil, boy - a + zapas, 2)
             self.egilgan("Rama arka", profil, en, a)
             return
         self.rama_perimetri += 2 * (en + boy)
@@ -675,17 +698,26 @@ def _portal(b, z, h, ctx):
 
 def _eshik(b, z, h, arka=D(0)):
     ochilish = b.get("ochilish")
-    if ochilish not in ESHIK_PROFILI:
+    sr = h.seriya
+    if ochilish not in sr.eshik_profili:
         raise HisobXato("Eshik ochilishi 'ichkariga' yoki 'tashqariga' boʻlishi kerak")
-    profil = ESHIK_PROFILI[ochilish]
-    H1 = z.ichki_boy + D("1.2")
-    ii = b.get("tabaqa_impost")  # tabaqa ichida M702 impost; 2 tabaqada ikkalasiga bir xil
+    profil = sr.eshik_profili[ochilish]
+
+    def ustma(*tomonlar):  # qanot kesishi ichki oʻlchamdan shuncha katta: kosa tomoni / impost tomoni
+        return sum((sr.eshik_kosa if t == h.r else sr.eshik_impost) for t in tomonlar)
+
+    H1 = z.ichki_boy + ustma(z.tepa, z.past)
+    if sr.pvx and profil not in ARMATURA:
+        _qoida_yoq(h, f"Eshik qanoti ({profil}) armaturasi hali oʻrgatilmagan")
+    ii = b.get("tabaqa_impost")  # tabaqa ichida impost; 2 tabaqada ikkalasiga bir xil
     soni = b.get("tabaqa_soni")
     if soni == 1:
-        h.tabaqa("Eshik tabaqasi", profil, z.ichki_en + D("1.2"), H1, arka=arka, ichki_impost=ii)
+        L1 = z.ichki_en + ustma(z.chap, z.ong)
+        h.tabaqa("Eshik tabaqasi", profil, L1, H1, arka=arka, ichki_impost=ii)
+        h.eshik_qanotlari.append((L1, H1))
         h.eshiklar.append(1)
     elif soni == 2:
-        jami = z.ichki_en + D("0.5")
+        jami = z.ichki_en + sr.eshik_2_qoshimcha
         if b.get("L1") is not None:
             # ruchkali tabaqa eni qoʻlda berilgan (foydalanuvchi, 2026-11-08, Romchi kabi); L2 = qolgani
             L1 = D(str(b["L1"]))
@@ -703,11 +735,17 @@ def _eshik(b, z, h, arka=D(0)):
         ch2 = z.tepa_yoy.chuqurlik(z.x + z.chap + L1, z.x + z.en - z.ong) if arka else D(0)
         h.tabaqa("Eshik tabaqasi L1", profil, L1, H1, shtulp_yonida=True, arka=ch1, ichki_impost=ii)
         h.tabaqa("Eshik tabaqasi L2", profil, L2, H1, shtulp_yonida=True, arka=ch2, ichki_impost=ii)
+        h.eshik_qanotlari.extend([(L1, H1), (L2, H1)])
         h.markaziy_rezina += H1  # shtulp boʻyi bir marta
-        h.detal("Shtulp", "A701", H1 - 7, 1)
+        h.detal("Shtulp", sr.shtulp, H1 - sr.shtulp_ayirma, 1)
         h.eshiklar.append(2)
     else:
         raise HisobXato("Eshik tabaqa soni 1 yoki 2 boʻlishi kerak")
+
+
+def _qoida_yoq(h, matn):
+    if matn not in h.qoida_yoq:
+        h.qoida_yoq.append(matn)
 
 
 def _bolak(b, z, h, ctx):
@@ -737,12 +775,14 @@ def _bolak_ichi(b, z, h, ctx):
         h.oyna("Gluxoy", z.ichki_en, z.ichki_boy, D("1.5"), arka, past, yonlar=yonlar)
     elif tur == "tabaqa" and b.get("fortochka"):
         # Fortochka (foydalanuvchi, 2026-11-05): qanot, shtapik, oyna rom tabaqasidagidek, faqat furnitura boshqa
-        ruchka = bool(b.get("ruchka")) or not h.seriya.eshik  # Engelberg fortochkasida doim ruchka
+        ruchka = bool(b.get("ruchka")) or h.seriya.pvx  # Engelberg fortochkasida doim ruchka
         q = h.seriya.tabaqa_qoshimcha
         h.tabaqa("Fortochka", h.seriya.rom_tabaqa, z.ichki_en + q, z.ichki_boy + q, rom=True,
                  fortochka=ruchka, arka=arka, past=past, ichki_impost=b.get("tabaqa_impost"))
     elif tur == "tabaqa":
         q = h.seriya.tabaqa_qoshimcha
+        if b.get("dvaynoy"):
+            h.dvaynoy_tomonlari.append(b.get("petlya_tomoni") or "chap")
         h.tabaqa("Rom tabaqasi", h.seriya.rom_tabaqa, z.ichki_en + q, z.ichki_boy + q, rom=True,
                  dvaynoy=bool(b.get("dvaynoy")), arka=arka, past=past, ichki_impost=b.get("tabaqa_impost"))
     elif tur == "eshik":
@@ -757,6 +797,7 @@ def _bolak_ichi(b, z, h, ctx):
 
 def _rama_hisobi(profil, impost, en, boy, bolak, h):
     r = RAMA_R[profil] + h.lam
+    h.r = r
     h.rama(profil, en, boy)
     ctx = {"impost": impost, "yarmi": IMPOST_YARMI[impost] + h.lam / 2, "bolinish_ichida": False}
     _bolak(bolak, Zona(en, boy, r, r, r, r, tepa_yoy=h.arka), h, ctx)
@@ -831,8 +872,6 @@ def hisobla(k):
     lam = LAMINAT_QOSHIMCHA if (k.get("tanlov") or {}).get("rang") == "Laminatsiya" else D(0)
     metall = str((k.get("tanlov") or {}).get("eng_metall") or "1.5")
     h = Hisob(k.get("oyna_qalinligi", 24), vertikal_r=vertikal == "R", lam=lam, seriya=seriya, metall=metall)
-    if seriya is ENGELBERG:
-        pass  # Engelberg 7000: eshik, portal, egilgan impost hali yoʻq (_bolak_ichi da xato)
     if not seriya.eshik and k.get("arka"):
         raise HisobXato(f"{seriya.nomi}: arka hozircha yoʻq")
 
@@ -887,12 +926,14 @@ def hisobla(k):
             "tabaqa_boylari": [float(b) for b in h.tabaqa_boylari],
             "rom_tabaqa_boylari": [float(b) for b in h.rom_tabaqa_boylari],
             "dvaynoylar": [[float(e), float(b)] for e, b in h.dvaynoylar],
+            "dvaynoy_tomonlari": h.dvaynoy_tomonlari,
             "fortochkalar": [[float(e), float(b), r] for e, b, r in h.fortochkalar],
             "impost_soni": h.impost_soni,
             "armatura_samorez": h.armatura_samorez,
             "lapsha_samorez": h.lapsha_samorez,
             "medved_samorez": h.medved_samorez,
             "eshiklar": h.eshiklar,
+            "eshik_qanotlari": [[float(e), float(b)] for e, b in h.eshik_qanotlari],
             "markaziy_rezina": float(h.markaziy_rezina),
             "oyna_rezinasi": float(h.oyna_rezinasi),
             "tabaqa_oyna_soni": h.tabaqa_oyna_soni,

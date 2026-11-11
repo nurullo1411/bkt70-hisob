@@ -56,6 +56,7 @@ PODOKONNIK_ENLARI = (15, 20, 25, 30, 35, 40, 45)  # sm, Romchidagidek tanlov (fo
 PODOKONNIK_ZAPAS = D(15)                          # uzunlik = L + 15 sm
 PODOKONNIK_KRISHKA = "Krishka Podokonnik"         # har podokonnikka 2 dona
 ARKA_EGISH = "Arka egish"        # $ / m egiladigan profil
+ARKA_EGISH_PVX = "Arka egish PVX"  # PVX 4,2 $ / m (foydalanuvchi, 2026-11-11)
 MEDVED_SAMOREZ = "Medved samorez soʻm"   # montaj samorezi, dona, soʻmda (foydalanuvchi, 2026-11-09: 1 300 soʻm)
 LAPSHA_SAMOREZ = "Lapsha samorez soʻm"   # dona, soʻmda (foydalanuvchi, 2026-11-09: 300 soʻm), kursga boʻlinadi
 ARKA_OYNA = "Arka oyna soʻm"     # soʻm / m² arkali oyna ustamasi (narx soʻmda, kursga boʻlinadi)
@@ -322,6 +323,119 @@ def _eng_dvaynoy(dvaynoylar, ruchka, r):
     return samorez
 
 
+# Roto dvaynoy (foydalanuvchi, 2026-11-11; ProfOkna "Akfa 7000 пов.-откидная створка (Roto)", AKFA "Pvc. Dvoy.Otk.
+# ROTO", komplekt yoʻq — dona boʻyicha). Oʻlcham = kesish − 4,9 sm (mm), Fornaxdagidek; oraliqlar ustma-ust — kichigi.
+ROTO_DV_ISPANILET = [(621, 800, 12), (801, 1200, 14), (1201, 1600, 14), (1601, 2000, 14), (2001, 2400, 14)]
+ROTO_DV_ISPANILET_NOM = {1201: "1200-1600"}
+ROTO_DV_NOJNITSA = [(290, 410), (411, 600), (601, 800), (801, 1000)]
+ROTO_DV_PETLYA_NOJ = {290: "290-410", 411: "411-600", 601: "600-800", 801: "800-1400"}
+ROTO_DV_KENG = (701, 950)   # tabaqa tayyor eni (mm) shu oraliqda: + oʻrta zamok 400, + katta zatsep × 2
+ROTO_DV_ZATSEP = 5
+ROTO_DV_DONA = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)", "Verhnyaya Petlya Na Rame (ROTO)",
+                "Nijnaya Petlya Na Rame (ROTO)", "Nijnaya Petlya Na Stvorke (ROTO)", "Zamok Sredniy 600 (ROTO)",
+                "Uglovaya Peredacha (Zam.Sred) (ROTO)"]
+
+
+def _eng_dvaynoy_roto(dvaynoylar, tomonlar, r):
+    if not dvaynoylar:
+        return 0
+    samorez, zatsep, katta = 0, 0, 0
+    for i, (en, boy) in enumerate(dvaynoylar):
+        b = (boy - D("4.9")) * 10
+        e = (en - D("4.9")) * 10
+        isp = next(((a, g, sam) for a, g, sam in ROTO_DV_ISPANILET if a <= b <= g + D("0.99")), None)
+        noj = next(((a, g) for a, g in ROTO_DV_NOJNITSA if a <= e <= g + D("0.99")), None)
+        if isp is None:
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa boʻyi {b} mm — Roto ispaniletlari 621–2400 mm")
+        if noj is None:
+            raise HisobXato(f"Dvaynoy qoʻyib boʻlmaydi: tabaqa eni {e} mm — Roto nojnitsalari 290–1000 mm")
+        a, g, sam = isp
+        oraliq = ROTO_DV_ISPANILET_NOM.get(a, f"{a}-{g}")
+        r.qosh("Furnitura", f"Ispanilet {oraliq} (ROTO)", 1, "dona")
+        chap = (tomonlar[i] if i < len(tomonlar) else "chap") != "ong"
+        r.qosh("Furnitura", f"Nojnitsi {noj[0]}-{noj[1]} (ROTO)", 1, "dona")
+        r.qosh("Furnitura", f"(13) Petlya Noj {ROTO_DV_PETLYA_NOJ[noj[0]]} {'Leviy' if chap else 'Praviy'} (ROTO)", 1, "dona")
+        r.qosh("Furnitura", f"Povorotnaya Planka {'Levaya' if chap else 'Pravaya'} (ROTO)", 1, "dona")
+        samorez += sam
+        zatsep += ROTO_DV_ZATSEP
+        tayyor = (en - D("0.5")) * 10
+        if ROTO_DV_KENG[0] <= tayyor <= ROTO_DV_KENG[1]:
+            katta += 1
+    soni = len(dvaynoylar)
+    for nom in ROTO_DV_DONA:
+        r.qosh("Furnitura", nom, soni, "dona")
+    r.qosh("Furnitura", "Uglovaya Peredacha (ROTO)", 2 * soni, "dona")
+    if katta:
+        r.qosh("Furnitura", "Zamok Sredniy 400 (ROTO)", katta, "dona")
+        r.qosh("Furnitura", "Zatsepka Bolshaya (ROTO)", 2 * katta, "dona")
+    r.qosh("Furnitura", "Zatsepka (ROTO)", zatsep, "dona")
+    r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_DV_PETLYA_SAMOREZ_SONI * soni, "dona")
+    return samorez
+
+
+# Engelberg eshigi (foydalanuvchi, 2026-11-11; ProfOkna "Akfa 7000 дверная T/Z створка"): zamok tanlanadi
+# (Fornax / Roto / GU), oʻlchami aktiv qanot tayyor boʻyiga (kesish − 0,5, mm): 1840 gacha 1600, 2070 gacha 1800,
+# 2400 gacha 2000; zatsep "Zatsepka 7000" 3 / 3 / 4; zamokka samorez 3,9×25 × 12. Petlya tanlanadi, har qanotga 3,
+# qanot tayyor boʻyi 200–235 va eni 70–105 boʻlsa 4 (ProfOkna), har petlyaga samorez 4,2×45 × 7. Passiv qanotga
+# "Shpingalet PVH (Oq) (Tr)" × 2 (+ samorez 3,9×25 × 4), shtulp qopqogʻi × 2, shtulpga samorez 4,8×70 × 5.
+ENG_ESHIK_ZAMOKLAR = ("fornax", "roto", "gu")
+ENG_ESHIK_ZAMOK_NOM = {"fornax": "FORNAX", "roto": "ROTO", "gu": "GU"}
+ENG_ESHIK_ZAMOK_OLCHAM = [(1840, 1600, 3), (2070, 1800, 3), (2400, 2000, 4)]
+ENG_ESHIK_ZATSEP = "Zatsepka 7000 (750sht) (Uz)"
+ENG_ESHIK_RUCHKALAR = ["Ruchka Dvernaya PVH (Oq) (Uz)", "Ruchka Dvernaya PVH (2894) (Uz)",
+                       "Ruchka Dver (ROTO) (Oq) (Tr)", "Ruchka Dver (ROTO) (Bronza) (Tr)", "Ruchka Dver (ROTO) (Tem Kor) (Tr)"]
+ENG_ESHIK_PETLYALAR = ["Petlya Dvernaya PVH (Oq) (40sht) (Uz)", "Petlya Dvernaya PVH (2894) (Uz)",
+                       "Petlya Dvernaya PVH (Zol Dub) (Uz)", "Petlya Dvernaya 3D (Oq) (Uz)",
+                       "Petlya Dver JOCKER (17.5mm) (Oq) (Uz)"]
+ENG_ESHIK_PETLYA_SAMOREZ = ("4,2×45 YHB", 7)
+ENG_SHPINGALET = "Shpingalet PVH (Oq) (Tr)"
+ENG_SHTULP_KRISHKA = "Krishka Shtulp Dlya Adap 7000 (Oq) (Uz)"
+ENG_SHTULP_SAMOREZ = ("4,8×70", 5)
+
+
+def eng_eshik_zamok(boy_kesish, tur):
+    mm = (D(str(boy_kesish)) - D("0.5")) * 10
+    for gacha, olcham, zatsep in ENG_ESHIK_ZAMOK_OLCHAM:
+        if mm <= gacha:
+            return f"Zamok Dvernoy ({ENG_ESHIK_ZAMOK_NOM[tur]}) {olcham} (Tr)", zatsep
+    raise HisobXato(f"Eshik zamogʻi 2400 mm gacha: qanot {mm} mm")
+
+
+def _eng_eshik(s, tanlov, r, qoida_yoq):
+    eshiklar = s.get("eshiklar") or []
+    if not eshiklar:
+        return 0
+    qanotlar = [(D(str(e)), D(str(b))) for e, b in s.get("eshik_qanotlari", [])]
+    r.qosh("Furnitura", tanlov.get("eng_eshik_ruchka") or ENG_ESHIK_RUCHKALAR[0], len(eshiklar), "dona")
+    zamok = tanlov.get("eng_eshik_zamok")
+    if zamok and zamok not in ENG_ESHIK_ZAMOKLAR:
+        raise HisobXato(f"Eshik zamogʻi faqat {', '.join(ENG_ESHIK_ZAMOKLAR)}: {zamok}")
+    samorez, zatsep = 0, 0
+    it = iter(qanotlar)
+    for e in eshiklar:
+        _, boy = next(it)  # aktiv qanot
+        for _ in range(e - 1):
+            next(it)
+        nom, z = eng_eshik_zamok(boy, zamok or "fornax")
+        zatsep += z
+        if zamok:
+            r.qosh("Furnitura", nom, 1, "dona")
+            samorez += 12
+    if not zamok:
+        qoida_yoq.append("Engelberg eshik zamogʻi tanlanmagan (standart hali tasdiqlanmagan) — zamok hisobga kirmadi")
+    r.qosh("Furnitura", ENG_ESHIK_ZATSEP, zatsep, "dona")
+    petlya = sum(4 if 200 <= b - D("0.5") <= 235 and 70 <= e - D("0.5") <= 105 else 3 for e, b in qanotlar)
+    r.qosh("Furnitura", tanlov.get("eng_eshik_petlya") or ENG_ESHIK_PETLYALAR[0], petlya, "dona")
+    r.qosh("Furnitura", ENG_ESHIK_PETLYA_SAMOREZ[0], ENG_ESHIK_PETLYA_SAMOREZ[1] * petlya, "dona")
+    passiv = sum(1 for e in eshiklar if e == 2)
+    if passiv:
+        r.qosh("Furnitura", ENG_SHPINGALET, 2 * passiv, "dona")
+        samorez += 4 * passiv
+        r.qosh("Aksessuar", ENG_SHTULP_KRISHKA, 2 * passiv, "dona")
+        r.qosh("Aksessuar", ENG_SHTULP_SAMOREZ[0], ENG_SHTULP_SAMOREZ[1] * passiv, "dona")
+    return samorez
+
+
 def eng_ispanilet(boy_kesish, mexanizm, jadval=None):
     """Qanot kesish boʻyi (fortochkada eni) sm → (ispanilet kodi, zatsep soni, samorez soni)."""
     mm = (D(str(boy_kesish)) - D("0.5") - 2 * ENG_QULOQ) * 10
@@ -337,19 +451,18 @@ def _eng_furnitura(s, tanlov, r):
     fort_boylar = [D(str(f[1])) for f in s.get("fortochkalar", [])]
     dvaynoylar = [(D(str(e)), D(str(b))) for e, b in s.get("dvaynoylar", [])]
     if not boylar and not fortochkalar and not dvaynoylar:
-        return
+        return 0
     mexanizm = tanlov.get("eng_mexanizm") or "fornax"
     if mexanizm not in ENG_ISPANILET:
         raise HisobXato(f"Mexanizm faqat fornax yoki roto: {mexanizm}")
     petlya = tanlov.get("eng_petlya") or "prostoe"
     if petlya not in ("prostoe", "100"):
         raise HisobXato(f"Petlya faqat prostoe yoki 100: {petlya}")
-    if dvaynoylar and mexanizm != "fornax":
-        raise HisobXato("Engelberg dvaynoy hozircha faqat Fornax mexanizmida (Roto hali oʻrgatilmagan)")
     soni = len(boylar)
     ruchka = tanlov.get("eng_ruchka") or ENG_RUCHKALAR[0]
     r.qosh("Furnitura", ruchka, soni + len(fortochkalar) + len(dvaynoylar), "dona")
-    samorez = _eng_dvaynoy(dvaynoylar, ruchka, r)
+    samorez = (_eng_dvaynoy(dvaynoylar, ruchka, r) if mexanizm == "fornax"
+               else _eng_dvaynoy_roto(dvaynoylar, s.get("dvaynoy_tomonlari") or [], r))
     if not soni:
         pass
     elif petlya == "prostoe":
@@ -400,10 +513,12 @@ def _eng_furnitura(s, tanlov, r):
         samorez += sam
     for nom, n in isp.items():
         r.qosh("Furnitura", nom, n, "dona")
-    zatsep += ENG_DV_ZATSEP * len(dvaynoylar)
-    r.qosh("Furnitura", ENG_ZATSEP[mexanizm], zatsep, "dona")
+    if mexanizm == "fornax":
+        zatsep += ENG_DV_ZATSEP * len(dvaynoylar)  # Roto dvaynoy zatsepi _eng_dvaynoy_roto da
+    if zatsep:
+        r.qosh("Furnitura", ENG_ZATSEP[mexanizm], zatsep, "dona")
     # blokirator: oddiy tabaqa va fortochkada yoʻq (komplekt ichida), dvaynoyda bor (_eng_dvaynoy)
-    r.qosh("Furnitura", ENG_ISPANILET_SAMOREZ, samorez, "dona")
+    return samorez
 
 
 def _rom_furnitura(s, tanlov, r):
@@ -540,7 +655,9 @@ def hisobot(k, narxlar):
             r.qosh("Rezina", REZINA_QANOT, markaziy, "m")
         r.qosh("Rezina", REZINA_CHET, markaziy * 2 + D(s["oyna_rezinasi"]) / 100, "m")
         _eng_aksessuar(s, k, r)
-        _eng_furnitura(s, tanlov, r)
+        samorez = _eng_furnitura(s, tanlov, r) + _eng_eshik(s, tanlov, r, n["qoida_yoq"])
+        if samorez:
+            r.qosh("Furnitura", ENG_ISPANILET_SAMOREZ, samorez, "dona")
     if s.get("armatura_samorez"):
         # Engelberg 7000: armatura samorezi; rezina, aksessuar, furnitura hali oʻrgatilmagan — hisob.qoida_yoq da
         r.qosh("Aksessuar", ARMATURA_SAMOREZ, s["armatura_samorez"], "dona")
@@ -565,7 +682,8 @@ def hisobot(k, narxlar):
         r.qatorlar[-1]["oyna_turi"] = t
     # Arka (foydalanuvchi, 2026-11-06): egish 7,5 $ / m (shtapik ichida), arkali oyna m² ga soʻmda ustama
     if s.get("arka_metr"):
-        r.qosh("Arka", ARKA_EGISH, D(str(s["arka_metr"])), "m")
+        egish = ARKA_EGISH if n.get("seriya", "Termo 70") == "Termo 70" else ARKA_EGISH_PVX
+        r.qosh("Arka", egish, D(str(s["arka_metr"])), "m")
     if s.get("lapsha_samorez"):
         dona = D(s["lapsha_samorez"])
         som = r.narx.get(LAPSHA_SAMOREZ)

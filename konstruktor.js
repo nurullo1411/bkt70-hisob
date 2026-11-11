@@ -311,7 +311,8 @@ function eshikTabaqalari(k, g, o) {
   const rr = (rama === "F703" ? 5.8 : rama === "7051" ? 5.4 : 3.8) + lam, im = (rama === "7051" ? 2.2 : 1.9) + lam / 2;
   const a = o.rama || g.ramalar[0], yaqin = (u, v) => Math.abs(u - v) < 0.01;
   const ichki = o.w - (yaqin(o.x, a.x) ? rr : im) - (yaqin(o.x + o.w, a.x + a.w) ? rr : im);
-  const jami = Math.round((ichki + 0.5) * 100) / 100;
+  // 2 tabaqa: L1 + L2 = ichki + 0,5 (Termo) / + 1 (Engelberg, foydalanuvchi 2026-11-11)
+  const jami = Math.round((ichki + (rama === "7051" ? 1 : 0.5)) * 100) / 100;
   const L1 = o.b.L1 != null ? Number(o.b.L1) : Math.max(65, jami / 2);
   return { L1, L2: jami - L1, jami, avto: o.b.L1 == null, aktiv: o.b.aktiv || "ong" };
 }
@@ -1545,6 +1546,24 @@ function engFurnituraHtml(k, faol) {
     ${seg("eng_ruchka", ENG_RUCHKALAR[0][0], ENG_RUCHKALAR)}`;
 }
 
+// Engelberg eshigi (hisobot.py: eng_eshik_zamok, eng_eshik_ruchka, eng_eshik_petlya; foydalanuvchi, 2026-11-11)
+const ENG_ESHIK_RUCHKALAR = [["Ruchka Dvernaya PVH (Oq) (Uz)", "PVH oq"], ["Ruchka Dvernaya PVH (2894) (Uz)", "PVH jigarrang (2894)"],
+  ["Ruchka Dver (ROTO) (Oq) (Tr)", "Roto oq"], ["Ruchka Dver (ROTO) (Bronza) (Tr)", "Roto bronza"], ["Ruchka Dver (ROTO) (Tem Kor) (Tr)", "Roto toʻq jigarrang"]];
+const ENG_ESHIK_PETLYALAR = [["Petlya Dvernaya PVH (Oq) (40sht) (Uz)", "PVH oq"], ["Petlya Dvernaya PVH (2894) (Uz)", "PVH 2894"],
+  ["Petlya Dvernaya PVH (Zol Dub) (Uz)", "PVH Zol Dub"], ["Petlya Dvernaya 3D (Oq) (Uz)", "3D oq"], ["Petlya Dver JOCKER (17.5mm) (Oq) (Uz)", "Jocker oq"]];
+function engEshikHtml(k, faol) {
+  const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
+  const v = (kalit, std) => t[kalit] ?? ut[kalit] ?? std;
+  const seg = (kalit, std, royxat) => `<div class="sz-seg sz-fur">${royxat.map(([q, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(q))}" class="${faol(v(kalit, std) === q)}">${esc(y)}</button>`).join("")}</div>`;
+  return `<div class="sz-sarlavha">Eshik furniturasi <span class="xira">(Engelberg)</span></div>
+    <div class="sz-bolim">Zamok <span class="xira">(oʻlchami qanot boʻyiga qarab)</span></div>
+    ${seg("eng_eshik_zamok", null, [["fornax", "Fornax"], ["roto", "Roto"], ["gu", "GU"]])}
+    <div class="sz-bolim">Ruchka</div>
+    ${seg("eng_eshik_ruchka", ENG_ESHIK_RUCHKALAR[0][0], ENG_ESHIK_RUCHKALAR)}
+    <div class="sz-bolim">Petlya</div>
+    ${seg("eng_eshik_petlya", ENG_ESHIK_PETLYALAR[0][0], ENG_ESHIK_PETLYALAR)}`;
+}
+
 function joriy(k) {
   const u = zakaz.umumiy, t = k.tanlov || {}, ut = u.tanlov || {};
   return {
@@ -1609,7 +1628,7 @@ function sozlamaOynasi() {
     <label class="belgi sz-rejim"><input type="checkbox" data-sz-faqat ${faqatShu ? "checked" : ""}> Faqat shu konstruksiyaga</label>
     <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
     <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button></div>
-    ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax), tabaqa ichida impost; eshik va arka hali yoʻq.</div>` : ""}
+    ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax / Roto), eshik, arka, portal, lambri.</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>
     <div class="sz-seg">${[[24, "24 mm (ikki qavat)"], [32, "32 mm"]].map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
@@ -1633,9 +1652,10 @@ function sozlamaOynasi() {
     <div class="sz-seg">${[[false, "Montajsiz"], [true, "Montajli"]].map(([v, y]) => `<button data-sz="t:montaj" data-v="${v}" class="${faol(j.montaj === v)}">${y}</button>`).join("")}</div>
 
     ${pvxmi(j.rama) ? engFurnituraHtml(k, faol) : ""}
-    ${pvxmi(j.rama) ? "" : `<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
-    <div class="sz-seg">${[["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]].map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>
-    ${eshiklar(k.bolak).length ? eshikFurnitura(k) : ""}`}
+    <div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
+    <div class="sz-seg">${(pvxmi(j.rama) ? [["ichkariga", "Balkon Kanot 7055 · ichkariga"], ["tashqariga", "Balkon Urta 7054 · tashqariga"]]
+      : [["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]]).map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>
+    ${!eshiklar(k.bolak).length ? "" : pvxmi(j.rama) ? engEshikHtml(k, faol) : eshikFurnitura(k)}
 
     <p class="xira sz-izoh">${alohida ? "Bu konstruksiyada zakazdan farqli tanlov bor." : "Hamma tanlov zakazning umumiy tanlovi bilan bir xil."}</p>
     <button data-sz-asosiy class="tugma keng"${alohida ? "" : " disabled"}>Shu tanlovni butun zakaz uchun asosiy qilish</button>`;

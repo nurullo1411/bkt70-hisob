@@ -17,6 +17,7 @@ from hisob import ENGELBERG, ENGELBERG_PROFILLARI, SERIYA_RAMA, HisobXato
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
+    "4,2×45 YHB": "(C) Samarez 4.2 x 45 YHB (250) (12sht) (Uz)",  # Engelberg eshik petlyasi (2026-11-11)
     "Zamok Dver (3147) (Otvetka) (Tr)": "Zamok Dver (3147) (Otvetka) (Tr)",
     "TERMO Zamok Dvernoy GIESSE": "TERMO Zamok Dvernoy Giesse+Otvetka 85/35 (Tr)",
     "Serdtsevina 101 mm (DWG)": "Serdtsevina 101 mm (DWG) (Tr)",
@@ -76,7 +77,8 @@ REZINA_KG_M = {"A01-002": 0.064, "A01-003": 0.036, "EPDM Rezina Ю": 0.046, "A01
 REZINALAR = ("A01-005", "A01-003", "A01-002", "EPDM Rezina Ю", "EPDM 5108", "EPDM 5025")
 
 # Dillerdan olinmaydi — eslatma (qizil)
-ESLATMA = {"3,9×19 YHBM": "Samorez 3,9×19", "3,9×16 YSBM": "Samorez 3,9×16 (IDEAL YHB)", "Lapsha samorez soʻm": "Samorez (lapsha)", "Medved samorez soʻm": "Medved samorez (montaj)", "K188": "Kley K188 (Saudal)", "MK 01": "Pena"}
+ESLATMA = {"3,9×19 YHBM": "Samorez 3,9×19", "3,9×16 YSBM": "Samorez 3,9×16 (IDEAL YHB)", "Lapsha samorez soʻm": "Samorez (lapsha)", "Medved samorez soʻm": "Medved samorez (montaj)", "K188": "Kley K188 (Saudal)", "MK 01": "Pena",
+           "4,8×70": "Samorez 4,8×70 (shtulp; dillerda yoʻq)"}
 TASHLANADI = {"Oyna", "Arka", "Profil", "Profil otxod"}
 
 
@@ -89,8 +91,11 @@ def _son(x):
 ENG_LAM_RANGI = {"grey": "7011-Anthrazit Grey", "alux": "7011-Alyuks", "sh/d": "7011-Sheffal Dub",
                  "z/d": "Zol Dub", "d/m": "Dub Mokko"}
 ENG_OQ_NOM = {"7051": "7000 ENG Kosa (Oq) (N)", "7052": "7000 ENG Kanot (Oq) (N)", "7053": "7000 ENG Urta (Oq) (N)",
+              "7054": "7000 ENG Balkon Urta (Oq) (N)", "7055": "7000 ENG Balkon Kanot (Oq) (N)",
+              "7058": "7000 ENG Adaptor Bez Imposta (Shtulp) (Oq) (N)",
               "7056": "7000 ENG Shtapik Dv. Steklo (Oq) (24mm) (N)", "7057": "7000 ENG Shtapik Tr. Steklo (Oq) (32mm) (N)"}
-ENG_LAM_NOM = {"7051": "Kosa", "7052": "Kanot", "7053": "Urta", "7056": "Shtapik (TPV) (24mm)", "7057": "Shtapik (TPV) (32mm)"}
+ENG_LAM_NOM = {"7051": "Kosa", "7052": "Kanot", "7053": "Urta", "7054": "Balkon Urta", "7055": "Balkon Kanot",
+               "7058": "Adaptor Bez Impost (Shtulp)", "7056": "Shtapik (TPV) (24mm)", "7057": "Shtapik (TPV) (32mm)"}
 ENG_METALL_NOM = {"0701": "Metall Vst. KOSA QANOT 7000 (1.5mm)", "0701-2": "Metall Vst. KOSA QANOT 7000 (2mm)",
                   "0703": "Metall Vst. URTA 7000 (1.5mm)", "0703-2": "Metall Vst. URTA 7000 (2mm)"}
 
