@@ -1643,7 +1643,7 @@ function sozlamaOynasi() {
     <div class="sz-ramalar">${(pvxmi(j.rama) ? PVX_RAMALAR : RAMALAR).map(([v, y, iz]) => `<button data-sz="s:rama" data-v="${esc(JSON.stringify(v))}" class="sz-rama${faol(j.rama === v)}"><svg viewBox="0 0 40 40" class="ik"><path d="M6 34V6h28" fill="none" stroke="currentColor" stroke-width="${v === "F703" ? 6 : 3.5}"/></svg><b>${y}</b><span>${iz}</span></button>`).join("")}</div>`}
 
     <div class="sz-bolim">Rang</div>
-    <div class="sz-seg">${RANG_TURKUMLARI.filter((t) => !pvxmi(j.rama) || t[0] === "Oq" || t[0] === "Laminatsiya").map(([v, y]) => `<button data-sz="t:rang" data-v="${esc(JSON.stringify(v))}" class="${faol(j.rang === v)}">${y}</button>`).join("")}</div>
+    <div class="sz-seg">${RANG_TURKUMLARI.filter((t) => (!pvxmi(j.rama) || t[0] === "Oq" || t[0] === "Laminatsiya") && (!aldmi(j.rama) || t[0] !== "Anod")).map(([v, y]) => `<button data-sz="t:rang" data-v="${esc(JSON.stringify(v))}" class="${faol(j.rang === v)}">${y}</button>`).join("")}</div>
     <div class="sz-ranglar">${turkum[2].map(([v, y, c]) => `<button data-sz="t:rang_nomi" data-v="${esc(JSON.stringify(v))}" class="sz-rang${faol((j.rangNomi ?? turkum[2][0][0]) === v)}"><span class="namuna" style="background:${c}"></span>${y}</button>`).join("")}</div>
 
     <div class="sz-bolim">Podokonnik <span class="xira">(uzunligi L + 15 sm, rangi rom rangida)</span></div>

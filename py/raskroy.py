@@ -98,8 +98,57 @@ def _sklad_nom(nom):
     return nom[:-5].strip() if nom.lower().endswith(" 306g") else nom
 
 
+# Aldoks sklad varagʻi (Apps Script nomga "ALD|" qoʻshib beradi): "kosa /306g", "qanot /306g",
+# "Oʻrta ## /306g" (ikki uchi toʻgʻri), "Oʻrta #> /306g" (bir uchi qiya — 90° detal uchun − 5,95). Balkon — eshik bosqichida.
+ALD_SKLAD_PREFIKS = "ALD|"
+
+
+def _ald_sklad(nom):
+    """(profil, qiya) yoki None."""
+    nom = str(nom)
+    if not nom.startswith(ALD_SKLAD_PREFIKS):
+        return None
+    n = " ".join(nom[len(ALD_SKLAD_PREFIKS):].split("/")[0].lower().split())
+    if n == "kosa":
+        return "183", False
+    if n == "qanot":
+        return "181", False
+    if n.startswith(("oʻrta", "o'rta", "o‘rta", "orta")):
+        return "182", "#>" in n
+    return None
+
+
+def _ald_sklad_bolaklari(qatorlar, profil, rang):
+    bolak, izoh = [], []
+    for q in qatorlar:
+        q = list(q) + [""] * (4 - len(q))
+        t = _ald_sklad(q[0])
+        if not t or t[0] != profil or str(q[1]).strip().lower() != rang.strip().lower():
+            continue
+        nom = str(q[0])[len(ALD_SKLAD_PREFIKS):].strip()
+        try:
+            soni = int(float(str(q[2]).replace(",", ".")))
+        except ValueError:
+            continue
+        matn = str(q[3]).replace(",", ".").strip()
+        if not matn:
+            izoh.append(f"{nom} ({q[1]}) × {soni}: oʻlchami yozilmagan, olinmadi")
+            continue
+        sm = float(matn) * 100
+        if sm > hivich(profil):
+            izoh.append(f"{nom} ({q[1]}) × {soni}: {matn} m hivichdan uzun, xato boʻlishi mumkin, olinmadi")
+            continue
+        if t[1]:
+            sm -= QIYA_AYIRMA[profil]  # qiya uchli Urtadan impost (90°) olinadi
+        if sm > 0:
+            bolak.extend([_b(sm)] * soni)
+    return sorted(bolak), izoh
+
+
 def sklad_bolaklari(qatorlar, profil, rang):
     """Shu profil va rangdagi boʻlaklar (sm_b) va hisobga olinmagan qatorlar haqida izoh."""
+    if profil in ("183", "181", "182"):
+        return _ald_sklad_bolaklari(qatorlar, profil, rang)
     nom = SKLAD_NOMI.get(profil)
     bolak, izoh = [], []
     if nom is None:

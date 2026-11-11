@@ -143,11 +143,11 @@ def ald_profil_nomi(profil, rang, tur="ADT"):
             return f"{neo} (Oq)"
         return f"{profil} {nom} (Oq) ({'R) (N' if tur == 'N' else 'Adt'})"
     if tur == "NEO":
-        return f"{neo} ({ALD_NEO_RANGI.get(rang, 'rangi?')})"
+        # sotuvda faqat V Zol Dub, V Dub Mokko, SW306G; boshqa rang zakazga keladi, narxi bir xil (foydalanuvchi, 2026-11-11)
+        r = ALD_NEO_RANGI.get(rang) or f"{ALD_LAM_RANGI.get(rang, 'rangi?')}) (zakaz"
+        return f"{neo} ({r})"
     if rang == "306g":
         return f"(A) {nom} (SW306G)"
-    if rang == "anod":
-        return f"(A) {nom} (anod rangi?)"
     return f"LAM ({ALD_LAM_RANGI.get(rang, 'rangi?')}) {nom} Alum"
 
 

@@ -15,6 +15,9 @@ from hisobot import ARKA_OYNA, LAPSHA_SAMOREZ, MEDVED_SAMOREZ, narxlarni_oqi
 from zakaz import hisobla_zakaz
 
 
+OYNA_20_ARZON = 5000  # soʻm / m²
+
+
 def _narx(kalit, narxlar, kurs):
     """Material qatori narxi, $ (bizning birlikda). Narx yoʻq boʻlsa None."""
     bolim, artikul, izoh, _ = kalit
@@ -23,7 +26,11 @@ def _narx(kalit, narxlar, kurs):
         hivich = profil_narxi(narxlar, profil, izoh)
         return None if hivich is None else hivich / hivich_metr(profil, narxlar["hivich_m"])
     if bolim == "Oyna":
-        som = narxlar.get("steklopaket_som", {}).get(artikul, {}).get(str(izoh))
+        tur = narxlar.get("steklopaket_som", {}).get(artikul, {})
+        som = tur.get(str(izoh))
+        if som is None and str(izoh) == "20" and tur.get("24"):
+            # Aldoks 20 mm paket = 24 mm narxidan 5 000 soʻm arzon (foydalanuvchi, 2026-11-11)
+            som = tur["24"] - OYNA_20_ARZON
         return None if not som else som / kurs
     if artikul == "01.553":
         komp = narxlar["narx"].get("Soedinitel Urta 19 ugl")

@@ -85,6 +85,7 @@ class Seriya:
     shtapik_qalinligi: D = D("2.2")  # vertikal shtapik = ichki boʻyi − 2 × shu (shtapik_45 boʻlmasa)
     oyna_standart: int = 24         # oyna qalinligi berilmasa
     faqat_rom: bool = False         # hozircha faqat gluxoy, rom tabaqasi va impost
+    rang_yoq: tuple = ()            # bu seriyada boʻlmaydigan rang turkumlari
 
 
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
@@ -96,7 +97,7 @@ ENGELBERG = Seriya("Engelberg 7000", "7053", "7052", D("2.2"), D("1.5"), D("0.5"
                    shtulp_ayirma=D("1.7"))
 ALDOKS = Seriya("Aldoks", "182", "181", D("1.3"), D(1), D(0), False, {20: "105"}, False,
                 tabaqa_qoshimcha_boy=D("1.5"), gluxoy_oyna=D(1), shtapik_qalinligi=D("1.7"), oyna_standart=20,
-                faqat_rom=True)
+                faqat_rom=True, rang_yoq=("Anod",))  # anod qoʻshilmaydi (foydalanuvchi, 2026-11-11)
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG, "183": ALDOKS}
 ALDOKS_PROFILLARI = {"183", "181", "182", "105"}
 # Seriya impostidan ramasi (impost tanlovi tekshiruvi uchun)
@@ -914,7 +915,10 @@ def hisobla(k):
     vertikal = (k.get("tanlov") or {}).get("vertikal_shtapik", "R")
     if vertikal not in ("R", "oddiy"):
         raise HisobXato(f"vertikal_shtapik faqat R yoki oddiy: {vertikal}")
-    lam = LAMINAT_QOSHIMCHA if (k.get("tanlov") or {}).get("rang") == "Laminatsiya" else D(0)
+    rang = (k.get("tanlov") or {}).get("rang")
+    if rang in seriya.rang_yoq:
+        raise HisobXato(f"{seriya.nomi}da {rang} rangi yoʻq")
+    lam = LAMINAT_QOSHIMCHA if rang == "Laminatsiya" else D(0)
     metall = str((k.get("tanlov") or {}).get("eng_metall") or "1.5")
     h = Hisob(k.get("oyna_qalinligi", seriya.oyna_standart), vertikal_r=vertikal == "R", lam=lam, seriya=seriya, metall=metall)
     if not seriya.eshik and k.get("arka"):
