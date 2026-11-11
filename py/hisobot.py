@@ -340,7 +340,18 @@ ROTO_DV_DONA = ["Blokirator Na Rame (ROTO)", "Blokirator Na Stvorke (ROTO)", "Ve
                 "Uglovaya Peredacha (Zam.Sred) (ROTO)"]
 
 
-def _eng_dvaynoy_roto(dvaynoylar, tomonlar, r):
+# Petlya qopqoqlari (foydalanuvchi, 2026-11-11): 5 boʻlak, ruchka rangida; (01) Oq, (02) Bronza, (03) Seriy, (04) Mahagon
+ROTO_KRISHKA_QISMLARI = ["Nakladka", "Nij. Rama", "Nij. Stvorka", "Verh. Bol.", "Verh. Mal."]
+ROTO_KRISHKA_RANG = {"Oq": "(01) {} (Oq)", "Bronza": "(02) {} (Bronza)", "Seriy": "(03) {} (Seriy)",
+                     "Mahagon": "(04) {} (Mahagon)", "Tem Kor": "(04) {} (Mahagon)"}
+
+
+def roto_krishkalar(ruchka):
+    shablon = ROTO_KRISHKA_RANG.get(eng_krishka_rangi(ruchka), ROTO_KRISHKA_RANG["Oq"])
+    return [f"NX Krishka Petlya {shablon.format(q)} (ROTO)" for q in ROTO_KRISHKA_QISMLARI]
+
+
+def _eng_dvaynoy_roto(dvaynoylar, tomonlar, r, ruchka=""):
     if not dvaynoylar:
         return 0
     samorez, zatsep, katta = 0, 0, 0
@@ -369,6 +380,8 @@ def _eng_dvaynoy_roto(dvaynoylar, tomonlar, r):
     for nom in ROTO_DV_DONA:
         r.qosh("Furnitura", nom, soni, "dona")
     r.qosh("Furnitura", "Uglovaya Peredacha (ROTO)", 2 * soni, "dona")
+    for nom in roto_krishkalar(ruchka):
+        r.qosh("Furnitura", nom, soni, "dona")
     if katta:
         r.qosh("Furnitura", "Zamok Sredniy 400 (ROTO)", katta, "dona")
         r.qosh("Furnitura", "Zatsepka Bolshaya (ROTO)", 2 * katta, "dona")
@@ -463,7 +476,7 @@ def _eng_furnitura(s, tanlov, r):
     ruchka = tanlov.get("eng_ruchka") or ENG_RUCHKALAR[0]
     r.qosh("Furnitura", ruchka, soni + len(fortochkalar) + len(dvaynoylar), "dona")
     samorez = (_eng_dvaynoy(dvaynoylar, ruchka, r) if mexanizm == "fornax"
-               else _eng_dvaynoy_roto(dvaynoylar, s.get("dvaynoy_tomonlari") or [], r))
+               else _eng_dvaynoy_roto(dvaynoylar, s.get("dvaynoy_tomonlari") or [], r, ruchka))
     if not soni:
         pass
     elif petlya == "prostoe":
