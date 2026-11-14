@@ -606,7 +606,7 @@ def _bolinish(b, z, h, ctx):
         raise HisobXato("Lapsha faqat alohida ramalar orasida boʻladi (rama ichida — impost)")
     if b.get("egilgan") is not None:
         return _egilgan_bolinish(b, z, h, ctx)
-    if b.get("chift"):
+    if any(_chift_mask(b)):
         return _chift_bolinish(b, z, h, ctx, vertikal)
     if vertikal and _tashqari_eshik_bor(b):
         raise HisobXato("Tashqariga ochiladigan eshik yonidagi oyna alohida ramada boʻladi: 'lapshali' turini ishlating")
@@ -640,40 +640,63 @@ def _bolinish(b, z, h, ctx):
         _bolak(bola, yangi, h, ichki_ctx)
 
 
+def _chift_mask(b):
+    """Qaysi boʻlinish chizigʻi Chift Quloq: "chift": true — hammasi, roʻyxat — har chiziq alohida (Romchi kabi)."""
+    n = max(len(b.get("olchamlar") or []) - 1, 0)
+    c = b.get("chift")
+    if isinstance(c, list):
+        if len(c) != n:
+            raise HisobXato("Chift Quloq roʻyxati impostlar soniga teng emas")
+        return [bool(x) for x in c]
+    return [bool(c)] * n
+
+
 def _chift_bolinish(b, z, h, ctx, vertikal):
     """Chift Quloq (Aldoks 109; foydalanuvchi, 2026-11-14): impostdek, lekin ramani boʻlib qoʻyadi.
 
     Chift butun boʻyga (yotiqda — butun eniga) boradi, 90°. Unga tegadigan kosa (tepa/past yoki yonlar)
     chift oʻqidan 2,125 qolib tugaydi va har uchi Bolshoy soedinitel bilan ulanadi (impostdek).
-    Boʻlaklar impost yonidagidek: chift tomonida oʻqdan − 2,125.
+    Boʻlaklar impost yonidagidek: chift tomonida oʻqdan − 2,125. Chift boʻlmagan chiziqlar — oddiy impost.
     """
     profil = h.seriya.chift
     if not profil:
         raise HisobXato(f"{h.seriya.nomi}da Chift Quloq yoʻq")
     if ctx.get("bolinish_ichida") or h.arka or h.segment:
         raise HisobXato("Chift Quloq faqat ramaning birinchi boʻlinishida (arkasiz) boʻladi")
-    yarmi = IMPOST_YARMI[profil] + h.lam / 2
+    mask = _chift_mask(b)
+    cy = IMPOST_YARMI[profil] + h.lam / 2
+    iy = ctx["yarmi"]
     oxirgi = len(b.get("olchamlar") or []) - 1
 
     def chetlar(i):
-        boshi = yarmi if i > 0 else (z.chap if vertikal else z.tepa)
-        oxiri = yarmi if i < oxirgi else (z.ong if vertikal else z.past)
+        boshi = (cy if mask[i - 1] else iy) if i > 0 else (z.chap if vertikal else z.tepa)
+        oxiri = (cy if mask[i] else iy) if i < oxirgi else (z.ong if vertikal else z.past)
         return boshi, oxiri
 
     olchamlar = _olchamlar(b, z.en if vertikal else z.boy, [sum(chetlar(i)) for i in range(oxirgi + 1)])
-    nomi = "Chift Quloq vertikal" if vertikal else "Chift Quloq gorizontal"
-    h.detal(nomi, profil, z.boy if vertikal else z.en, oxirgi)
-    # kosa boʻlinadi: butun detal (× 2) oʻrniga boʻlaklar, chift tomonida oʻqdan yarmi qolib
     rama = ctx["rama"]
     zapas = h.seriya.rama_payvand
     kalit = ("Rama eni" if vertikal else "Rama boʻyi", rama, (z.en if vertikal else z.boy) + zapas)
     h.profillar[kalit] -= 2
     if not h.profillar[kalit]:
         del h.profillar[kalit]
+    joy = D(0)
+    bosh = D(0)   # kosa boʻlagi boshlanishi (oxirgi chiftdan)
     for i, o in enumerate(olchamlar):
-        uz = o + zapas - yarmi * ((i > 0) + (i < oxirgi))
-        h.detal(kalit[0], rama, uz, 2)
-    h.impost_soni += 2 * oxirgi  # har chiftga 4 kosa uchi — Bolshoy + samorez impost uchidagidek
+        joy += o
+        if i == oxirgi or mask[i]:
+            uz = joy - bosh + zapas - cy * ((bosh > 0) + (i < oxirgi))
+            h.detal(kalit[0], rama, uz, 2)
+            bosh = joy
+        if i == oxirgi:
+            break
+        if mask[i]:
+            h.detal("Chift Quloq vertikal" if vertikal else "Chift Quloq gorizontal", profil, z.boy if vertikal else z.en, 1)
+            h.impost_soni += 2   # 4 kosa uchi — Bolshoy + samorez impost uchidagidek
+        else:
+            nomi = "Impost vertikal" if vertikal else "Impost gorizontal"
+            h.detal(nomi, ctx["impost"], _impost_uzunligi(vertikal, joy, z, h), 1)
+            h.impost_soni += 1
     ichki_ctx = {**ctx, "bolinish_ichida": True}
     q = D(0)
     for i, (olcham, bola) in enumerate(zip(olchamlar, b["bolaklar"])):

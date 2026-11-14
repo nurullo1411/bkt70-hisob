@@ -90,14 +90,34 @@ function almashtir(p, yangi) {
 // Ildiz shu yoʻnalishdagi chift boʻlsa, bosilgan boʻlak turgan qism ikkiga; aks holda butun rama yoniga yangi qism.
 function chiftQosh(p, yonalish) {
   const r = tahrir.bolak, q = yolQism(p);
-  if (r.tur === "bolinish" && r.chift && r.yonalish === yonalish && q.length) {
+  if (r.tur === "bolinish" && !r.lapsha && !r.egilgan && r.yonalish === yonalish && q.length) {
     const i = q[0];
+    chiftSplice(r, i, 0, true);
     r.bolaklar.splice(i + 1, 0, { tur: "gluxoy" });
     r.olchamlar.splice(i + 1, 0, null);
     if (r.olchamlar[i] != null) r.olchamlar[i] = null;
     return;
   }
-  tahrir.bolak = { tur: "bolinish", chift: true, yonalish, olchamlar: [null, null], bolaklar: [r, { tur: "gluxoy" }] };
+  tahrir.bolak = { tur: "bolinish", chift: [true], yonalish, olchamlar: [null, null], bolaklar: [r, { tur: "gluxoy" }] };
+}
+// Har boʻlinish chizigʻi uchun: Chift Quloqmi ("chift": true — hammasi; roʻyxat — alohida)
+const chiftMask = (b) => (b && b.chift ? (Array.isArray(b.chift) ? b.chift : b.olchamlar.slice(1).map(() => true)) : null);
+// Boʻlinishga chiziq qoʻshilsa/olinsa chift roʻyxati ham (olchamlar oʻzgarishidan OLDIN chaqiriladi)
+function chiftSplice(b, i, del, ...ins) {
+  if (!b.chift) return;
+  const m = chiftMask(b).slice();
+  m.splice(i, del, ...ins);
+  if (m.some(Boolean)) b.chift = m; else delete b.chift;
+}
+// Tanlangan impost (ildiz boʻlinishida) — Urta ⇄ Chift Quloq (Romchi kabi, foydalanuvchi, 2026-11-14)
+function chiftBolishiMumkin(ip) {
+  const b = tugun(tahrir.bolak, ip);
+  return ip === "" && aldmi(seriyaRama()) && !joriy(tahrir).arka && b && b.tur === "bolinish" && !b.lapsha && !b.egilgan;
+}
+function impostTuri(ip, ii, chift) {
+  const b = tugun(tahrir.bolak, ip), m = (chiftMask(b) || b.olchamlar.slice(1).map(() => false)).slice();
+  m[ii - 1] = chift;
+  if (m.some(Boolean)) b.chift = m; else delete b.chift;
 }
 // Barg yoʻlidan uning ramasi (lapsha guruhi bolasi yoki ildiz) yoʻli
 function ramaYoli(p) {
@@ -138,9 +158,9 @@ function bolish(p, yonalish, n = 2) {
   const b = tugun(tahrir.bolak, p);
   const o = ota(p);
   const otaB = o ? tugun(tahrir.bolak, o.yol) : null;
-  if (otaB && otaB.tur === "bolinish" && otaB.yonalish === yonalish && !otaB.egilgan && !otaB.lapsha && !otaB.chift) {
+  if (otaB && otaB.tur === "bolinish" && otaB.yonalish === yonalish && !otaB.egilgan && !otaB.lapsha) {
     const x = otaB.olchamlar[o.i];
-    for (let j = 1; j < n; j++) { otaB.bolaklar.splice(o.i + j, 0, { tur: "gluxoy" }); otaB.olchamlar.splice(o.i + j, 0, null); }
+    for (let j = 1; j < n; j++) { chiftSplice(otaB, o.i, 0, false); otaB.bolaklar.splice(o.i + j, 0, { tur: "gluxoy" }); otaB.olchamlar.splice(o.i + j, 0, null); }
     // oʻlchami qoʻlda berilgan boʻlak boʻlinsa — oʻz oʻrni ichida teng qismlar (oxirgisi qoldiq),
     // aks holda hamma oʻlchamsiz boʻlak teng boʻladi (Romchi kabi)
     if (x != null && otaB.olchamlar.some((y, k) => y == null && (k < o.i || k >= o.i + n))) {
@@ -164,6 +184,7 @@ function impostOl(p, i) {
   const x = b.olchamlar[i - 1], y = b.olchamlar[i];
   const yangi = x != null && y != null ? Math.round((Number(x) + Number(y) + (b.lapsha ? LAPSHA_ENI : 0)) * 100) / 100 : null;
   if (kal) { const ka = a[kal], kc = c[kal]; delete qol[kal]; if (ka != null && kc != null) qol[kal] = Math.max(Number(ka), Number(kc)); }
+  chiftSplice(b, i - 1, 1);
   b.bolaklar.splice(i - 1, 2, qol);
   b.olchamlar.splice(i - 1, 2, yangi);
   if (b.bolaklar.length === 1) {
@@ -179,6 +200,7 @@ function ochir(p) {
   const otaB = tugun(tahrir.bolak, o.yol);
   if (otaB.tur === "portal") { almashtir(o.yol, otaB.bolaklar[1]); tanlangan = o.yol; return true; }
   const [w, h] = olchamTaxmin(o.yol);
+  chiftSplice(otaB, o.i > 0 ? o.i - 1 : 0, 1);
   otaB.bolaklar.splice(o.i, 1);
   otaB.olchamlar.splice(o.i, 1);
   if (otaB.bolaklar.length === 1) {
@@ -289,9 +311,10 @@ function joyla(b, x, y, w, h, p, g, chuqur = 0, tY = null, pY = null) {
     }
     g.bolinishlar.push({ p, v, x, y, w, h, s, olchamlar: b.olchamlar, chuqur, tY });
     let q = v ? x : y;
-    const oxiri = s.length - 1;
+    const oxiri = s.length - 1, cm = chiftMask(b);
     s.forEach((o, i) => {
-      if (i > 0) g.impostlar.push(v ? { x1: q, y1: y, x2: q, y2: y + h, tY, pY, p, i } : { x1: x, y1: q, x2: x + w, y2: q, tY, pY, p, i });
+      const chift = !!(cm && cm[i - 1]);
+      if (i > 0) g.impostlar.push(v ? { x1: q, y1: y, x2: q, y2: y + h, tY, pY, p, i, chift } : { x1: x, y1: q, x2: x + w, y2: q, tY, pY, p, i, chift });
       if (v) joyla(b.bolaklar[i], q, y, o, h, bolaYoli(p, i), g, chuqur + 1, tY, pY);
       else joyla(b.bolaklar[i], x, q, w, o, bolaYoli(p, i), g, chuqur + 1, i === 0 ? tY : null, i === oxiri ? pY : null);
       q += o;
@@ -647,6 +670,14 @@ function chizmaSVG(k, opts = {}) {
       for (let j = 0; j <= n; j++) { const xx = xa + ((xb - xa) * j) / n; p += (j ? "L" : "M") + f(xx) + " " + f(yoyY(c.yoy, xx, -t / 2)); }
       for (let j = n; j >= 0; j--) { const xx = xa + ((xb - xa) * j) / n; p += "L" + f(xx) + " " + f(yoyY(c.yoy, xx, t / 2)); }
       s += `<path d="${p}Z" class="ra im"/>`;
+      continue;
+    }
+    if (c.chift) {
+      // Chift Quloq: ramani boʻladi — tashqi chetgacha, ikki rama cheti va oʻrtada tirqish (Romchi kabi)
+      const q = t * 0.12;
+      s += c.x1 === c.x2
+        ? rect(c.x1 - t / 2, c.y1, t, c.y2 - c.y1, "ra") + rect(c.x1 - q / 2, c.y1, q, c.y2 - c.y1, "chift-ch")
+        : rect(c.x1, c.y1 - t / 2, c.x2 - c.x1, t, "ra") + rect(c.x1, c.y1 - q / 2, c.x2 - c.x1, q, "chift-ch");
       continue;
     }
     s += c.x1 === c.x2
@@ -1479,9 +1510,16 @@ function ichkiPanel(b, bosh) {
 
 function panelniChiz() {
   if (tanlanganImpost) {
-    const [ip] = tanlanganImpost.split("|"), lap = tugun(tahrir.bolak, ip)?.lapsha;
-    $("k-panel").innerHTML = `<div class="panel-bosh"><b>${lap ? "Lapsha" : "Impost"} tanlandi</b></div>
-      <div class="xira">🗑 bosing — ${lap ? "lapsha" : "impost"} olinadi, ikki ${lap ? "rama" : "boʻlak"} bittaga qoʻshiladi (↶ bilan qaytariladi).</div>`;
+    const [ip, ii] = tanlanganImpost.split("|"), ib = tugun(tahrir.bolak, ip), lap = ib?.lapsha;
+    const ch = !!(chiftMask(ib) || [])[ii - 1];
+    const tur = chiftBolishiMumkin(ip)
+      ? `<div class="sarlavha">Turi</div><div class="tugmalar"><button data-imptur="0" class="${ch ? "" : "faol"}">Urta 182</button><button data-imptur="1" class="${ch ? "faol" : ""}">Chift Quloq 109</button></div>`
+      : "";
+    $("k-panel").innerHTML = `<div class="panel-bosh"><b>${lap ? "Lapsha" : ch ? "Chift Quloq" : "Impost"} tanlandi</b></div>${tur}
+      <div class="xira">🗑 bosing — ${lap ? "lapsha" : ch ? "chift quloq" : "impost"} olinadi, ikki ${lap ? "rama" : "boʻlak"} bittaga qoʻshiladi (↶ bilan qaytariladi).</div>`;
+    $("k-panel").querySelectorAll("[data-imptur]").forEach((t) => t.addEventListener("click", () => {
+      saqlaTarix(); impostTuri(ip, +ii, t.dataset.imptur === "1"); yangila();
+    }));
     return;
   }
   const b = tugun(tahrir.bolak, tanlangan);

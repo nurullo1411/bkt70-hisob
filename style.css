@@ -64,6 +64,7 @@ footer { text-align: center; padding: 0 16px 24px; }
 .chizma { width: 100%; height: auto; max-height: 60vh; display: block; touch-action: manipulation; }
 .chizma .lap { fill: #5b6470; stroke: #2b3038; stroke-width: .35; }
 .chizma .lap-ch { stroke: #e8eef5; stroke-width: .45; stroke-dasharray: 2.2 1.6; }
+.chizma .chift-ch { fill: #f4f7fb; stroke: #8a96a3; stroke-width: .25; }
 .chizma .ra, .chizma .tb { fill: var(--g-ra, var(--rama)); stroke: var(--rama-chiziq); stroke-width: .35; stroke-linejoin: round; }
 .chizma .im { stroke-width: .3; }
 .chizma .gul { stroke: none; pointer-events: none; }
