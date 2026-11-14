@@ -1573,14 +1573,14 @@ function engEshikHtml(k, faol) {
 const ALD_ESHIK_ZAMOKLAR = [["Zamok S Tsilindrom 153/23/35 (Tr)", "153/23/35 (balkon)"], ["Zamok S Tsilindrom 153/23/25 (Tr)", "153/23/25"],
   ["Zamok S Tsilindrom 153/23/35 Rolik (DWG) (Tr)", "153/23/35 rolik"], ["Zamok S Tsilindrom 153/23/25 Rolik (DWG) (Tr)", "153/23/25 rolik"]];
 const ALD_ESHIK_RUCHKALAR = [["Comfort 1077", "Comfort 1077"], ["Stublina 1177", "Stublina 1177"], ["Hi-Tech", "Hi-Tech"], ["Fornax", "Fornax"]];
+// Aldoks eshigi balkon profilidan (standart) yoki kichik profildan — tanlov.eshik_tur (foydalanuvchi, 2026-11-14)
+const aldYengil = (k) => ((k.tanlov || {}).eshik_tur ?? (zakaz.umumiy.tanlov || {}).eshik_tur) === "yengil";
 function aldEshikHtml(k, faol) {
   const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
   const v = (kalit, std) => t[kalit] ?? ut[kalit] ?? std;
   const seg = (kalit, std, royxat) => `<div class="sz-seg sz-fur">${royxat.map(([q, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(q))}" class="${faol(v(kalit, std) === q)}">${esc(y)}</button>`).join("")}</div>`;
-  const yengil = v("eshik_tur", "balkon") === "yengil";
+  const yengil = aldYengil(k);
   return `<div class="sz-sarlavha">Eshik furniturasi <span class="xira">(Aldoks, rangi romga qarab)</span></div>
-    <div class="sz-bolim">Eshik turi <span class="xira">(yengil — ichkariga Qanot 181, tashqariga Urta 182)</span></div>
-    ${seg("eshik_tur", "balkon", [["balkon", "Balkon (198 / 185)"], ["yengil", "Yengil (181 / 182)"]])}
     <div class="sz-bolim">Zamok</div>
     ${seg("ald_eshik_zamok", ALD_ESHIK_ZAMOKLAR[yengil ? 1 : 0][0], ALD_ESHIK_ZAMOKLAR)}
     <div class="sz-bolim">Ruchka</div>
@@ -1680,7 +1680,9 @@ function sozlamaOynasi() {
 
     ${pvxmi(j.rama) ? engFurnituraHtml(k, faol) : ""}
     ${`<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
-    <div class="sz-seg">${(aldmi(j.rama) ? [["ichkariga", "Balkon Qanot 198 · ichkariga"], ["tashqariga", "Balkon Urta 185 · tashqariga"]] : pvxmi(j.rama) ? [["ichkariga", "Balkon Kanot 7055 · ichkariga"], ["tashqariga", "Balkon Urta 7054 · tashqariga"]]
+    ${aldmi(j.rama) ? `<label class="belgi"><input type="checkbox" data-sz-balkon ${aldYengil(k) ? "" : "checked"}> Balkon <span class="xira">(belgi olinsa — kichik profildan: ichkariga Qanot 181, tashqariga Urta 182)</span></label>` : ""}
+    <div class="sz-seg">${(aldmi(j.rama) ? (aldYengil(k) ? [["ichkariga", "Qanot 181 · ichkariga"], ["tashqariga", "Urta 182 · tashqariga"]]
+      : [["ichkariga", "Balkon Qanot 198 · ichkariga"], ["tashqariga", "Balkon Urta 185 · tashqariga"]]) : pvxmi(j.rama) ? [["ichkariga", "Balkon Kanot 7055 · ichkariga"], ["tashqariga", "Balkon Urta 7054 · tashqariga"]]
       : [["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]]).map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>`}
     ${!eshiklar(k.bolak).length ? "" : pvxmi(j.rama) ? engEshikHtml(k, faol) : aldmi(j.rama) ? aldEshikHtml(k, faol) : eshikFurnitura(k)}
 
@@ -1748,6 +1750,9 @@ function maydonOzgardi(e) {
 // ---------- hodisalar ----------
 $("k-maydon").addEventListener("change", (e) => {
   if (e.target.matches("[data-sz-faqat]")) { faqatShu = e.target.checked; sozlamaOynasi(); return; }
+  if (e.target.matches("[data-sz-balkon]")) {
+    saqlaTarix(); ornat("t", "eshik_tur", e.target.checked ? "balkon" : "yengil"); sozlamaOynasi(); yangila(); return;
+  }
   saqlaTarix(); maydonOzgardi(e);
 });
 $("k-sozlama").addEventListener("click", () => {
