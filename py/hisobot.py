@@ -662,7 +662,8 @@ ALD_IMPOST_SAMOREZ = 7
 # Furnitura (har rom tabaqasiga): ruchka Delfin (oq romga oq, boshqasiga 9005), petlya "Petlya Aldoks (Oq) (Uz)"
 # 2 ta + qanot eni 65–100 boʻlsa 1 + boʻyi 120–200 boʻlsa 1 (ProfOkna), har petlyaga samorez 4,8×19 × 4;
 # tij 639/640 komplekt = qanot boʻyi − 25 sm (hivich 6 m), zaklepka 4×12 × 3; zatsep "Otvetniy Plast." × 2,
-# har biriga samorez 3,9×19 × 4. Tabaqa boʻyi 200 dan, eni 100 dan oshmaydi (ProfOkna).
+# har biriga samorez 3,9×19 × 4. Petlya (foydalanuvchi, 2026-11-14): romda ham fortochkada ham petlya tomoni
+# 200 dan oshmasa 2 ta, oshsa 3 ta; oʻlcham chegarasi yoʻq.
 ALD_RUCHKA = {"Oq": "Ruchka DELFIN (Oq) (120sht) (Uz)", "*": "(9005) Ruchka DELFIN (Uz)"}
 ALD_PETLYA = "Petlya Aldoks (Oq) (Uz)"
 ALD_PETLYA_SAMOREZ = ("4,8×19 YSBM", 4)
@@ -671,7 +672,18 @@ ALD_TIJ_HIVICH = D(6)
 ALD_ZAKLEPKA = ("Zaklepka 4×12", 3)
 ALD_ZATSEP = {"Oq": "Otvetniy Plast. (Oq) (200sht) (Uz)", "*": "Otvetniy Plast. (9005) (200sht) (Uz)"}
 ALD_ZATSEP_SAMOREZ = ("3,9×19 YHBM", 4)
-ALD_TABAQA_MAX = (D(100), D(200))  # eni, boʻyi
+ALD_PETLYA_CHEGARA = D(200)
+# Fortochka (foydalanuvchi, 2026-11-14; ProfOkna "Akfa откидная створка"): ogranichitel × 1 va chit-chit × 1
+# (har biriga 3,9×19 × 4), rangi rom rangida (Oq / 9005 / SW306G); ruchka tanlansa chit-chit oʻrniga
+# Delfin + tij (eni − 25 sm, tepada) + zaklepka × 3 + Otvetniy Plast. × 2 (romdagidek).
+ALD_OGRANICHITEL = {"Oq": "Ogranichitel (Oq) (500sht) (Uz)", "9005": "(9005) Ogranichitel (Uz)",
+                    "SW306G": "(SW306G) Ogranichitel (Uz)"}
+ALD_CHIT = {"Oq": "Chit-Chit (Oq) (500sht) (Uz)", "9005": "(9005) Chit-Chit (Uz)",
+            "SW306G": "(SW306G) Chit-Chit (New) (Uz)"}
+
+
+def _ald_petlya(tomon):
+    return 2 if D(str(tomon)) <= ALD_PETLYA_CHEGARA else 3
 # Seriyaga qarab aksessuar nomlari (hozir faqat Aldoks; NEO olib tashlandi, foydalanuvchi 2026-11-14)
 ALD_TUR = {
     "Aldoks": {"chovush": ALD_CHOVUSH, "bolshoy": ALD_BOLSHOY, "tij": ALD_TIJ,
@@ -750,7 +762,8 @@ def _ald_eshik(s, tanlov, rang, r):
 
 def _ald_hisobot(s, rang, r, tanlov=None, seriya="Aldoks"):
     t = ALD_TUR[seriya]
-    qanot = [*(s.get("rom_qanotlari") or []), *(s.get("eshik_qanotlari") or [])]
+    fort = s.get("fortochkalar") or []
+    qanot = [*(s.get("rom_qanotlari") or []), *(s.get("eshik_qanotlari") or []), *((e, b) for e, b, _ in fort)]
     perimetr = sum((2 * (D(str(e)) + D(str(b))) for e, b in qanot), D(0)) / 100
     oyna = D(s["oyna_rezinasi"]) / 100
     r.qosh("Rezina", ALD_REZINA_YU, oyna, "m")
@@ -775,22 +788,32 @@ def _ald_hisobot(s, rang, r, tanlov=None, seriya="Aldoks"):
         r.qosh("Aksessuar", "CT 203", s["gluxoy_oyna_soni"] * 2, "dona")
     _ald_eshik(s, tanlov or {}, rang, r)
     qanotlar = s.get("rom_qanotlari") or []
-    if not qanotlar:
-        return
-    for en, boy in qanotlar:
-        if D(str(en)) > ALD_TABAQA_MAX[0] or D(str(boy)) > ALD_TABAQA_MAX[1]:
-            raise HisobXato(f"Aldoks tabaqasi eni 100 dan, boʻyi 200 dan oshmaydi: {en} × {boy}")
-    soni = len(qanotlar)
     rk = "Oq" if rang == "Oq" else "*"
-    r.qosh("Furnitura", ALD_RUCHKA[rk], soni, "dona")
-    petlya = sum(2 + (65 <= D(str(e)) <= 100) + (120 <= D(str(b)) <= 200) for e, b in qanotlar)
+    fr = _ald_rang(rang)
+    ruchkali = [(e, b) for e, b, ru in fort if ru]
+    chit = len(fort) - len(ruchkali)
+    if fort:
+        r.qosh("Furnitura", ALD_OGRANICHITEL[fr], len(fort), "dona")
+        if chit:
+            r.qosh("Furnitura", ALD_CHIT[fr], chit, "dona")
+    samorez_19 = (len(fort) + chit) * ALD_ZATSEP_SAMOREZ[1]  # ogranichitel va chit-chitga 3,9×19 × 4
+    if not qanotlar and not fort:
+        return
+    # rom tabaqasida petlya boʻyida, fortochkada enida
+    petlya = sum(_ald_petlya(b) for _, b in qanotlar) + sum(_ald_petlya(e) for e, _, _ in fort)
     r.qosh("Furnitura", ALD_PETLYA, petlya, "dona")
     r.qosh("Furnitura", ALD_PETLYA_SAMOREZ[0], petlya * ALD_PETLYA_SAMOREZ[1], "dona")
-    tij = sum((D(str(b)) - TIJ_AYIRMA for _, b in qanotlar), D(0)) / 100
+    soni = len(qanotlar) + len(ruchkali)
+    if not soni:
+        r.qosh("Furnitura", ALD_ZATSEP_SAMOREZ[0], samorez_19, "dona")
+        return
+    r.qosh("Furnitura", ALD_RUCHKA[rk], soni, "dona")
+    tij = (sum((D(str(b)) - TIJ_AYIRMA for _, b in qanotlar), D(0))
+           + sum((D(str(e)) - TIJ_AYIRMA for e, _ in ruchkali), D(0))) / 100
     r.qosh("Furnitura", t["tij"], tij, "m")
     r.qosh("Furnitura", ALD_ZAKLEPKA[0], soni * ALD_ZAKLEPKA[1], "dona")
     r.qosh("Furnitura", ALD_ZATSEP[rk], soni * 2, "dona")
-    r.qosh("Furnitura", ALD_ZATSEP_SAMOREZ[0], soni * 2 * ALD_ZATSEP_SAMOREZ[1], "dona")
+    r.qosh("Furnitura", ALD_ZATSEP_SAMOREZ[0], samorez_19 + soni * 2 * ALD_ZATSEP_SAMOREZ[1], "dona")
 
 
 def hisobot(k, narxlar):

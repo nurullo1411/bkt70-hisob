@@ -95,6 +95,7 @@ class Seriya:
     eshik_en_jami: D = None         # eshik qanoti eni = ichki + shu (None — eshik_kosa / eshik_impost har tomonga)
     eshik_boy_jami: D = None        # eshik qanoti boʻyi = ichki + shu
     eshik_profili_yengil: dict = None  # tanlov "eshik_tur" = "yengil" boʻlsa (Aldoks: Qanot / Urta)
+    fortochka_oyna: D = D("1.5")    # fortochka oynasi = qanot ichki − shu
 
 
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
@@ -111,7 +112,8 @@ ALDOKS = Seriya("Aldoks", "182", "181", D("1.3"), D(1), D(0), False, {20: "105"}
                 # shtulp oʻrnida Urta 182 = eshik ichki boʻyi − 0,3 (qanot boʻyi − 1,8)
                 eshik_profili={"ichkariga": "198", "tashqariga": "185"}, eshik_en_jami=D("1.3"),
                 eshik_profili_yengil={"ichkariga": "181", "tashqariga": "182"},
-                eshik_boy_jami=D("1.5"), eshik_2_qoshimcha=D("-0.5"), shtulp="182", shtulp_ayirma=D("1.8"))
+                eshik_boy_jami=D("1.5"), eshik_2_qoshimcha=D("-0.5"), shtulp="182", shtulp_ayirma=D("1.8"),
+                fortochka_oyna=D(1))  # fortochka oynasi ham ichki − 1 (foydalanuvchi, 2026-11-14)
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG, "183": ALDOKS}
 ALDOKS_PROFILLARI = {"183", "181", "182", "105", "185", "198"}
 # Seriya impostidan ramasi (impost tanlovi tekshiruvi uchun)
@@ -412,7 +414,7 @@ class Hisob:
         self.detal("Tabaqa boʻyi", profil, boy, 2)
         ayirma = TABAQA_AYIRMA[profil] + 2 * self.lam  # ikki tomon profili
         # fortochka oynasi qanot ichki − 1,5, boshqa tabaqalarda − 2 (foydalanuvchi, 2026-11-07); Engelberg − 1,5
-        oyna_ayirma = D("1.5") if fortochka is not None else self.seriya.tabaqa_oyna
+        oyna_ayirma = self.seriya.fortochka_oyna if fortochka is not None else self.seriya.tabaqa_oyna
         if ichki_impost:
             if profil not in TABAQA_IMPOST_AYIRMA:
                 raise HisobXato(f"{profil} qanoti ichiga impost hali yoʻq")
@@ -828,11 +830,11 @@ def _bolak_ichi(b, z, h, ctx):
     if z.ichki_en <= 0 or z.ichki_boy <= 0:
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
     tur = b.get("tur")
-    if h.seriya.faqat_rom and (tur not in ("gluxoy", "tabaqa", "bolinish", "eshik") or b.get("fortochka")
+    if h.seriya.faqat_rom and (tur not in ("gluxoy", "tabaqa", "bolinish", "eshik")
                                or b.get("dvaynoy") or b.get("lapsha")
                                or b.get("egilgan") is not None or h.joriy_oyna == LAMBRI):
         raise HisobXato(f"{h.seriya.nomi}da hozircha faqat rom va eshik: gluxoy, tabaqa, eshik, impost "
-                        "(fortochka, dvaynoy, lapsha, portal, lambri hali yoʻq)")
+                        "(dvaynoy, lapsha, portal, lambri hali yoʻq)")
     if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("egilgan") is not None):
         raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, fortochka, impost) hisoblanadi")
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas
@@ -847,7 +849,8 @@ def _bolak_ichi(b, z, h, ctx):
         # Fortochka (foydalanuvchi, 2026-11-05): qanot, shtapik, oyna rom tabaqasidagidek, faqat furnitura boshqa
         ruchka = bool(b.get("ruchka")) or h.seriya.pvx  # Engelberg fortochkasida doim ruchka
         q = h.seriya.tabaqa_qoshimcha
-        h.tabaqa("Fortochka", h.seriya.rom_tabaqa, z.ichki_en + q, z.ichki_boy + q, rom=True,
+        qb = h.seriya.tabaqa_qoshimcha_boy if h.seriya.tabaqa_qoshimcha_boy is not None else q  # Aldoks + 1,5
+        h.tabaqa("Fortochka", h.seriya.rom_tabaqa, z.ichki_en + q, z.ichki_boy + qb, rom=True,
                  fortochka=ruchka, arka=arka, past=past, ichki_impost=b.get("tabaqa_impost"))
     elif tur == "tabaqa":
         q = h.seriya.tabaqa_qoshimcha

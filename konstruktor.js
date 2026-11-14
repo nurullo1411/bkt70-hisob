@@ -866,7 +866,7 @@ function shaklniQolla(id) {
 
 // Seriyada hali yoʻq asbob va boʻlimlar panelda koʻrinmaydi (foydalanuvchi, 2026-11-14: dvaynoy Aldoksda yoʻq)
 const YOQ_ASBOB = {
-  "183": new Set(["lapsha", "lapsha_y", "yoy", "portal", "dv_chap", "dv_ong", "fortochka", "fortochka_tepa"]),
+  "183": new Set(["lapsha", "lapsha_y", "yoy", "portal", "dv_chap", "dv_ong"]),  // fortochka bor (2026-11-14)
 };
 const YOQ_BOLIM = { "183": new Set(["shakl"]) };
 const seriyaRama = () => (tahrir ? joriy(tahrir).rama : null);
