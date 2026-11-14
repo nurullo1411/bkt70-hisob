@@ -109,10 +109,21 @@ function chiftSplice(b, i, del, ...ins) {
     t.splice(i, del, ...ins.map(() => null));
     if (t.some(Boolean)) b.impost_profil = t; else delete b.impost_profil;
   }
+  if (Array.isArray(b.tashqi)) {
+    const t = b.tashqi.slice();
+    t.splice(i, del, ...ins.map(() => false));
+    if (t.some(Boolean)) b.tashqi = t; else delete b.tashqi;
+  }
   if (!b.chift) return;
   const m = chiftMask(b).slice();
   m.splice(i, del, ...ins);
   if (m.some(Boolean)) b.chift = m; else delete b.chift;
+}
+// Impost tashqi chetigacha (foydalanuvchi, 2026-11-14): chiftdek butun boʻyga, kosani boʻladi
+function impostTashqi(ip, ii, tashqi) {
+  const b = tugun(tahrir.bolak, ip), t = (Array.isArray(b.tashqi) ? b.tashqi : b.olchamlar.slice(1).map(() => false)).slice();
+  t[ii - 1] = tashqi;
+  if (t.some(Boolean)) b.tashqi = t; else delete b.tashqi;
 }
 // Aldoksda impost oʻrnidagi profil (foydalanuvchi, 2026-11-14): Urta 182 (standart), Qanot 181, Balkon Qanot 198, Balkon Urta 185
 const IMPOST_TURLARI = [["", "Urta 182"], ["181", "Qanot 181"], ["198", "Balkon Qanot 198"], ["185", "Balkon Urta 185"]];
@@ -323,10 +334,10 @@ function joyla(b, x, y, w, h, p, g, chuqur = 0, tY = null, pY = null) {
     }
     g.bolinishlar.push({ p, v, x, y, w, h, s, olchamlar: b.olchamlar, chuqur, tY });
     let q = v ? x : y;
-    const oxiri = s.length - 1, cm = chiftMask(b);
+    const oxiri = s.length - 1, cm = chiftMask(b), tm = Array.isArray(b.tashqi) ? b.tashqi : null;
     s.forEach((o, i) => {
-      const chift = !!(cm && cm[i - 1]);
-      if (i > 0) g.impostlar.push(v ? { x1: q, y1: y, x2: q, y2: y + h, tY, pY, p, i, chift } : { x1: x, y1: q, x2: x + w, y2: q, tY, pY, p, i, chift });
+      const chift = !!(cm && cm[i - 1]), tashqi = !chift && !!(tm && tm[i - 1]);
+      if (i > 0) g.impostlar.push(v ? { x1: q, y1: y, x2: q, y2: y + h, tY, pY, p, i, chift, tashqi } : { x1: x, y1: q, x2: x + w, y2: q, tY, pY, p, i, chift, tashqi });
       if (v) joyla(b.bolaklar[i], q, y, o, h, bolaYoli(p, i), g, chuqur + 1, tY, pY);
       else joyla(b.bolaklar[i], x, q, w, o, bolaYoli(p, i), g, chuqur + 1, i === 0 ? tY : null, i === oxiri ? pY : null);
       q += o;
@@ -682,6 +693,11 @@ function chizmaSVG(k, opts = {}) {
       for (let j = 0; j <= n; j++) { const xx = xa + ((xb - xa) * j) / n; p += (j ? "L" : "M") + f(xx) + " " + f(yoyY(c.yoy, xx, -t / 2)); }
       for (let j = n; j >= 0; j--) { const xx = xa + ((xb - xa) * j) / n; p += "L" + f(xx) + " " + f(yoyY(c.yoy, xx, t / 2)); }
       s += `<path d="${p}Z" class="ra im"/>`;
+      continue;
+    }
+    if (c.tashqi) {
+      // tashqi chetigacha impost: rama chetigacha boradi (kosa shu yerda boʻlinadi)
+      s += c.x1 === c.x2 ? rect(c.x1 - t / 2, c.y1, t, c.y2 - c.y1, "ra") : rect(c.x1, c.y1 - t / 2, c.x2 - c.x1, t, "ra");
       continue;
     }
     if (c.chift) {
@@ -1527,9 +1543,15 @@ function panelniChiz() {
     const turlar = [...IMPOST_TURLARI, ...(chiftBolishiMumkin(ip) ? [["109", "Chift Quloq 109"]] : [])];
     const tur = aldmi(seriyaRama()) && !lap && !ib?.egilgan
       ? `<div class="sarlavha">Turi</div><div class="tugmalar">${turlar.map(([v, n]) => `<button data-imptur="${v}" class="${v === kod ? "faol" : ""}">${n}</button>`).join("")}</div>`
+        + (chiftBolishiMumkin(ip) && !ch
+          ? `<div class="sarlavha">Uzunligi</div><div class="tugmalar"><button data-imptash="0" class="${(ib.tashqi || [])[ii - 1] ? "" : "faol"}">Ichki (kosa orasida)</button><button data-imptash="1" class="${(ib.tashqi || [])[ii - 1] ? "faol" : ""}">Tashqi chetigacha</button></div>`
+          : "")
       : "";
     $("k-panel").innerHTML = `<div class="panel-bosh"><b>${lap ? "Lapsha" : ch ? "Chift Quloq" : "Impost"} tanlandi</b></div>${tur}
       <div class="xira">🗑 bosing — ${lap ? "lapsha" : ch ? "chift quloq" : "impost"} olinadi, ikki ${lap ? "rama" : "boʻlak"} bittaga qoʻshiladi (↶ bilan qaytariladi).</div>`;
+    $("k-panel").querySelectorAll("[data-imptash]").forEach((t) => t.addEventListener("click", () => {
+      saqlaTarix(); impostTashqi(ip, +ii, t.dataset.imptash === "1"); yangila();
+    }));
     $("k-panel").querySelectorAll("[data-imptur]").forEach((t) => t.addEventListener("click", () => {
       saqlaTarix();
       const v = t.dataset.imptur;

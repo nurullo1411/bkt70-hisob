@@ -606,7 +606,7 @@ def _bolinish(b, z, h, ctx):
         raise HisobXato("Lapsha faqat alohida ramalar orasida boʻladi (rama ichida — impost)")
     if b.get("egilgan") is not None:
         return _egilgan_bolinish(b, z, h, ctx)
-    if any(_chift_mask(b)):
+    if any(_chift_mask(b)) or any(_chift_mask(b, "tashqi")):
         return _chift_bolinish(b, z, h, ctx, vertikal)
     if vertikal and _tashqari_eshik_bor(b):
         raise HisobXato("Tashqariga ochiladigan eshik yonidagi oyna alohida ramada boʻladi: 'lapshali' turini ishlating")
@@ -661,10 +661,11 @@ def _impost_turlari(b, h, ctx):
     return [x or ctx["impost"] for x in t]
 
 
-def _chift_mask(b):
-    """Qaysi boʻlinish chizigʻi Chift Quloq: "chift": true — hammasi, roʻyxat — har chiziq alohida (Romchi kabi)."""
+def _chift_mask(b, kalit="chift"):
+    """Qaysi boʻlinish chizigʻi Chift Quloq ("chift") yoki tashqi chetigacha boradigan impost ("tashqi"):
+    true — hammasi, roʻyxat — har chiziq alohida (Romchi kabi)."""
     n = max(len(b.get("olchamlar") or []) - 1, 0)
-    c = b.get("chift")
+    c = b.get(kalit)
     if isinstance(c, list):
         if len(c) != n:
             raise HisobXato("Chift Quloq roʻyxati impostlar soniga teng emas")
@@ -681,18 +682,20 @@ def _chift_bolinish(b, z, h, ctx, vertikal):
     """
     profil = h.seriya.chift
     if not profil:
-        raise HisobXato(f"{h.seriya.nomi}da Chift Quloq yoʻq")
+        raise HisobXato(f"{h.seriya.nomi}da Chift Quloq va tashqi chetigacha impost yoʻq")
     if ctx.get("bolinish_ichida") or h.arka or h.segment:
-        raise HisobXato("Chift Quloq faqat ramaning birinchi boʻlinishida (arkasiz) boʻladi")
-    mask = _chift_mask(b)
+        raise HisobXato("Chift Quloq va tashqi chetigacha impost faqat ramaning birinchi boʻlinishida (arkasiz) boʻladi")
+    chift = _chift_mask(b)
+    # tashqi chetigacha (foydalanuvchi, 2026-11-14): oddiy impost ham chiftdek butun boʻyga, kosani boʻladi
+    mask = [c or t for c, t in zip(chift, _chift_mask(b, "tashqi"))]
     turlar = _impost_turlari(b, h, ctx)
     cy = IMPOST_YARMI[profil] + h.lam / 2
     iy = ctx["yarmi"]
     oxirgi = len(b.get("olchamlar") or []) - 1
 
     def chetlar(i):
-        boshi = (cy if mask[i - 1] else iy) if i > 0 else (z.chap if vertikal else z.tepa)
-        oxiri = (cy if mask[i] else iy) if i < oxirgi else (z.ong if vertikal else z.past)
+        boshi = (cy if chift[i - 1] else iy) if i > 0 else (z.chap if vertikal else z.tepa)
+        oxiri = (cy if chift[i] else iy) if i < oxirgi else (z.ong if vertikal else z.past)
         return boshi, oxiri
 
     olchamlar = _olchamlar(b, z.en if vertikal else z.boy, [sum(chetlar(i)) for i in range(oxirgi + 1)])
@@ -704,16 +707,23 @@ def _chift_bolinish(b, z, h, ctx, vertikal):
         del h.profillar[kalit]
     joy = D(0)
     bosh = D(0)   # kosa boʻlagi boshlanishi (oxirgi chiftdan)
+    oldingi = None  # kosani boʻlgan oldingi chiziq
     for i, o in enumerate(olchamlar):
         joy += o
         if i == oxirgi or mask[i]:
-            uz = joy - bosh + zapas - cy * ((bosh > 0) + (i < oxirgi))
+            chap_y = (cy if chift[oldingi] else iy) if oldingi is not None else 0
+            ong_y = (cy if chift[i] else iy) if i < oxirgi else 0
+            uz = joy - bosh + zapas - chap_y - ong_y
+            oldingi = i if i < oxirgi else None
             h.detal(kalit[0], rama, uz, 2)
             bosh = joy
         if i == oxirgi:
             break
         if mask[i]:
-            h.detal("Chift Quloq vertikal" if vertikal else "Chift Quloq gorizontal", profil, z.boy if vertikal else z.en, 1)
+            if chift[i]:
+                h.detal("Chift Quloq vertikal" if vertikal else "Chift Quloq gorizontal", profil, z.boy if vertikal else z.en, 1)
+            else:
+                h.detal("Impost vertikal" if vertikal else "Impost gorizontal", turlar[i], z.boy if vertikal else z.en, 1)
             h.impost_soni += 2   # 4 kosa uchi — Bolshoy + samorez impost uchidagidek
         else:
             nomi = "Impost vertikal" if vertikal else "Impost gorizontal"
