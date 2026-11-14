@@ -151,6 +151,22 @@ def _ald_sklad_bolaklari(qatorlar, profil, rang):
     return sorted(bolak), izoh
 
 
+def togri_sklad_bolaklari(qatorlar, profil, rang, asl_kerak=None):
+    """Impost oʻrnidagi 181/185/198 ("181□") uchun sklad (foydalanuvchi, 2026-11-14): asl profil (qanot) guruhi
+    ishlatmagan boʻlaklar; qoldiq uchi qiya (aylantirib kesilgan) — 90° detal uchun qiyalik (7,6 / 11) ayriladi."""
+    asl = asl_profil(profil)
+    bolak, izoh = sklad_bolaklari(qatorlar, asl, rang)
+    if asl_kerak and sum(asl_kerak.values()):
+        r = profil_rejasi(asl, asl_kerak, bolak)
+        qoldi = Counter(bolak)
+        for k in r["kartalar"]:
+            if k["manba"] == "SKLAD":
+                qoldi[k["L"]] -= k["soni"]
+        bolak = sorted(qoldi.elements())
+    q = _b(AYLANTIRISH.get(asl, 0))
+    return [b - q for b in bolak if b - q > 0], izoh
+
+
 def sklad_bolaklari(qatorlar, profil, rang):
     """Shu profil va rangdagi boʻlaklar (sm_b) va hisobga olinmagan qatorlar haqida izoh."""
     if profil in ("183", "181", "182", "185", "198"):
@@ -507,8 +523,11 @@ def toliq_reja(zakaz, sklad_qatorlari, rang):
     royxat, jami = detallarni_yig(zakaz)
     rejalar, izohlar = [], []
     for p in sorted(jami, key=lambda x: TARTIB.index(x) if x in TARTIB else 99):
-        bolak, izoh = sklad_bolaklari(sklad_qatorlari, p, rang)
-        izohlar.extend(izoh)
+        if p != asl_profil(p):
+            bolak, _ = togri_sklad_bolaklari(sklad_qatorlari, p, rang, jami.get(asl_profil(p)))
+        else:
+            bolak, izoh = sklad_bolaklari(sklad_qatorlari, p, rang)
+            izohlar.extend(izoh)
         rejalar.append(profil_rejasi(p, jami[p], bolak))
     return {"rang": rang, "konstruksiyalar": royxat, "rejalar": rejalar, "izohlar": izohlar}
 

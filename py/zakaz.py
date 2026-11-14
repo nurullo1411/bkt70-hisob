@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from hisob import SERIYA_RAMA, HisobXato, kesish_profili, narx_kaliti, oyna_qalinligi
+from hisob import SERIYA_RAMA, HisobXato, asl_profil, kesish_profili, narx_kaliti, oyna_qalinligi
 from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
@@ -126,7 +126,7 @@ def _otxod_qatorlari(detallar, miqdorlar, sonlar, usul="chegara", sklad=None):
     qayta raskroy qilinmaydi, shu ulush bilan oʻzgaradi.
     Straxovka bu yerda emas, butun tannarxga varaqda qoʻshiladi.
     """
-    from raskroy import OTXOD_USULLARI, otxod_hisobi, sklad_bolaklari, sklad_otxod_hisobi
+    from raskroy import OTXOD_USULLARI, otxod_hisobi, sklad_bolaklari, sklad_otxod_hisobi, togri_sklad_bolaklari
 
     if usul not in OTXOD_USULLARI:
         raise HisobXato(f"Otxod usuli notoʻgʻri: {usul}")
@@ -135,7 +135,13 @@ def _otxod_qatorlari(detallar, miqdorlar, sonlar, usul="chegara", sklad=None):
         profil, rang = kalit[0], kalit[1]
         sklad_rang = kalit[2] if len(kalit) > 2 else None
         if usul.startswith("sklad"):
-            bolak = sklad_bolaklari(sklad or [], profil, sklad_rang)[0] if sklad_rang else []
+            if not sklad_rang:
+                bolak = []
+            elif profil != asl_profil(profil):  # impost oʻrnidagi qanot: qanot guruhi ishlatmagan sklad boʻlaklari
+                asl = detallar.get((asl_profil(profil),) + tuple(kalit[1:]))
+                bolak = togri_sklad_bolaklari(sklad or [], profil, sklad_rang, asl and asl["kerak"])[0]
+            else:
+                bolak = sklad_bolaklari(sklad or [], profil, sklad_rang)[0]
             o = sklad_otxod_hisobi(profil, g["kerak"], bolak, usul)
         elif usul == "metrlik":
             o = {"hivich": None, "ishlatilgan": sum(d * n for d, n in g["kerak"].items()), "chegara_yoq": False}
