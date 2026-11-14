@@ -7,7 +7,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import (ARMATURA_SAMOREZ, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti, narx_rangi,
+from hisob import (ARMATURA_SAMOREZ, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
                    oyna_qalinligi, profil_narxi)
 
 PETLYA_CHEGARA = 260
@@ -672,15 +672,10 @@ ALD_ZAKLEPKA = ("Zaklepka 4×12", 3)
 ALD_ZATSEP = {"Oq": "Otvetniy Plast. (Oq) (200sht) (Uz)", "*": "Otvetniy Plast. (9005) (200sht) (Uz)"}
 ALD_ZATSEP_SAMOREZ = ("3,9×19 YHBM", 4)
 ALD_TABAQA_MAX = (D(100), D(200))  # eni, boʻyi
-# Aldoks NEO (foydalanuvchi, 2026-11-14): "NEO" yozilgan aksessuar NEO ga — burchak "Soedinitel Chovush (Neo)",
-# impost uchi "Soedinitel Bolshoy NEO", tij "NEO ADC50 A0003 Tij Komplekt" (hivich 6 m, metrga), balkon qanoti
-# burchagi "NEO Chovush (Nekr) (20 mm)" (190 oʻrniga, metrga). Qolgani Aldoksdagidek.
+# Seriyaga qarab aksessuar nomlari (hozir faqat Aldoks; NEO olib tashlandi, foydalanuvchi 2026-11-14)
 ALD_TUR = {
     "Aldoks": {"chovush": ALD_CHOVUSH, "bolshoy": ALD_BOLSHOY, "tij": ALD_TIJ,
                "balkon_chovush": "190 Balkon Chovush (Nekr) (Adt) Metr", "balkon": ("185", "198")},
-    "Aldoks NEO": {"chovush": "Soedinitel Chovush (Neo) (Uz)", "bolshoy": "Soedinitel Bolshoy NEO (Uz)",
-                   "tij": "(A) NEO ADC50 A0003 Tij Komplekt (Oq)", "balkon_chovush": "(A) NEO Chovush (Nekr) (20 mm)",
-                   "balkon": ("V0007", "V0008")},
 }
 
 
@@ -807,7 +802,7 @@ def hisobot(k, narxlar):
     s = n["sanoq"]
     r = Royxat(narxlar["narx"])
 
-    _profillar(n, narx_rangi(k), narxlar, r)
+    _profillar(n, rang, narxlar, r)
     if n.get("seriya") in ALD_TUR:
         _ald_hisobot(s, rang, r, tanlov, n["seriya"])
     elif n.get("seriya", "Termo 70") == "Termo 70":

@@ -155,26 +155,9 @@ def ald_profil_nomi(profil, rang, tur="ADT"):
     return f"LAM ({ALD_LAM_RANGI.get(rang, 'rangi?')}) {ALD_LAM_NOM.get(profil, nom)} Alum"
 
 
-# Aldoks NEO (foydalanuvchi, 2026-11-14; AKFA roʻyxati): oq "(A) NEO ADC50 F0022 Kosa (Oq)", z/d va d/m —
-# "(V Zol Dub)" / "(V Dub Mokko)", 306g — "(SW306G)", boshqa laminat — "LAM (7011-Alyuks LL) NEO ADC50 F0022 Kosa"
-NEO_NOM = {"F0022": "Kosa", "V0022": "Qanot", "M0022": "Urta", "G0001": "Shtapik P", "V0007": "Balkon Qanot",
-           "V0008": "Balkon Urta"}
-
-
-def neo_profil_nomi(profil, rang):
-    nom = f"NEO ADC50 {profil} {NEO_NOM.get(profil, '')}"
-    if rang in (None, "oq"):
-        return f"(A) {nom} (Oq)"
-    if rang in ALD_NEO_RANGI:
-        return f"(A) {nom} ({ALD_NEO_RANGI[rang]})"
-    return f"LAM ({ALD_LAM_RANGI.get(rang, 'rangi?')}) {nom}"
-
-
 def profil_nomi(profil, rang, ald_tur="ADT"):
     """Diller roʻyxatidagi hivich nomi. rang — sklad rangi (grey, z/d, …, 306g, oq, anod) yoki None."""
     kod = profil.replace("-", "")
-    if profil in NEO_NOM:
-        return neo_profil_nomi(profil, rang)
     if profil in ALDOKS_PROFILLARI:
         return ald_profil_nomi(profil, rang, ald_tur)
     if profil in ENGELBERG_PROFILLARI:

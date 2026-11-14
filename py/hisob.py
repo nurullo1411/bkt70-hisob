@@ -6,7 +6,7 @@ Ishga tushirish: python hisob.py konstruksiya.json
 import json
 import math
 import sys
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 
 
@@ -66,14 +66,6 @@ for _p in ("181", "185", "198"):
 for _p in ("198", "185", "182"):  # 182 — yengil eshik qanoti tashqariga (foydalanuvchi, 2026-11-14)
     TABAQA_AYIRMA[_p] = 2 * D("5.95")
 
-# Aldoks NEO (foydalanuvchi, 2026-11-14): alohida seriya, oʻz kodlari va narxi. Aldoks qoidalari NEO ga
-# tegishli emas — qoidalari oʻrgatilguncha hisobla() xato beradi; quyidagi nusxa faqat vaqtinchalik tayanch.
-NEO_KOD = {"183": "F0022", "181": "V0022", "182": "M0022", "105": "G0001", "198": "V0007", "185": "V0008"}
-for _a, _n in NEO_KOD.items():
-    for _d in (RAMA_R, IMPOST_YARMI, TABAQA_AYIRMA, TABAQA_IMPOST_AYIRMA):
-        if _a in _d:
-            _d[_n] = _d[_a]
-
 
 @dataclass(frozen=True)
 class Seriya:
@@ -120,22 +112,10 @@ ALDOKS = Seriya("Aldoks", "182", "181", D("1.3"), D(1), D(0), False, {20: "105"}
                 eshik_profili={"ichkariga": "198", "tashqariga": "185"}, eshik_en_jami=D("1.3"),
                 eshik_profili_yengil={"ichkariga": "181", "tashqariga": "182"},
                 eshik_boy_jami=D("1.5"), eshik_2_qoshimcha=D("-0.5"), shtulp="182", shtulp_ayirma=D("1.8"))
-ALDOKS_NEO = replace(ALDOKS, nomi="Aldoks NEO", impost="M0022", rom_tabaqa="V0022", shtapik={20: "G0001"},
-                     eshik_profili={"ichkariga": "V0007", "tashqariga": "V0008"},
-                     eshik_profili_yengil={"ichkariga": "V0022", "tashqariga": "M0022"}, shtulp="M0022")
-SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG, "183": ALDOKS, "F0022": ALDOKS_NEO}
-ALDOKS_PROFILLARI = {"183", "181", "182", "105", "185", "198", *NEO_KOD.values()}
+SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG, "183": ALDOKS}
+ALDOKS_PROFILLARI = {"183", "181", "182", "105", "185", "198"}
 # Seriya impostidan ramasi (impost tanlovi tekshiruvi uchun)
-IMPOST_RAMA = {"M702": "F702", "7053": "7051", "182": "183", "M0022": "F0022"}
-NEO_V_RANGLAR = ("z/d", "d/m")  # NEO laminat: sklad rangi z/d, d/m — "V Zol Dub / V Dub Mokko" narxi
-
-
-def narx_rangi(k):
-    """Profil narxi qaysi rang ustunidan: rang turkumi; NEO da z/d, d/m laminat — "V" (foydalanuvchi, 2026-11-14)."""
-    t = k.get("tanlov") or {}
-    if SERIYA_RAMA.get(k.get("rama")) is ALDOKS_NEO and t.get("rang") == "Laminatsiya" and t.get("rang_nomi") in NEO_V_RANGLAR:
-        return "V"
-    return t.get("rang")
+IMPOST_RAMA = {"M702": "F702", "7053": "7051", "182": "183"}
 ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2"}
 # Metall (armatura) qalinligi (foydalanuvchi, 2026-11-09, Romchi kabi tanlov): 1,5 mm (standart) yoki 2 mm.
 # 2 mm armatura alohida kod bilan ("0701-2"): raskroy, diller roʻyxati va narx oʻzi ajraladi.
@@ -960,9 +940,6 @@ def hisobla(k):
     vertikal = (k.get("tanlov") or {}).get("vertikal_shtapik", "R")
     if vertikal not in ("R", "oddiy"):
         raise HisobXato(f"vertikal_shtapik faqat R yoki oddiy: {vertikal}")
-    if seriya is ALDOKS_NEO:
-        # NEO ga Aldoks qoidalari tegishli emas (foydalanuvchi, 2026-11-14): oʻz qoidalari oʻrgatilguncha hisoblanmaydi
-        raise HisobXato("Aldoks NEO qoidalari hali oʻrgatilmagan — hisoblanmaydi")
     rang = (k.get("tanlov") or {}).get("rang")
     if rang in seriya.rang_yoq:
         raise HisobXato(f"{seriya.nomi}da {rang} rangi yoʻq")
