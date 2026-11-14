@@ -1583,6 +1583,12 @@ function panelniChiz() {
     const prof = sr === "183" ? (aldYengil(tahrir) ? (ich ? "Qanot 181" : "Urta 182") : (ich ? "Balkon Qanot 198" : "Balkon Urta 185"))
       : pvxmi(sr) ? (ich ? "Balkon Kanot 7055" : "Balkon Urta 7054") : (ich ? "Balkon Qanot V708" : "Balkon Oʻrta V707");
     p += `<div class="xira">${prof} (${ich ? "ichkariga" : "tashqariga"}) — ⚙ sozlamada almashtiriladi. Tabaqa soni va ruchka tomoni tepadagi asboblarda.</div>`;
+    // 2 tabaqa: eni tez tanlash (foydalanuvchi, 2026-11-14) — teng / kichik tabaqa 65 / qoʻlda
+    if (b.tabaqa_soni === 2 && o) {
+      const e = eshikTabaqalari(tahrir, g, o), tur = b.L1 == null ? "teng" : Math.abs(e.L2 - 65) < 0.01 ? "l2" : Math.abs(e.L1 - 65) < 0.01 ? "l1" : "boshqa";
+      p += `<div class="sarlavha">Tabaqa eni · ruchkali ${yx(e.L1)} · ikkinchisi ${yx(e.L2)}</div>`
+        + tugmalar("esh_en", tur, [["teng", "Teng"], ["l2", "Ikkinchisi 65"], ["l1", "Ruchkalisi 65"], ["boshqa", "Boshqa…"]]);
+    }
     p += ichkiPanel(b, "Tabaqa ichiga impost: tik yoki yotiq asbobni eshikka suring.");
   } else p += `<div class="xira">Turini almashtirish uchun tepadan asbob tanlab, boʻlakka bosing.</div>`;
   // Lapsha bilan ulangan rama: oʻlchami, kalta qilish va tekislash
@@ -1950,6 +1956,13 @@ $("k-panel").addEventListener("click", (e) => {
     t.bolaklar[j] = t.bolaklar[j] && t.bolaklar[j].oyna_turi === LAMBRI ? null : { oyna_turi: LAMBRI };
   }
   else if (el.dataset.amal === "ii_qosh") ichkiImpostQosh(b, [], v, 2);
+  else if (el.dataset.amal === "esh_en") {
+    const g = geometriya(tahrir), o = g.barglar.find((x) => x.p === tanlangan), e = o && eshikTabaqalari(tahrir, g, o);
+    if (v === "teng") delete b.L1;
+    else if (v === "l2" && e) b.L1 = Math.round((e.jami - 65) * 100) / 100;
+    else if (v === "l1") b.L1 = 65;
+    else if (v === "boshqa") { orqaga.pop(); olchamniOzgartir(`${tanlangan}|L2`); return; }
+  }
   else if (el.dataset.amal === "tekislash") {
     const o = geometriya(tahrir).barglar.find((x) => x.p === tanlangan);
     tugun(tahrir.bolak, o.rama.guruh).tekislash = v;
