@@ -111,7 +111,8 @@ TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, Tr
 ENGELBERG = Seriya("Engelberg 7000", "7053", "7052", D("2.2"), D("1.5"), D("0.5"), True, {24: "7056", 32: "7057"}, True,
                    pvx=True, arka_zapas=D(20), eshik_profili={"ichkariga": "7055", "tashqariga": "7054"},
                    eshik_kosa=D("1.3"), eshik_impost=D("1.2"), eshik_2_qoshimcha=D(1), shtulp="7058",
-                   shtulp_ayirma=D("1.7"))
+                   shtulp_ayirma=D("1.7"),
+                   shtapik_qalinligi=D("2.6"))  # 7056/7057 koʻrinadigan eni 26 mm (ProfOkna H; faqat yoy ostidagi shtapikda)
 ALDOKS = Seriya("Aldoks", "182", "181", D("1.3"), D(1), D(0), False, {20: "105"}, True,
                 tabaqa_qoshimcha_boy=D("1.5"), gluxoy_oyna=D(1), shtapik_qalinligi=D("1.7"), oyna_standart=20,
                 faqat_rom=True, rang_yoq=("Anod",),  # anod qoʻshilmaydi (foydalanuvchi, 2026-11-11)
