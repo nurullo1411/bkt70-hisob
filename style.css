@@ -139,6 +139,7 @@ select { width: 100%; font: inherit; color: var(--matn); background: var(--fon);
 .chizma .ol-fon { fill: var(--karta); stroke: var(--olcham); stroke-opacity: .45; stroke-width: .22; }
 .chizma .ol-fon.bosiladi { stroke-opacity: .9; }
 .chizma .olch { fill: var(--olcham); font-weight: 600; pointer-events: none; }
+.chizma .kes-yoz { fill: rgba(30, 40, 50, .62); stroke: rgba(255, 255, 255, .55); stroke-width: .18; paint-order: stroke; font-weight: 500; pointer-events: none; }
 .chizma .avto { fill: var(--xira); font-style: italic; font-weight: 500; }
 .chizma .qalin { font-weight: 700; }
 .chizma .olbos { fill: transparent; cursor: pointer; }

@@ -3,6 +3,7 @@
 Qoidalar CLAUDE.md dagi tasdiqlangan formulalardan olingan. Oʻlchamlar sm da.
 Ishga tushirish: python hisob.py konstruksiya.json
 """
+import contextlib
 import json
 import math
 import sys
@@ -293,6 +294,9 @@ class Hisob:
         self.joriy_oyna = None  # boʻlakka berilgan oyna turi (None — konstruksiyaniki)
         self.belgi = None       # "_belgi" li boʻlak ichida — uning qiymati (ilova uchun)
         self.belgilangan = []   # shu boʻlakdagi tabaqalar: (joy, en, boy) — kesish oʻlchami
+        # chizmada profil ustidagi kesish uzunligi (foydalanuvchi, 2026-11-15): "_yol" li tugunlar detallari
+        self.yozuv_belgi = None
+        self.yozuvlar = []
         self.ogohlantirishlar = []
         self.qoida_yoq = []
         self.ramalar = {}
@@ -375,6 +379,8 @@ class Hisob:
             raise HisobXato(f"{nomi} uzunligi musbat emas: {uzunlik}")
         key = (nomi, profil, uzunlik)
         self.profillar[key] = self.profillar.get(key, 0) + soni
+        if self.yozuv_belgi is not None:
+            self.yozuvlar.append((self.yozuv_belgi, nomi, uzunlik))
         if armatura and profil in ARMATURA and self.seriya is ENGELBERG:
             arm, ayirma = ARMATURA[profil]
             u = uzunlik - ayirma
@@ -535,7 +541,8 @@ class Hisob:
         n = len(olch) - 1
         chap, ong, tepa, past = tabaqada
         uchlar = (tepa, past) if vertikal else (chap, ong)
-        self.detal("Tabaqa ichi impost", impost, (ichki_boy if vertikal else ichki_en) + chuqur * sum(uchlar), n)
+        with _yozuv(self, ("ii", ii["_yol"]) if "_yol" in ii else None):
+            self.detal("Tabaqa ichi impost", impost, (ichki_boy if vertikal else ichki_en) + chuqur * sum(uchlar), n)
         self.impost_soni += n
         for i, (x, bola) in enumerate(zip(olch, bolaklar)):
             en, boy = (x, ichki_boy) if vertikal else (ichki_en, x)
@@ -646,7 +653,8 @@ def _bolinish(b, z, h, ctx):
     for i, o in enumerate(olchamlar[:-1]):
         joy += o
         u = _impost_uzunligi(vertikal, joy, z, h)
-        h.detal(nomi, turlar[i], u, 1)
+        with _yozuv(h, ("imp", b["_yol"], i + 1) if "_yol" in b else None):
+            h.detal(nomi, turlar[i], u, 1)
         _impost_burchagi(nomi, turlar[i], u, vertikal, joy, z, h)
     h.impost_soni += len(olchamlar) - 1
     ichki_ctx = {**ctx, "bolinish_ichida": True}
@@ -736,19 +744,22 @@ def _chift_bolinish(b, z, h, ctx, vertikal):
             ong_y = (cy if chift[i] else iy) if i < oxirgi else 0
             uz = joy - bosh + zapas - chap_y - ong_y
             oldingi = i if i < oxirgi else None
-            h.detal(kalit[0], rama, uz, 2)
+            with _yozuv(h, ("kosa", b["_yol"], i) if "_yol" in b else None):
+                h.detal(kalit[0], rama, uz, 2)
             bosh = joy
         if i == oxirgi:
             break
         if mask[i]:
+          with _yozuv(h, ("imp", b["_yol"], i + 1) if "_yol" in b else None):
             if chift[i]:
                 h.detal("Chift Quloq vertikal" if vertikal else "Chift Quloq gorizontal", profil, z.boy if vertikal else z.en, 1)
             else:
                 h.detal("Impost vertikal" if vertikal else "Impost gorizontal", turlar[i], z.boy if vertikal else z.en, 1)
-            h.impost_soni += 2   # 4 kosa uchi — Bolshoy + samorez impost uchidagidek
+          h.impost_soni += 2   # 4 kosa uchi — Bolshoy + samorez impost uchidagidek
         else:
             nomi = "Impost vertikal" if vertikal else "Impost gorizontal"
-            h.detal(nomi, turlar[i], _impost_uzunligi(vertikal, joy, z, h), 1)
+            with _yozuv(h, ("imp", b["_yol"], i + 1) if "_yol" in b else None):
+                h.detal(nomi, turlar[i], _impost_uzunligi(vertikal, joy, z, h), 1)
             h.impost_soni += 1
     ichki_ctx = {**ctx, "bolinish_ichida": True}
     q = D(0)
@@ -1072,10 +1083,23 @@ def _bolak_ichi(b, z, h, ctx):
         raise HisobXato(f"Nomaʼlum boʻlak turi: {tur}")
 
 
+@contextlib.contextmanager
+def _yozuv(h, belgi):
+    """Shu blokdagi detallar chizmada belgi joyida yoziladi (ilova "_yol" bersa)."""
+    eski = h.yozuv_belgi
+    if belgi is not None:
+        h.yozuv_belgi = belgi
+    try:
+        yield
+    finally:
+        h.yozuv_belgi = eski
+
+
 def _rama_hisobi(profil, impost, en, boy, bolak, h):
     r = RAMA_R[profil] + h.lam
     h.r = r
-    h.rama(profil, en, boy)
+    with _yozuv(h, ("rama", bolak.get("_yol")) if isinstance(bolak, dict) and "_yol" in bolak else None):
+        h.rama(profil, en, boy)
     ctx = {"impost": impost, "yarmi": IMPOST_YARMI[impost] + h.lam / 2, "bolinish_ichida": False, "rama": profil}
     _bolak(bolak, Zona(en, boy, r, r, r, r, tepa_yoy=h.arka), h, ctx)
 
@@ -1203,6 +1227,8 @@ def hisobla(k):
         "lambrilar": [{"joy": j, "en": float(e), "boy": float(b), "tasma": n} for j, e, b, n in h.lambrilar],
         "ogohlantirishlar": h.ogohlantirishlar,
         "qoida_yoq": h.qoida_yoq,
+        **({"yozuvlar": [{"belgi": list(g), "nomi": n, "uzunlik": float(u)} for g, n, u in h.yozuvlar]}
+           if h.yozuvlar else {}),
         **({"belgilangan": [{"belgi": g, "joy": j, "en": float(e), "boy": float(b)} for g, j, e, b in h.belgilangan]}
            if h.belgilangan else {}),
         "sanoq": {
