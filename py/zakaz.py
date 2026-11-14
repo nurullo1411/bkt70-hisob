@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from hisob import SERIYA_RAMA, HisobXato, narx_kaliti, oyna_qalinligi
+from hisob import SERIYA_RAMA, HisobXato, kesish_profili, narx_kaliti, oyna_qalinligi
 from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
@@ -103,7 +103,7 @@ def hisobla_zakaz(zakaz, otxod_usuli="chegara", sklad=None):
             miqdorlar.setdefault(kalit, [0.0] * len(royxat))
             miqdorlar[kalit][i] += round(float(t["miqdor"]), 6)
         for p in n["profillar"]:
-            kalit = (p["profil"], k["tanlov"]["rang"])
+            kalit = (kesish_profili(p), k["tanlov"]["rang"])
             if otxod_usuli.startswith("sklad"):  # sklad rangi boʻyicha: grey va z/d bir hivichdan kesilmaydi
                 kalit += (sklad_rangi,)
             guruh = detallar.setdefault(kalit, {"kerak": Counter(), "ulush": [0] * len(royxat)})

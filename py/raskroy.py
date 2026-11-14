@@ -12,7 +12,7 @@ from copy import deepcopy
 from math import ceil
 from pathlib import Path
 
-from hisob import HisobXato, hisobla
+from hisob import HisobXato, asl_profil, hisobla, kesish_profili
 from zakaz import _birlashtir
 
 HIVICH = 650
@@ -23,7 +23,7 @@ HIVICH_PROFIL = {p: 600 for p in ("LII", "7051", "7052", "7053", "7054", "7055",
 
 def hivich(profil):
     """Profil hivichi, sm."""
-    return HIVICH_PROFIL.get(profil, HIVICH)
+    return HIVICH_PROFIL.get(asl_profil(profil), HIVICH)
 ARRA = 0.4
 QOLDIQ_CHEGARA = 10
 # BKT 70 da hamma profil aylantirmasdan kesiladi (foydalanuvchi, 2026-11-03).
@@ -40,14 +40,14 @@ QIYA_AYIRMA = {"182": 5.95}
 # A701 ning 190 sm dan kichigi baribir ishlatilmaydi (foydalanuvchi, 2026-11-03).
 CHEGARASIZ = {"A701", "7058"}  # Engelberg shtulpi ham (200 sm dan kichigi otxod)
 TOGRI_KESIM = {"LII", "M702", "A701", "H702", "7053", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2",
-               "182", "109"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
+               "182", "109", "181□", "185□", "198□"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
 SKLAD_NOMI = {
     "F702": "Kosa F702", "F703": "Kosa F703", "M702": "O'rta M702", "V702": "Qanot V702",
     "V707": "Balkon o'rta V707", "V708": "Balkon qanot V708", "A701": "Shtulp A701", "LII": "Lambri II PVX", "H702": "Lapsha lam",
 }
 TARTIB = ["F702", "F703", "V702", "V707", "V708", "M702", "A701", "H702", "LII", "G24", "G24-R", "G32", "G32-R",
           "7051", "7052", "7054", "7055", "7053", "7058", "7056", "7057", "0701", "0703", "0701-2", "0703-2", "0702-2",
-          "183", "181", "185", "198", "182", "109", "105"]
+          "183", "181", "185", "198", "182", "181□", "185□", "198□", "109", "105"]
 
 
 def _b(x):
@@ -67,7 +67,8 @@ SHTAPIK_ZAPAS = 0.4
 def _zapas(d):
     if str(d["profil"]).startswith("G"):
         return {**d, "uzunlik": round(d["uzunlik"] + SHTAPIK_ZAPAS, 2)}
-    return d
+    k = kesish_profili(d)
+    return {**d, "profil": k} if k != d["profil"] else d
 
 
 def detallarni_yig(zakaz):
@@ -303,6 +304,7 @@ OTXOD_CHEGARA = {
     "LII": 59,  # PVX lambri (foydalanuvchi, 2026-11-10)
     "183": 70, "181": 60, "182": 100, "105": 40, "185": 65, "198": 65,  # Aldoks
     "109": 280,  # Chift Quloq (foydalanuvchi, 2026-11-14)
+    "181□": 60, "185□": 65, "198□": 65,  # impost oʻrnida — oʻz profili chegarasi
 }
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
 
@@ -623,13 +625,14 @@ PROFIL_NOMI = {
     "0701-2": "Armatura Kosa-Qanot 2 mm", "0703-2": "Armatura Urta 2 mm", "0702-2": "Armatura Balkon Qanot 2 mm",
     "183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P", "185": "Balkon Urta", "198": "Balkon Qanot",  # Aldoks
     "109": "Chift Quloq",
+    "181□": "Qanot (impost, 90°)", "185□": "Balkon Urta (impost, 90°)", "198□": "Balkon Qanot (impost, 90°)",
 }
 
 
 def toliq_nom(profil):
     """'Kosa (Sredniy) F702' — nomi kodi oldida."""
     nom = PROFIL_NOMI.get(profil)
-    return f"{nom} {profil}" if nom else profil
+    return f"{nom} {asl_profil(profil)}" if nom else profil
 
 
 def fayl_nomi(profil):

@@ -13,7 +13,7 @@ tabaqada 2 sm dan, gluxoy va fortochkada 1,5 sm dan koʻp kichik boʻlsa — yuq
 
 from math import ceil, floor
 
-from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG, ENGELBERG_PROFILLARI, SERIYA_RAMA, HisobXato, oyna_qalinligi
+from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG, ENGELBERG_PROFILLARI, SERIYA_RAMA, HisobXato, asl_profil, oyna_qalinligi
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
@@ -158,6 +158,7 @@ def ald_profil_nomi(profil, rang, tur="ADT"):
 
 def profil_nomi(profil, rang, ald_tur="ADT"):
     """Diller roʻyxatidagi hivich nomi. rang — sklad rangi (grey, z/d, …, 306g, oq, anod) yoki None."""
+    profil = asl_profil(profil)
     kod = profil.replace("-", "")
     if profil in ALDOKS_PROFILLARI:
         return ald_profil_nomi(profil, rang, ald_tur)
@@ -184,8 +185,13 @@ def _profil_qatorlari(zakaz, sklad):
         reja = sklad_rejasi(zakaz, sklad or [], rang or "grey", g)
         for r in reja["rejalar"]:
             if r["yangi_soni"]:
-                qatorlar.append({"nomi": profil_nomi(r["profil"], rang, ald_tur), "soni": r["yangi_soni"], "birlik": "hivich",
-                                 "sklad": r["sklad_soni"]})
+                nomi = profil_nomi(r["profil"], rang, ald_tur)
+                bor = next((q for q in qatorlar if q["nomi"] == nomi), None)  # 181 va 181□ — bitta hivich nomi
+                if bor:
+                    bor["soni"] += r["yangi_soni"]
+                    bor["sklad"] += r["sklad_soni"]
+                else:
+                    qatorlar.append({"nomi": nomi, "soni": r["yangi_soni"], "birlik": "hivich", "sklad": r["sklad_soni"]})
         izohlar += reja.get("izohlar") or []
     return qatorlar, izohlar
 

@@ -176,8 +176,25 @@ def profil_narxi(narxlar, artikul, rang):
     return d.get(rang, d.get("*"))
 
 
+# Qanot/Balkon profili impost oʻrnida (Aldoks 181, 185, 198) 90° va aylantirmasdan kesiladi (foydalanuvchi, 2026-11-14):
+# raskroyda alohida guruh "181□" (narx, nom, hivich — asl profilniki)
+TOGRI_BELGI = "□"
+TOGRI_IMPOST = {"181", "185", "198"}
+
+
+def kesish_profili(d):
+    """Raskroy guruhi: impost oʻrnidagi 181/185/198 — "181□", qolgani profilning oʻzi."""
+    p = d["profil"]
+    return p + TOGRI_BELGI if p in TOGRI_IMPOST and str(d.get("nomi", "")).startswith("Impost") else p
+
+
+def asl_profil(p):
+    return p[:-1] if str(p).endswith(TOGRI_BELGI) else p
+
+
 def narx_kaliti(profil):
     """Profil narx kaliti: "BKT70 F702", "ENG 7051"."""
+    profil = asl_profil(profil)
     if profil.startswith(("BKT70 ", "ENG ", "ALD ")):
         return profil
     if profil in ALDOKS_PROFILLARI:
