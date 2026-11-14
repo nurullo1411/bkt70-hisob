@@ -291,7 +291,7 @@ class Hisob:
         self.oynalar = {}
         self.lambrilar = []  # (joy, en, boʻy, tasma soni)
         self.joriy_oyna = None  # boʻlakka berilgan oyna turi (None — konstruksiyaniki)
-        self.belgi = False      # "_belgi" li boʻlak ichida (ilova uchun)
+        self.belgi = None       # "_belgi" li boʻlak ichida — uning qiymati (ilova uchun)
         self.belgilangan = []   # shu boʻlakdagi tabaqalar: (joy, en, boy) — kesish oʻlchami
         self.ogohlantirishlar = []
         self.qoida_yoq = []
@@ -464,8 +464,8 @@ class Hisob:
 
     def tabaqa(self, joy, profil, en, boy, shtulp_yonida=False, rom=False, dvaynoy=False, fortochka=None, arka=D(0), past=D(0),
                ichki_impost=None):
-        if self.belgi:
-            self.belgilangan.append((joy, en, boy))
+        if self.belgi is not None:
+            self.belgilangan.append((self.belgi, joy, en, boy))
         self.tabaqa_soni += 1
         self.tabaqalar[profil] = self.tabaqalar.get(profil, 0) + 1
         if fortochka is not None:
@@ -1023,8 +1023,8 @@ def _bolak(b, z, h, ctx):
     eski, eski_b = h.joriy_oyna, h.belgi
     if b.get("oyna_turi"):
         h.joriy_oyna = b["oyna_turi"]
-    if b.get("_belgi"):
-        h.belgi = True  # ilova: tanlangan boʻlak tabaqasining kesish oʻlchami soʻraladi
+    if b.get("_belgi") is not None:
+        h.belgi = b["_belgi"]  # ilova: shu boʻlak tabaqasining kesish oʻlchami (belgi — boʻlak yoʻli)
     try:
         _bolak_ichi(b, z, h, ctx)
     finally:
@@ -1204,7 +1204,7 @@ def hisobla(k):
         "lambrilar": [{"joy": j, "en": float(e), "boy": float(b), "tasma": n} for j, e, b, n in h.lambrilar],
         "ogohlantirishlar": h.ogohlantirishlar,
         "qoida_yoq": h.qoida_yoq,
-        **({"belgilangan": [{"joy": j, "en": float(e), "boy": float(b)} for j, e, b in h.belgilangan]}
+        **({"belgilangan": [{"belgi": g, "joy": j, "en": float(e), "boy": float(b)} for g, j, e, b in h.belgilangan]}
            if h.belgilangan else {}),
         "sanoq": {
             "ramalar": h.ramalar,
