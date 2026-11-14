@@ -289,12 +289,33 @@ class Hisob:
         self.segment = False  # yarim aylana: yon devorsiz (arka balandligi = H)
         self.segment_ramalar = 0
         self.arka_metr = D(0)      # egiladigan profil (egish xizmati), sm
+        self.burchaklar = {}       # (nomi, profil, uzunlik) → "tepa uchi 74,05°" (45/90 dan boshqasi)
         self.arka_oyna_m2 = D(0)   # arkali oyna yuzasi (ustama uchun)
 
     @staticmethod
     def yoy_chuqurligi(yoy, z):
         """Boʻlak tepasi yoki pasti yoyga tegsa — yoyning shu boʻlak ustidagi chuqurligi, aks holda 0."""
         return yoy.chuqurlik(z.x, z.x + z.en) if yoy else D(0)
+
+    def burchak(self, nomi, profil, uzunlik, matn):
+        """45° va 90° dan boshqa kesish burchagi (foydalanuvchi, 2026-11-14: faqat shular yoziladi)."""
+        self.burchaklar[(nomi, profil, uzunlik)] = matn
+
+    def rama_burchaklari(self):
+        """Arka bilan yon devor (yoki yarim aylanada past) tutashgan uchdagi kesish burchagi, tashqi chet boʻyicha.
+
+        Urinma gorizontalga α = arcsin(L/2 : R) qiya; yon devor bilan tutashuv 90° + α, past bilan α — har detal yarmida.
+        """
+        alfa = math.degrees(math.asin(min(1.0, self.arka.en / 2 / self.arka.R)))
+        return (alfa / 2) if self.segment else (90 + alfa) / 2
+
+    def _arka_burchak(self, profil, en, a, yon):
+        b = round(self.rama_burchaklari(), 2)
+        if b in (45, 90):
+            return
+        m = f"{b:.2f}".rstrip("0").rstrip(".").replace(".", ",") + "°"
+        self.burchak(yon[0], profil, yon[1], f"{yon[2]} {m}")
+        self.burchak("Rama arka", profil, en + a + self.seriya.arka_zapas, f"ikki uchi {m}")
 
     def egilgan(self, nomi, profil, en, chuqurlik, egish=True):
         uzunlik = en + chuqurlik + self.seriya.arka_zapas
@@ -495,6 +516,7 @@ class Hisob:
             self.rama_perimetri += en + en + a
             self.detal("Rama eni", profil, en, 1)
             self.egilgan("Rama arka", profil, en, a)
+            self._arka_burchak(profil, en, a, ("Rama eni", en, "ikki uchi"))
             return
         self.ramalar[profil] = self.ramalar.get(profil, 0) + 1
         if self.arka:
@@ -504,6 +526,7 @@ class Hisob:
             self.detal("Rama eni", profil, en + zapas, 1)
             self.detal("Rama boʻyi", profil, boy - a + zapas, 2)
             self.egilgan("Rama arka", profil, en, a)
+            self._arka_burchak(profil, en, a, ("Rama boʻyi", boy - a + zapas, "tepa uchi"))
             return
         self.rama_perimetri += 2 * (en + boy)
         zapas = self.seriya.rama_payvand  # PVX: payvand uchun (foydalanuvchi, 2026-11-08)
@@ -994,7 +1017,8 @@ def hisobla(k):
     return {
         "seriya": seriya.nomi,
         "profillar": [
-            {"nomi": n, "profil": p, "uzunlik": float(u), "soni": s}
+            {"nomi": n, "profil": p, "uzunlik": float(u), "soni": s,
+             **({"burchak": h.burchaklar[(n, p, u)]} if (n, p, u) in h.burchaklar else {})}
             for (n, p, u), s in h.profillar.items()
         ],
         "oynalar": [
@@ -1028,6 +1052,8 @@ def hisobla(k):
             "tabaqa_oyna_soni": h.tabaqa_oyna_soni,
             "gluxoy_oyna_soni": h.gluxoy_oyna_soni,
             "arka_metr": float(h.arka_metr / 100),
+            "arka_burchak": [{"nomi": n, "profil": p, "uzunlik": float(u), "burchak": m}
+                             for (n, p, u), m in h.burchaklar.items() if (n, p, u) not in h.profillar],
             "arka_oyna_m2": float(h.arka_oyna_m2),
         },
     }

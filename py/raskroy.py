@@ -419,7 +419,7 @@ def kesish_chizmasi(zakaz):
             hivichlar.append({"bolaklar": bolaklar, "qoldiq": round(_qoldiq(L, t, p) / 100, 2)})
         hivichlar.sort(key=lambda h: h["qoldiq"])
         profillar.append({
-            "profil": p, "nom": toliq_nom(p), "kesim": _kesim_matni(p), "hivich_sm": hivich(p),
+            "profil": p, "nom": toliq_nom(p), "kesim": _kesim_matni(p, royxat), "hivich_sm": hivich(p),
             "hivichlar": hivichlar, "kesimlar": sum(jami[p].values()),
             "samaradorlik": round(o["ishlatilgan"] / (len(hivichlar) * L) * 100, 1),
             "qoldiq_sm": round(sum(h["qoldiq"] for h in hivichlar), 2),
@@ -569,7 +569,7 @@ def sklad_rejasi(zakaz, sklad_qatorlari, rang, guruh=None):
             "bolaklar": [[d / 100, n] for d, n in sorted(k["t"].items(), reverse=True)],
         } for k in r["kartalar"]]
         rejalar.append({
-            "profil": p, "nom": toliq_nom(p), "fayl": fayl_nomi(p), "kesim": _kesim_matni(p), "hivich_sm": hivich(p),
+            "profil": p, "nom": toliq_nom(p), "fayl": fayl_nomi(p), "kesim": _kesim_matni(p, reja["konstruksiyalar"]), "hivich_sm": hivich(p),
             "togri": p in TOGRI_KESIM, "kartalar": kartalar, "yangi_soni": r["yangi_soni"],
             "sklad_soni": sum(k["soni"] for k in r["kartalar"] if k["manba"] == "SKLAD"),
             "jami_detal": sum(n * k["soni"] for k in r["kartalar"] for n in k["t"].values()),
@@ -583,7 +583,23 @@ def sklad_rejasi(zakaz, sklad_qatorlari, rang, guruh=None):
     return {"rang": reja["rang"], "hivich_sm": HIVICH, "rejalar": rejalar, "izohlar": reja["izohlar"]}
 
 
-def _kesim_matni(profil):
+def _burchak_matni(konstruksiyalar, profil):
+    """45° / 90° dan boshqa kesimlar (arka tutashuvi): "180 sm — tepa uchi 74,05°" (foydalanuvchi, 2026-11-14)."""
+    qatorlar = []
+    for k in konstruksiyalar:
+        for d in k["detallar"]:
+            if d["profil"] == profil and d.get("burchak"):
+                q = f"{_k(_b(d['uzunlik']))} sm — {d['burchak']}"
+                if q not in qatorlar:
+                    qatorlar.append(q)
+    return f" · DIQQAT: qiya kesim: {'; '.join(qatorlar)}" if qatorlar else ""
+
+
+def _kesim_matni(profil, konstruksiyalar=()):
+    return _kesim_asosi(profil) + _burchak_matni(konstruksiyalar, profil)
+
+
+def _kesim_asosi(profil):
     if str(profil).startswith("G"):
         return (f"45°, aylantirilmaydi · Arra {_k(_b(ARRA))} sm · DIQQAT: har shtapik +{_k(_b(SHTAPIK_ZAPAS))} sm uzun "
                 "kesilgan, joyida aniq oʻlchab kaltalang")
@@ -668,7 +684,7 @@ def pdf_yoz(reja, r, yol, sarlavha):
     matn(f"{toliq_nom(r['profil'])} — kesish rejasi", "AB", 20, koʻk)
     matn(f"Zakaz: {sarlavha} · Rang: {reja['rang']} · Hivich {hivich(r['profil']) / 100:g} m", olcham=11)
     belgi_izoh = " · □ — gradusga kesilmaydi (90°)" if r["profil"] in TOGRI_KESIM else ""
-    km = _kesim_matni(r["profil"])
+    km = _kesim_matni(r["profil"], reja["konstruksiyalar"])
     asos, _, ogoh = km.partition(" · DIQQAT")
     matn(asos + belgi_izoh, olcham=10, rang=kulrang)
     if ogoh:
