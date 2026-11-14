@@ -66,7 +66,8 @@ for _p in ("181", "185", "198"):
 for _p in ("198", "185", "182"):  # 182 — yengil eshik qanoti tashqariga (foydalanuvchi, 2026-11-14)
     TABAQA_AYIRMA[_p] = 2 * D("5.95")
 
-# Aldoks NEO (foydalanuvchi, 2026-11-14): alohida seriya, oʻz kodlari va narxi; oʻlchamlari Aldoks bilan bir xil.
+# Aldoks NEO (foydalanuvchi, 2026-11-14): alohida seriya, oʻz kodlari va narxi. Aldoks qoidalari NEO ga
+# tegishli emas — qoidalari oʻrgatilguncha hisobla() xato beradi; quyidagi nusxa faqat vaqtinchalik tayanch.
 NEO_KOD = {"183": "F0022", "181": "V0022", "182": "M0022", "105": "G0001", "198": "V0007", "185": "V0008"}
 for _a, _n in NEO_KOD.items():
     for _d in (RAMA_R, IMPOST_YARMI, TABAQA_AYIRMA, TABAQA_IMPOST_AYIRMA):
@@ -959,6 +960,9 @@ def hisobla(k):
     vertikal = (k.get("tanlov") or {}).get("vertikal_shtapik", "R")
     if vertikal not in ("R", "oddiy"):
         raise HisobXato(f"vertikal_shtapik faqat R yoki oddiy: {vertikal}")
+    if seriya is ALDOKS_NEO:
+        # NEO ga Aldoks qoidalari tegishli emas (foydalanuvchi, 2026-11-14): oʻz qoidalari oʻrgatilguncha hisoblanmaydi
+        raise HisobXato("Aldoks NEO qoidalari hali oʻrgatilmagan — hisoblanmaydi")
     rang = (k.get("tanlov") or {}).get("rang")
     if rang in seriya.rang_yoq:
         raise HisobXato(f"{seriya.nomi}da {rang} rangi yoʻq")

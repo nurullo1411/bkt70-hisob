@@ -1676,7 +1676,7 @@ function sozlamaOynasi() {
     <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
     <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama) && !aldmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button><button data-sz="s:rama" data-v='"183"' class="${faol(j.rama === "183")}">Aldoks</button><button data-sz="s:rama" data-v='"F0022"' class="${faol(neomi(j.rama))}">Aldoks NEO</button></div>
     ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax / Roto), eshik, arka, portal, lambri.</div>` : ""}
-    ${aldmi(j.rama) ? `<div class="xira">${neomi(j.rama) ? "Aldoks NEO" : "Aldoks"}: hozircha rom (gluxoy, tabaqa, impost) va eshik, oyna 20 mm.</div>` : ""}
+    ${aldmi(j.rama) ? `<div class="xira">${neomi(j.rama) ? "Aldoks NEO: qoidalari hali oʻrgatilmagan — hisoblanmaydi (faqat kod va narx kiritilgan)." : "Aldoks: hozircha rom (gluxoy, tabaqa, impost) va eshik, oyna 20 mm."}</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>
     <div class="sz-seg">${(aldmi(j.rama) ? [[20, "20 mm"]] : [[24, "24 mm (ikki qavat)"], [32, "32 mm"]]).map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
