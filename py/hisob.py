@@ -428,33 +428,38 @@ class Hisob:
             self.detal("Shtapik vertikal", self.sht_nomi(True), ichki_boy - self.sht_ayirma(), yonlar)
 
     def _yoy_shtapik(self, geo, ichki_en, arka, past):
-        """Yoy ostidagi oyna yon shtapigi (foydalanuvchi, 2026-11-15): yoy boshlanishigacha (toʻrtburchak choʻqqisigacha
-        emas). Uzunlik = shtapik tashqi cheti chizigʻi (x) ichki yoyga tegadigan joydan pastgacha; toʻgʻri uchida
-        Termo/Aldoks qoidasidagidek bitta shtapik qalinligi ayiriladi (Engelberg 45° — ayirilmaydi). Yoyga tegadigan
-        uchi qiya: (90° + α) : 2, α — shu nuqtada yoy urinmasi qiyaligi (rama gradusidek); arka shtapigi uchlari ham."""
+        """Yoy ostidagi oyna shtapigi (foydalanuvchi, 2026-11-15).
+
+        Yoy shtapigi ramaga (yon devorga) tegadi: uzunligi eski qoida (ichki eni + chuqurlik + zapas), uchi devor
+        boʻyicha tik kesiladi — gradus 90° − β (β — devorga tegadigan joyda yoy urinmasi qiyaligi). Tik shtapik yoy
+        shtapigining ichki chetiga taqaladi: uzunligi uzun tomoni (oyna tomonidagi cheti, devordan shtapik qalinligi
+        ichkarida) boʻyicha yoy shtapigi ichki chetigacha; toʻgʻri uchida bitta qalinlik ayiriladi (Engelbergda yoʻq);
+        tepa uchi 90° + α (α — shu nuqtada yoy shtapigi ichki cheti qiyaligi). Yarim doirada ikkalasi 90°.
+        """
         ust = geo["tepa"] if arka else None
         ost = geo["past"] if past else None
         yarim = self.sht_ayirma() / 2
+        t = float(self.shtapik)
         tomonlar = []
-        for x in (geo["x1"], geo["x2"]):
-            yt = D(str(round(ust[0].y(x, ust[1]), 2))) if ust else geo["y1"]
-            yb = D(str(round(ost[0].y(x, -ost[1]), 2))) if ost else geo["y2"]
+        for x, ichga in ((geo["x1"], t), (geo["x2"], -t)):
+            xl = float(x) + ichga  # uzun tomon: oyna tomonidagi cheti
+            yt = D(str(round(ust[0].y(xl, ust[1] + t), 2))) if ust else geo["y1"]
+            yb = D(str(round(ost[0].y(xl, -(ost[1] + t)), 2))) if ost else geo["y2"]
             u = yb - yt - yarim * ((ust is None) + (ost is None))
             uchlar = []
             if ust:
-                uchlar.append(("tepa", self.gradus((90 + ust[0].qiyalik(x, ust[1])) / 2)))
+                uchlar.append(("tepa", self.gradus(_tik_uch(ust[0].qiyalik(xl, ust[1] + t)))))
             if ost:
-                uchlar.append(("past", self.gradus((90 + ost[0].qiyalik(x, -ost[1])) / 2)))
+                uchlar.append(("past", self.gradus(_tik_uch(ost[0].qiyalik(xl, -(ost[1] + t))))))
             tomonlar.append((u, tuple((a, m) for a, m in uchlar if m)))
         nom = self.sht_nomi(True)
-        tomonlar_u = [t[0] for t in tomonlar]
         if tomonlar[0] == tomonlar[1]:
             tomonlar = [(tomonlar[0], 2)]
         else:
-            tomonlar = [(t, 1) for t in tomonlar]
+            tomonlar = [(tt, 1) for tt in tomonlar]
         for (u, uchlar), soni in tomonlar:
             if u <= 0:
-                continue  # yoy shu tomonda pastki shtapikkacha tushadi — yon shtapik yoʻq
+                continue  # yoy shu tomonda pastki shtapikkacha tushadi — tik shtapik yoʻq
             self.detal("Shtapik vertikal", nom, u, soni)
             if uchlar:
                 self.burchak("Shtapik vertikal", nom, u, ", ".join(f"{a} uchi {m}" for a, m in uchlar))
@@ -463,18 +468,11 @@ class Hisob:
                 continue
             ich = yoy[1] if yoy is ust else -yoy[1]
 
-            def uch(i):
-                x = geo["x1"] if i == 0 else geo["x2"]
-                if tomonlar_u[i] > 0:
-                    return self.gradus((90 + yoy[0].qiyalik(x, ich)) / 2)
-                # yon shtapik yoʻq: yoy toʻgʻri shtapikka tegadi — tutashuv α, har detalga α : 2
-                y = geo["y2"] - yarim if yoy is ust else geo["y1"] + yarim
-                w = yoy[0].yarim_en(y, ich)
-                if w is None:
-                    return None
-                return self.gradus(yoy[0].qiyalik(yoy[0].cx + w, ich) / 2)
-            m1, m2 = sorted((uch(0) or "90°", uch(1) or "90°"), key=lambda m: float(m[:-1].replace(",", ".")))
-            m1, m2 = (None if m == "90°" else m for m in (m1, m2))
+            def uch(x):
+                b = yoy[0].qiyalik(x, ich)
+                return None if b >= 89.99 else self.gradus(90 - b)
+            ms = sorted((uch(geo["x1"]) or "90°", uch(geo["x2"]) or "90°"), key=lambda m: float(m[:-1].replace(",", ".")))
+            m1, m2 = (None if m == "90°" else m for m in ms)
             if m1 or m2:
                 matn = f"ikki uchi {m1}" if m1 == m2 else f"bir uchi {m1 or '90°'}, ikkinchisi {m2 or '90°'}"
                 self.burchak("Shtapik arka", self.sht_nomi(), ichki_en + c + self.seriya.arka_zapas, matn)
@@ -1099,6 +1097,11 @@ def _bolak(b, z, h, ctx):
         _bolak_ichi(b, z, h, ctx)
     finally:
         h.joriy_oyna, h.belgi = eski, eski_b
+
+
+def _tik_uch(alfa):
+    """Tik shtapik yoy shtapigiga taqalgan uchi: 90° + α; yoy tik tushsa (yarim doira) — toʻgʻri, 90°."""
+    return 90 if alfa >= 89.99 else 90 + alfa
 
 
 def _geo(z):
