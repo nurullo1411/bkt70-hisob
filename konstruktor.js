@@ -1538,7 +1538,8 @@ const PVX_RAMALAR = [["7051", "Kosa 7051", "Engelberg · r = 5,4"]];
 const pvxmi = (rama) => rama === "7051";
 // Aldoks (alyumin; foydalanuvchi, 2026-11-11): kosa 183, oyna faqat 20 mm, hozircha faqat rom
 const aldmi = (rama) => rama === "183";
-const ALD_TURLARI = [["ADT", "Aldoks (ADT)"], ["N", "Aldoks (N)"], ["NEO", "Aldoks NEO"]];
+// ADT va N narxi bir xil — faqat Aldoks (ADT nomi) va NEO (foydalanuvchi, 2026-11-14); eski "N" zakazlari ham ishlaydi
+const ALD_TURLARI = [["ADT", "Aldoks"], ["NEO", "Aldoks NEO"]];
 
 function oynaRangi(nom) {
   const n = nom.toLowerCase();
