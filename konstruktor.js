@@ -308,12 +308,13 @@ function eshikTabaqalari(k, g, o) {
   const tl = { ...umumiyTanlov(), ...(k.tanlov || {}) };
   const rama = k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null);
   const lam = tl.rang === "Laminatsiya" ? 0.08 : 0;
-  const rr = (rama === "F703" ? 5.8 : rama === "7051" ? 5.4 : rama === "183" ? 4.25 : 3.8) + lam;
-  const im = (rama === "7051" ? 2.2 : rama === "183" ? 2.125 : 1.9) + lam / 2;
+  const ald = rama === "183" || rama === "F0022";  // Aldoks va NEO
+  const rr = (rama === "F703" ? 5.8 : rama === "7051" ? 5.4 : ald ? 4.25 : 3.8) + lam;
+  const im = (rama === "7051" ? 2.2 : ald ? 2.125 : 1.9) + lam / 2;
   const a = o.rama || g.ramalar[0], yaqin = (u, v) => Math.abs(u - v) < 0.01;
   const ichki = o.w - (yaqin(o.x, a.x) ? rr : im) - (yaqin(o.x + o.w, a.x + a.w) ? rr : im);
   // 2 tabaqa: L1 + L2 = ichki + 0,5 (Termo) / + 1 (Engelberg, foydalanuvchi 2026-11-11) / − 0,5 (Aldoks, 2026-11-14)
-  const jami = Math.round((ichki + (rama === "7051" ? 1 : rama === "183" ? -0.5 : 0.5)) * 1000) / 1000;
+  const jami = Math.round((ichki + (rama === "7051" ? 1 : ald ? -0.5 : 0.5)) * 1000) / 1000;
   const L1 = o.b.L1 != null ? Number(o.b.L1) : Math.max(65, jami / 2);
   return { L1, L2: jami - L1, jami, avto: o.b.L1 == null, aktiv: o.b.aktiv || "ong" };
 }
@@ -396,7 +397,7 @@ function chizmaSVG(k, opts = {}) {
   const t = Math.max(2.5, Math.min(7, Math.min(L, H) * 0.045));
   const g = geometriya(k);
   // Aldoks kichik profildan eshik (Qanot 181 / Urta 182) rom tabaqasidek ingichka, balkon eshigi qalin (2026-11-14)
-  const kichikEshik = (k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null)) === "183"
+  const kichikEshik = aldmi(k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null))
     && ({ ...umumiyTanlov(), ...(k.tanlov || {}) }).eshik_tur === "yengil";
   for (const o of g.barglar) if (o.b && o.b.tur === "eshik" && o.b.tabaqa_soni === 2) o.esh = eshikTabaqalari(k, g, o);
   // oyna turlari: har turga oʻz gradienti; gul — ustidan naqsh
@@ -868,12 +869,13 @@ function shaklniQolla(id) {
 // Seriyada hali yoʻq asbob va boʻlimlar panelda koʻrinmaydi (foydalanuvchi, 2026-11-14: dvaynoy Aldoksda yoʻq)
 const YOQ_ASBOB = {
   "183": new Set(["lapsha", "lapsha_y", "yoy", "portal", "dv_chap", "dv_ong", "fortochka", "fortochka_tepa"]),
+  "F0022": new Set(["lapsha", "lapsha_y", "yoy", "portal", "dv_chap", "dv_ong", "fortochka", "fortochka_tepa"]),
 };
-const YOQ_BOLIM = { "183": new Set(["shakl"]) };
+const YOQ_BOLIM = { "183": new Set(["shakl"]), "F0022": new Set(["shakl"]) };
 const seriyaRama = () => (tahrir ? joriy(tahrir).rama : null);
 const asbobBor = (id) => !(YOQ_ASBOB[seriyaRama()] || new Set()).has(id);
 const bolimBor = (id) => !(YOQ_BOLIM[seriyaRama()] || new Set()).has(id);
-const lambriBor = () => seriyaRama() !== "183";
+const lambriBor = () => !aldmi(seriyaRama());
 
 function asboblarniChiz() {
   if (!bolimBor(bolim)) bolim = "impost";
@@ -1481,7 +1483,8 @@ function panelniChiz() {
       : `<div class="sarlavha">Tabaqa ichiga impost</div><div class="tugmalar"><button class="tugma" data-amal="ii_qosh" data-v='"gorizontal"'>Yotiq</button><button class="tugma" data-amal="ii_qosh" data-v='"vertikal"'>Tik</button></div>`;
   } else if (b.tur === "eshik") {
     const ich = b.ochilish !== "tashqariga", sr = seriyaRama();
-    const prof = sr === "183" ? (aldYengil(tahrir) ? (ich ? "Qanot 181" : "Urta 182") : (ich ? "Balkon Qanot 198" : "Balkon Urta 185"))
+    const prof = sr === "F0022" ? (aldYengil(tahrir) ? (ich ? "Qanot V0022" : "Urta M0022") : (ich ? "Balkon Qanot V0007" : "Balkon Urta V0008"))
+      : sr === "183" ? (aldYengil(tahrir) ? (ich ? "Qanot 181" : "Urta 182") : (ich ? "Balkon Qanot 198" : "Balkon Urta 185"))
       : pvxmi(sr) ? (ich ? "Balkon Kanot 7055" : "Balkon Urta 7054") : (ich ? "Balkon Qanot V708" : "Balkon Oʻrta V707");
     p += `<div class="xira">${prof} (${ich ? "ichkariga" : "tashqariga"}) — ⚙ sozlamada almashtiriladi. Tabaqa soni va ruchka tomoni tepadagi asboblarda.</div>`;
     p += ichkiPanel(b, "Tabaqa ichiga impost: tik yoki yotiq asbobni eshikka suring.");
@@ -1542,9 +1545,8 @@ const RAMALAR = [["F702", "Kosa (Sredniy)", "F702 · r = 3,8"], ["F703", "Kosa S
 const PVX_RAMALAR = [["7051", "Kosa 7051", "Engelberg · r = 5,4"]];
 const pvxmi = (rama) => rama === "7051";
 // Aldoks (alyumin; foydalanuvchi, 2026-11-11): kosa 183, oyna faqat 20 mm, hozircha faqat rom
-const aldmi = (rama) => rama === "183";
-// ADT va N narxi bir xil — faqat Aldoks (ADT nomi) va NEO (foydalanuvchi, 2026-11-14); eski "N" zakazlari ham ishlaydi
-const ALD_TURLARI = [["ADT", "Aldoks"], ["NEO", "Aldoks NEO"]];
+const aldmi = (rama) => rama === "183" || rama === "F0022";  // Aldoks yoki Aldoks NEO (alohida seriya, 2026-11-14)
+const neomi = (rama) => rama === "F0022";
 
 function oynaRangi(nom) {
   const n = nom.toLowerCase();
@@ -1677,10 +1679,9 @@ function sozlamaOynasi() {
   $("k-maydon").innerHTML = `
     <label class="belgi sz-rejim"><input type="checkbox" data-sz-faqat ${faqatShu ? "checked" : ""}> Faqat shu konstruksiyaga</label>
     <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
-    <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama) && !aldmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button><button data-sz="s:rama" data-v='"183"' class="${faol(aldmi(j.rama))}">Aldoks</button></div>
+    <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama) && !aldmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button><button data-sz="s:rama" data-v='"183"' class="${faol(j.rama === "183")}">Aldoks</button><button data-sz="s:rama" data-v='"F0022"' class="${faol(neomi(j.rama))}">Aldoks NEO</button></div>
     ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax / Roto), eshik, arka, portal, lambri.</div>` : ""}
-    ${aldmi(j.rama) ? `<div class="xira">Aldoks: hozircha rom (gluxoy, tabaqa, impost) va eshik, oyna 20 mm.</div>
-    <div class="sz-seg">${ALD_TURLARI.map(([v, y]) => `<button data-sz="t:ald_tur" data-v="${esc(JSON.stringify(v))}" class="${faol(j.ald === v)}">${y}</button>`).join("")}</div>` : ""}
+    ${aldmi(j.rama) ? `<div class="xira">${neomi(j.rama) ? "Aldoks NEO" : "Aldoks"}: hozircha rom (gluxoy, tabaqa, impost) va eshik, oyna 20 mm.</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>
     <div class="sz-seg">${(aldmi(j.rama) ? [[20, "20 mm"]] : [[24, "24 mm (ikki qavat)"], [32, "32 mm"]]).map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
@@ -1705,8 +1706,10 @@ function sozlamaOynasi() {
 
     ${pvxmi(j.rama) ? engFurnituraHtml(k, faol) : ""}
     ${`<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
-    ${aldmi(j.rama) ? `<label class="belgi"><input type="checkbox" data-sz-balkon ${aldYengil(k) ? "" : "checked"}> Balkon <span class="xira">(belgi olinsa — kichik profildan: ichkariga Qanot 181, tashqariga Urta 182)</span></label>` : ""}
-    <div class="sz-seg">${(aldmi(j.rama) ? (aldYengil(k) ? [["ichkariga", "Qanot 181 · ichkariga"], ["tashqariga", "Urta 182 · tashqariga"]]
+    ${aldmi(j.rama) ? `<label class="belgi"><input type="checkbox" data-sz-balkon ${aldYengil(k) ? "" : "checked"}> Balkon <span class="xira">(belgi olinsa — kichik profildan: ichkariga Qanot ${neomi(j.rama) ? "V0022" : "181"}, tashqariga Urta ${neomi(j.rama) ? "M0022" : "182"})</span></label>` : ""}
+    <div class="sz-seg">${(neomi(j.rama) ? (aldYengil(k) ? [["ichkariga", "Qanot V0022 · ichkariga"], ["tashqariga", "Urta M0022 · tashqariga"]]
+      : [["ichkariga", "Balkon Qanot V0007 · ichkariga"], ["tashqariga", "Balkon Urta V0008 · tashqariga"]])
+      : aldmi(j.rama) ? (aldYengil(k) ? [["ichkariga", "Qanot 181 · ichkariga"], ["tashqariga", "Urta 182 · tashqariga"]]
       : [["ichkariga", "Balkon Qanot 198 · ichkariga"], ["tashqariga", "Balkon Urta 185 · tashqariga"]]) : pvxmi(j.rama) ? [["ichkariga", "Balkon Kanot 7055 · ichkariga"], ["tashqariga", "Balkon Urta 7054 · tashqariga"]]
       : [["ichkariga", "Balkon Qanot V708 · ichkariga"], ["tashqariga", "Balkon Oʻrta V707 · tashqariga"]]).map(([v, y]) => `<button data-sz-esh="${v}" class="${faol(joriyOchilish(k) === v)}">${y}</button>`).join("")}</div>`}
     ${!eshiklar(k.bolak).length ? "" : pvxmi(j.rama) ? engEshikHtml(k, faol) : aldmi(j.rama) ? aldEshikHtml(k, faol) : eshikFurnitura(k)}

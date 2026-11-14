@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from hisob import SERIYA_RAMA, HisobXato, narx_kaliti, oyna_qalinligi
+from hisob import SERIYA_RAMA, HisobXato, narx_kaliti, narx_rangi, oyna_qalinligi
 from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
@@ -38,7 +38,7 @@ def _birlashtir(umumiy, k):
 def _qator_kaliti(t, k):
     """Material qatori: (boʻlim, artikul, izoh, birlik)."""
     if t["bolim"] == "Profil":
-        return ("Profil", t["nomi"], k["tanlov"]["rang"], t["birlik"])
+        return ("Profil", t["nomi"], narx_rangi(k), t["birlik"])
     if t["bolim"] == "Oyna":
         return ("Oyna", t.get("oyna_turi") or k["tanlov"]["oyna_turi"], oyna_qalinligi(k), t["birlik"])
     if t["nomi"] == "K188 kley":
@@ -103,7 +103,7 @@ def hisobla_zakaz(zakaz, otxod_usuli="chegara", sklad=None):
             miqdorlar.setdefault(kalit, [0.0] * len(royxat))
             miqdorlar[kalit][i] += round(float(t["miqdor"]), 6)
         for p in n["profillar"]:
-            kalit = (p["profil"], k["tanlov"]["rang"])
+            kalit = (p["profil"], narx_rangi(k))
             if otxod_usuli.startswith("sklad"):  # sklad rangi boʻyicha: grey va z/d bir hivichdan kesilmaydi
                 kalit += (sklad_rangi,)
             guruh = detallar.setdefault(kalit, {"kerak": Counter(), "ulush": [0] * len(royxat)})

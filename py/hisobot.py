@@ -7,7 +7,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import (ARMATURA_SAMOREZ, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
+from hisob import (ARMATURA_SAMOREZ, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti, narx_rangi,
                    oyna_qalinligi, profil_narxi)
 
 PETLYA_CHEGARA = 260
@@ -672,6 +672,16 @@ ALD_ZAKLEPKA = ("Zaklepka 4×12", 3)
 ALD_ZATSEP = {"Oq": "Otvetniy Plast. (Oq) (200sht) (Uz)", "*": "Otvetniy Plast. (9005) (200sht) (Uz)"}
 ALD_ZATSEP_SAMOREZ = ("3,9×19 YHBM", 4)
 ALD_TABAQA_MAX = (D(100), D(200))  # eni, boʻyi
+# Aldoks NEO (foydalanuvchi, 2026-11-14): "NEO" yozilgan aksessuar NEO ga — burchak "Soedinitel Chovush (Neo)",
+# impost uchi "Soedinitel Bolshoy NEO", tij "NEO ADC50 A0003 Tij Komplekt" (hivich 6 m, metrga), balkon qanoti
+# burchagi "NEO Chovush (Nekr) (20 mm)" (190 oʻrniga, metrga). Qolgani Aldoksdagidek.
+ALD_TUR = {
+    "Aldoks": {"chovush": ALD_CHOVUSH, "bolshoy": ALD_BOLSHOY, "tij": ALD_TIJ,
+               "balkon_chovush": "190 Balkon Chovush (Nekr) (Adt) Metr", "balkon": ("185", "198")},
+    "Aldoks NEO": {"chovush": "Soedinitel Chovush (Neo) (Uz)", "bolshoy": "Soedinitel Bolshoy NEO (Uz)",
+                   "tij": "(A) NEO ADC50 A0003 Tij Komplekt (Oq)", "balkon_chovush": "(A) NEO Chovush (Nekr) (20 mm)",
+                   "balkon": ("V0007", "V0008")},
+}
 
 
 # Eshik (foydalanuvchi, 2026-11-14). Zamok: balkon qanotida (185/198) "153/23/35", Urta/Qanotdan yasalganda 153/23/25;
@@ -743,7 +753,8 @@ def _ald_eshik(s, tanlov, rang, r):
     r.qosh("Furnitura", "3,9×19 YHBM", samorez, "dona")
 
 
-def _ald_hisobot(s, rang, r, tanlov=None):
+def _ald_hisobot(s, rang, r, tanlov=None, seriya="Aldoks"):
+    t = ALD_TUR[seriya]
     qanot = [*(s.get("rom_qanotlari") or []), *(s.get("eshik_qanotlari") or [])]
     perimetr = sum((2 * (D(str(e)) + D(str(b))) for e, b in qanot), D(0)) / 100
     oyna = D(s["oyna_rezinasi"]) / 100
@@ -753,15 +764,15 @@ def _ald_hisobot(s, rang, r, tanlov=None):
         r.qosh("Rezina", ALD_REZINA_BOSMA, perimetr * 2, "m")
     # balkon qanoti (185/198) burchagiga "190 Balkon Chovush" 4,2 sm × 1, metrga (foydalanuvchi, 2026-11-14);
     # Qanot/Urtadan yengil eshikda — romdagidek Chovush (4sm) (151)
-    balkon = 4 * sum(v for p, v in s["tabaqalar"].items() if p in ("185", "198"))
+    balkon = 4 * sum(v for p, v in s["tabaqalar"].items() if p in t["balkon"])
     if balkon:
-        r.qosh("Aksessuar", ALD_BALKON_CHOVUSH, D(balkon) * D("4.2") / 100, "m")
-    burchak = 4 * (sum(s["ramalar"].values()) + sum(v for p, v in s["tabaqalar"].items() if p not in ("185", "198")))
+        r.qosh("Aksessuar", t["balkon_chovush"], D(balkon) * D("4.2") / 100, "m")
+    burchak = 4 * (sum(s["ramalar"].values()) + sum(v for p, v in s["tabaqalar"].items() if p not in t["balkon"]))
     samorez = (burchak + balkon) * ALD_BURCHAK_SAMOREZ  # 190 Chovushga ham 3,9×16 × 8 (foydalanuvchi, 2026-11-14)
-    r.qosh("Aksessuar", ALD_CHOVUSH, burchak, "dona")
+    r.qosh("Aksessuar", t["chovush"], burchak, "dona")
     if s["impost_soni"]:
         uch = 2 * s["impost_soni"]
-        r.qosh("Aksessuar", ALD_BOLSHOY, uch, "dona")
+        r.qosh("Aksessuar", t["bolshoy"], uch, "dona")
         samorez += uch * ALD_IMPOST_SAMOREZ
     r.qosh("Aksessuar", ARMATURA_SAMOREZ, samorez, "dona")
     # Aldoksda tabaqa oynasiga Takos (24mm) kerak emas, faqat gluxoyga CT 203 (foydalanuvchi, 2026-11-14)
@@ -781,7 +792,7 @@ def _ald_hisobot(s, rang, r, tanlov=None):
     r.qosh("Furnitura", ALD_PETLYA, petlya, "dona")
     r.qosh("Furnitura", ALD_PETLYA_SAMOREZ[0], petlya * ALD_PETLYA_SAMOREZ[1], "dona")
     tij = sum((D(str(b)) - TIJ_AYIRMA for _, b in qanotlar), D(0)) / 100
-    r.qosh("Furnitura", ALD_TIJ, tij, "m")
+    r.qosh("Furnitura", t["tij"], tij, "m")
     r.qosh("Furnitura", ALD_ZAKLEPKA[0], soni * ALD_ZAKLEPKA[1], "dona")
     r.qosh("Furnitura", ALD_ZATSEP[rk], soni * 2, "dona")
     r.qosh("Furnitura", ALD_ZATSEP_SAMOREZ[0], soni * 2 * ALD_ZATSEP_SAMOREZ[1], "dona")
@@ -796,9 +807,9 @@ def hisobot(k, narxlar):
     s = n["sanoq"]
     r = Royxat(narxlar["narx"])
 
-    _profillar(n, rang, narxlar, r)
-    if n.get("seriya") == "Aldoks":
-        _ald_hisobot(s, rang, r, tanlov)
+    _profillar(n, narx_rangi(k), narxlar, r)
+    if n.get("seriya") in ALD_TUR:
+        _ald_hisobot(s, rang, r, tanlov, n["seriya"])
     elif n.get("seriya", "Termo 70") == "Termo 70":
         _rezina(s, r)
         _aksessuar(s, narxlar, r, tanlov)

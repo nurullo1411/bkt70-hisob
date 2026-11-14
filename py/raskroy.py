@@ -18,7 +18,8 @@ from zakaz import _birlashtir
 HIVICH = 650
 # PVX Engelberg 7000 hivichi 6 m (foydalanuvchi, 2026-11-08)
 HIVICH_PROFIL = {p: 600 for p in ("LII", "7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2",
-                                         "183", "181", "182", "105", "185", "198")}  # Aldoks ham 6 m (katalog)
+                                         "183", "181", "182", "105", "185", "198",
+                                         "F0022", "V0022", "M0022", "G0001", "V0007", "V0008")}  # Aldoks va NEO ham 6 m (katalog)
 
 
 def hivich(profil):
@@ -31,11 +32,9 @@ QOLDIQ_CHEGARA = 10
 # Aldoks (foydalanuvchi, 2026-11-11): 181 Qanot 45° aylantirib kesiladi — birinchi detal toʻliq, har keyingisi
 # 7,6 sm kam joy oladi (arra shu ichida): 600 − 69,9 − (69,9 − 7,6) − … Qoldiq uchi qiya — belgi "◣".
 # 182 Urta tabaqada ishlatilsa ham aylantiriladi; romda u impost (90°) — aylantirilmaydi.
-AYLANTIRISH = {"181": 7.6, "185": 11, "198": 11}
-# 185 Balkon Urta va 198 Balkon Qanot NEO boʻlmaganda aylantiriladi, laminatda ham (foydalanuvchi, 2026-11-14);
-# 182 doim 90°, eshik qanoti boʻlsa ham
-AYLANTIRISH_LAMINATSIZ = {"185", "198"}
-_AYLANTIRILMAYDI = set()  # joriy zakazda aylantirilmaydigan profillar (detallarni_yig belgilaydi)
+# 185 Balkon Urta va 198 Balkon Qanot ham aylantiriladi, laminatda ham (foydalanuvchi, 2026-11-14); 182 doim 90°.
+# Aldoks NEO: qanot V0022 — 7,6; balkon V0007 / V0008 aylantirilmaydi; M0022 90° (foydalanuvchi, 2026-11-14)
+AYLANTIRISH = {"181": 7.6, "185": 11, "198": 11, "V0022": 7.6}
 AYLANTIRISH_BELGI = "◣"
 # 182 Urtaning qiya uchli qoldigʻidan 90° detal olinsa 5,95 ayriladi (foydalanuvchi; sklad bilan ishlashda)
 QIYA_AYIRMA = {"182": 5.95}
@@ -43,14 +42,14 @@ QIYA_AYIRMA = {"182": 5.95}
 # A701 ning 190 sm dan kichigi baribir ishlatilmaydi (foydalanuvchi, 2026-11-03).
 CHEGARASIZ = {"A701", "7058"}  # Engelberg shtulpi ham (200 sm dan kichigi otxod)
 TOGRI_KESIM = {"LII", "M702", "A701", "H702", "7053", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2",
-               "182"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
+               "182", "M0022"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
 SKLAD_NOMI = {
     "F702": "Kosa F702", "F703": "Kosa F703", "M702": "O'rta M702", "V702": "Qanot V702",
     "V707": "Balkon o'rta V707", "V708": "Balkon qanot V708", "A701": "Shtulp A701", "LII": "Lambri II PVX", "H702": "Lapsha lam",
 }
 TARTIB = ["F702", "F703", "V702", "V707", "V708", "M702", "A701", "H702", "LII", "G24", "G24-R", "G32", "G32-R",
           "7051", "7052", "7054", "7055", "7053", "7058", "7056", "7057", "0701", "0703", "0701-2", "0703-2", "0702-2",
-          "183", "181", "185", "198", "182", "105"]
+          "183", "181", "185", "198", "182", "105", "F0022", "V0022", "V0007", "V0008", "M0022", "G0001"]
 
 
 def _b(x):
@@ -77,7 +76,6 @@ def detallarni_yig(zakaz):
     """(konstruksiya roʻyxati, {profil: Counter({uzunlik_b: soni})})."""
     umumiy = zakaz.get("umumiy", {})
     royxat, jami = [], {}
-    _AYLANTIRILMAYDI.clear()
     for i, el in enumerate(zakaz.get("konstruksiyalar") or []):
         nom = el.get("nom") or f"K{i + 1}"
         soni = el.get("soni", 1)
@@ -87,9 +85,6 @@ def detallarni_yig(zakaz):
         except (HisobXato, KeyError) as e:
             raise HisobXato(f"{nom}: {e}") from e
         detallar = [_zapas(d) for d in n["profillar"]]
-        t = k.get("tanlov") or {}
-        if t.get("ald_tur") == "NEO":
-            _AYLANTIRILMAYDI.update(d["profil"] for d in detallar if d["profil"] in AYLANTIRISH_LAMINATSIZ)
         royxat.append({"nom": nom, "soni": soni, "L": k["L"], "H": k["H"], "detallar": detallar})
         for d in detallar:
             jami.setdefault(d["profil"], Counter())[_b(d["uzunlik"])] += d["soni"] * soni
@@ -186,7 +181,7 @@ def sklad_bolaklari(qatorlar, profil, rang):
 
 
 def _aylantirish(profil):
-    return None if profil in _AYLANTIRILMAYDI else AYLANTIRISH.get(profil)
+    return AYLANTIRISH.get(profil)
 
 
 def _vazn(d, profil):
@@ -308,7 +303,8 @@ OTXOD_CHEGARA = {
     "7051": 70, "7052": 45, "7053": 65, "7056": 36, "7057": 36, "0701": 25, "0703": 25, "0701-2": 25, "0703-2": 25, "0702-2": 25,
     "7054": 65, "7055": 65, "7058": 200,  # Engelberg eshik (foydalanuvchi, 2026-11-11)
     "LII": 59,  # PVX lambri (foydalanuvchi, 2026-11-10)
-    "183": 70, "181": 60, "182": 100, "105": 40, "185": 65, "198": 65,  # Aldoks (foydalanuvchi, 2026-11-11, Termodagidek)
+    "183": 70, "181": 60, "182": 100, "105": 40, "185": 65, "198": 65,  # Aldoks
+    "F0022": 70, "V0022": 60, "M0022": 100, "G0001": 40, "V0007": 65, "V0008": 65,  # Aldoks NEO (Aldoksdagidek) (foydalanuvchi, 2026-11-11, Termodagidek)
 }
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
 
@@ -612,6 +608,8 @@ PROFIL_NOMI = {
     "0701": "Armatura Kosa-Qanot", "0703": "Armatura Urta",
     "0701-2": "Armatura Kosa-Qanot 2 mm", "0703-2": "Armatura Urta 2 mm", "0702-2": "Armatura Balkon Qanot 2 mm",
     "183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P", "185": "Balkon Urta", "198": "Balkon Qanot",  # Aldoks
+    "F0022": "NEO Kosa", "V0022": "NEO Qanot", "M0022": "NEO Urta", "G0001": "NEO Shtapik P", "V0007": "NEO Balkon Qanot",
+    "V0008": "NEO Balkon Urta",
 }
 
 
