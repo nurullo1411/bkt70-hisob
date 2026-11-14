@@ -860,11 +860,22 @@ function shaklniQolla(id) {
   else if (id !== "togri") xabar("Arka balandligini oʻngdagi raqamga bosib oʻzgartiring. H — choʻqqigacha umumiy boʻy.");
 }
 
+// Seriyada hali yoʻq asbob va boʻlimlar panelda koʻrinmaydi (foydalanuvchi, 2026-11-14: dvaynoy Aldoksda yoʻq)
+const YOQ_ASBOB = {
+  "183": new Set(["lapsha", "lapsha_y", "yoy", "portal", "dv_chap", "dv_ong", "fortochka", "fortochka_tepa"]),
+};
+const YOQ_BOLIM = { "183": new Set(["shakl"]) };
+const seriyaRama = () => (tahrir ? joriy(tahrir).rama : null);
+const asbobBor = (id) => !(YOQ_ASBOB[seriyaRama()] || new Set()).has(id);
+const bolimBor = (id) => !(YOQ_BOLIM[seriyaRama()] || new Set()).has(id);
+const lambriBor = () => seriyaRama() !== "183";
+
 function asboblarniChiz() {
-  $("k-bolimlar").innerHTML = BOLIMLAR.map(([id, nom, i]) => `<button data-bolim="${id}" class="${id === bolim ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("") +
+  if (!bolimBor(bolim)) bolim = "impost";
+  $("k-bolimlar").innerHTML = BOLIMLAR.filter(([id]) => bolimBor(id)).map(([id, nom, i]) => `<button data-bolim="${id}" class="${id === bolim ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("") +
     `<span class="bosh"></span><button data-tarix="orqaga" ${orqaga.length ? "" : "disabled"} aria-label="Orqaga">↶</button><button data-tarix="oldinga" ${oldinga.length ? "" : "disabled"} aria-label="Oldinga">↷</button>`;
   const faolId = bolim === "shakl" ? shaklId(tahrir) : asbob;
-  let html = ASBOBLAR[bolim].map(([id, nom, i]) => `<button data-asbob="${id}" class="nomli${id === faolId ? " faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("");
+  let html = ASBOBLAR[bolim].filter(([id]) => asbobBor(id)).map(([id, nom, i]) => `<button data-asbob="${id}" class="nomli${id === faolId ? " faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("");
   $("k-asboblar").innerHTML = html;
   const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
@@ -1302,8 +1313,8 @@ function oynaTugmalari(b, attr) {
   const oz = b.oyna_turi || "", turlar = oynaTurlari();
   const gul = (o) => (o.toLowerCase().includes("gul") ? ";background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)" : "");
   const tug = (v, nom, rang) => `<button data-${attr}="oyna_turi" data-v="${esc(JSON.stringify(v))}" class="sz-oyna${oz === v ? " faol" : ""}"><span class="namuna" style="background:${oynaRangi(rang)}${gul(rang)}"></span>${esc(nom)}</button>`;
-  return tug("", "Konstruksiyadagidek", asosiy) + turlar.map((o) => tug(o, o, o)).join("") +
-    `<button data-${attr}="oyna_turi" data-v='"${LAMBRI}"' class="sz-oyna${oz === LAMBRI ? " faol" : ""}"><span class="namuna lambri-namuna"></span>Lambri</button>`;
+  return tug("", "Konstruksiyadagidek", asosiy) + turlar.map((o) => tug(o, o, o)).join("") + (!lambriBor() ? "" :
+    `<button data-${attr}="oyna_turi" data-v='"${LAMBRI}"' class="sz-oyna${oz === LAMBRI ? " faol" : ""}"><span class="namuna lambri-namuna"></span>Lambri</button>`);
 }
 function oynaSarlavha(p) {
   const ot = bargOynaTuri(tahrir, p) || "Oq+oq";
@@ -1430,6 +1441,7 @@ function ichkiPanel(b, bosh) {
     const barglar = t.olchamlar.map((_, j) => j).filter((j) => !(t.bolaklar && t.bolaklar[j] && t.bolaklar[j].olchamlar));
     q += `<div class="tugmalar">${barglar.map((j) => {
       const lb = !!(t.bolaklar && t.bolaklar[j] && t.bolaklar[j].oyna_turi === LAMBRI);
+      if (!lambriBor()) return "";
       return `<button class="tugma${lb ? " faol" : ""}" data-amal="ii_lambri" data-v='${JSON.stringify(y + ":" + j)}'>${j + 1}: ${lb ? "Lambri ✓" : "Oyna"}</button>`;
     }).join("")}</div>`;
     (t.bolaklar || []).forEach((c, j) => { if (c && c.olchamlar) yur(c, [...yol, j], `${nom}${j + 1}-boʻlak ichida → `); });
@@ -1454,7 +1466,8 @@ function panelniChiz() {
   let p = `<div class="panel-bosh"><b>${belgi}</b> · ${turNomi} · ≈ ${yx(o.w)} × ${yx(o.h)} sm</div>`;
   if (b.tur === "tabaqa") {
     const turi = b.fortochka ? "fortochka" : b.dvaynoy ? "dvaynoy" : "oddiy";
-    p += `<div class="sarlavha">Turi</div>${tugmalar("turi", turi, [["oddiy", "Oddiy"], ["dvaynoy", "Dvaynoy"], ["fortochka", "Fortochka"]])}`;
+    const turlar = [["oddiy", "Oddiy"], ["dvaynoy", "Dvaynoy"], ["fortochka", "Fortochka"]].filter(([v]) => v === "oddiy" || asbobBor(v === "dvaynoy" ? "dv_chap" : "fortochka"));
+    if (turlar.length > 1) p += `<div class="sarlavha">Turi</div>${tugmalar("turi", turi, turlar)}`;
     p += b.fortochka
       ? `<div class="sarlavha">Petlya</div>${tugmalar("petlya_tomoni", b.petlya_tomoni || "past", [["past", "Pastda"], ["tepa", "Tepada"]])}
          ${pvxmi(joriy(tahrir).rama) ? "" : `<div class="sarlavha">Yopilishi</div>${tugmalar("ruchka", !!b.ruchka, [[false, "Chit-chit"], [true, "Ruchka"]])}`}`
@@ -1462,7 +1475,10 @@ function panelniChiz() {
     p += b.tabaqa_impost ? ichkiPanel(b, "")
       : `<div class="sarlavha">Tabaqa ichiga impost</div><div class="tugmalar"><button class="tugma" data-amal="ii_qosh" data-v='"gorizontal"'>Yotiq</button><button class="tugma" data-amal="ii_qosh" data-v='"vertikal"'>Tik</button></div>`;
   } else if (b.tur === "eshik") {
-    p += `<div class="xira">${b.ochilish === "tashqariga" ? "Balkon Oʻrta V707 (tashqariga)" : "Balkon Qanot V708 (ichkariga)"} — ⚙ sozlamada almashtiriladi. Tabaqa soni va ruchka tomoni tepadagi asboblarda.</div>`;
+    const ich = b.ochilish !== "tashqariga", sr = seriyaRama();
+    const prof = sr === "183" ? (aldYengil(tahrir) ? (ich ? "Qanot 181" : "Urta 182") : (ich ? "Balkon Qanot 198" : "Balkon Urta 185"))
+      : pvxmi(sr) ? (ich ? "Balkon Kanot 7055" : "Balkon Urta 7054") : (ich ? "Balkon Qanot V708" : "Balkon Oʻrta V707");
+    p += `<div class="xira">${prof} (${ich ? "ichkariga" : "tashqariga"}) — ⚙ sozlamada almashtiriladi. Tabaqa soni va ruchka tomoni tepadagi asboblarda.</div>`;
     p += ichkiPanel(b, "Tabaqa ichiga impost: tik yoki yotiq asbobni eshikka suring.");
   } else p += `<div class="xira">Turini almashtirish uchun tepadan asbob tanlab, boʻlakka bosing.</div>`;
   // Lapsha bilan ulangan rama: oʻlchami, kalta qilish va tekislash
