@@ -96,6 +96,7 @@ class Seriya:
     eshik_boy_jami: D = None        # eshik qanoti boʻyi = ichki + shu
     eshik_profili_yengil: dict = None  # tanlov "eshik_tur" = "yengil" boʻlsa (Aldoks: Qanot / Urta)
     fortochka_oyna: D = D("1.5")    # fortochka oynasi = qanot ichki − shu
+    arka_profilsiz: bool = False    # egiladigan profilni bukuvchi oʻzi beradi: profil hisobiga kirmaydi, faqat xizmat
 
 
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
@@ -113,7 +114,10 @@ ALDOKS = Seriya("Aldoks", "182", "181", D("1.3"), D(1), D(0), False, {20: "105"}
                 eshik_profili={"ichkariga": "198", "tashqariga": "185"}, eshik_en_jami=D("1.3"),
                 eshik_profili_yengil={"ichkariga": "181", "tashqariga": "182"},
                 eshik_boy_jami=D("1.5"), eshik_2_qoshimcha=D("-0.5"), shtulp="182", shtulp_ayirma=D("1.8"),
-                fortochka_oyna=D(1))  # fortochka oynasi ham ichki − 1 (foydalanuvchi, 2026-11-14)
+                fortochka_oyna=D(1),  # fortochka oynasi ham ichki − 1 (foydalanuvchi, 2026-11-14)
+                # arka (foydalanuvchi, 2026-11-14): bukuvchi profilni AKFA dan oʻzi oladi va bukadi, metriga
+                # toʻlanadi — egiladigan profil hisobdan chiqadi, "Arka bukish (Aldoks)" xizmati ichida
+                arka_profilsiz=True)
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG, "183": ALDOKS}
 ALDOKS_PROFILLARI = {"183", "181", "182", "105", "185", "198"}
 # Seriya impostidan ramasi (impost tanlovi tekshiruvi uchun)
@@ -294,6 +298,9 @@ class Hisob:
 
     def egilgan(self, nomi, profil, en, chuqurlik, egish=True):
         uzunlik = en + chuqurlik + self.seriya.arka_zapas
+        if egish and self.seriya.arka_profilsiz:
+            self.arka_metr += uzunlik  # profil xizmat ichida (Aldoks)
+            return
         # egiladigan detalga armatura qoʻyilmaydi (Engelberg, foydalanuvchi 2026-11-11)
         self.detal(nomi, profil, uzunlik, 1, armatura=False)
         if egish:
@@ -830,11 +837,10 @@ def _bolak_ichi(b, z, h, ctx):
     if z.ichki_en <= 0 or z.ichki_boy <= 0:
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
     tur = b.get("tur")
-    if h.seriya.faqat_rom and (tur not in ("gluxoy", "tabaqa", "bolinish", "eshik")
-                               or b.get("dvaynoy") or b.get("lapsha")
-                               or b.get("egilgan") is not None or h.joriy_oyna == LAMBRI):
-        raise HisobXato(f"{h.seriya.nomi}da hozircha faqat rom va eshik: gluxoy, tabaqa, eshik, impost "
-                        "(dvaynoy, lapsha, portal, lambri hali yoʻq)")
+    if h.seriya.faqat_rom and (tur not in ("gluxoy", "tabaqa", "bolinish", "eshik", "portal")
+                               or b.get("dvaynoy") or b.get("lapsha") or h.joriy_oyna == LAMBRI):
+        raise HisobXato(f"{h.seriya.nomi}da hozircha: gluxoy, tabaqa, fortochka, eshik, impost, arka, portal "
+                        "(dvaynoy, lapsha, lambri yoʻq)")
     if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("egilgan") is not None):
         raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, fortochka, impost) hisoblanadi")
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas
@@ -952,7 +958,7 @@ def hisobla(k):
     h.eshik_tur = (k.get("tanlov") or {}).get("eshik_tur") or "balkon"
     if h.eshik_tur not in ("balkon", "yengil"):
         raise HisobXato(f"Eshik turi balkon yoki yengil boʻlishi kerak: {h.eshik_tur}")
-    if (not seriya.eshik or seriya.faqat_rom) and k.get("arka"):
+    if not seriya.eshik and k.get("arka"):
         raise HisobXato(f"{seriya.nomi}: arka hozircha yoʻq")
     if seriya.faqat_rom and (k.get("tur") == "lapshali" or _lapshami(k.get("bolak"))):
         raise HisobXato(f"{seriya.nomi}da lapsha hozircha yoʻq")

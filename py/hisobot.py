@@ -57,6 +57,8 @@ PODOKONNIK_ZAPAS = D(15)                          # uzunlik = L + 15 sm
 PODOKONNIK_KRISHKA = "Krishka Podokonnik"         # har podokonnikka 2 dona
 ARKA_EGISH = "Arka egish"        # $ / m egiladigan profil
 ARKA_EGISH_PVX = "Arka egish PVX"  # PVX 4,2 $ / m (foydalanuvchi, 2026-11-11)
+# Aldoks: bukuvchi profil bilan birga, metriga (foydalanuvchi, 2026-11-14; narxi keyin aytiladi)
+ARKA_EGISH_SERIYA = {"Termo 70": ARKA_EGISH, "Aldoks": "Arka bukish (Aldoks)"}
 MEDVED_SAMOREZ = "Medved samorez soʻm"   # montaj samorezi, dona, soʻmda (foydalanuvchi, 2026-11-09: 1 300 soʻm)
 LAPSHA_SAMOREZ = "Lapsha samorez soʻm"   # dona, soʻmda (foydalanuvchi, 2026-11-09: 300 soʻm), kursga boʻlinadi
 ARKA_OYNA = "Arka oyna soʻm"     # soʻm / m² arkali oyna ustamasi (narx soʻmda, kursga boʻlinadi)
@@ -776,6 +778,7 @@ def _ald_hisobot(s, rang, r, tanlov=None, seriya="Aldoks"):
     if balkon:
         r.qosh("Aksessuar", t["balkon_chovush"], D(balkon) * D("4.2") / 100, "m")
     burchak = 4 * (sum(s["ramalar"].values()) + sum(v for p, v in s["tabaqalar"].items() if p not in t["balkon"]))
+    burchak += 2 * s.get("segment_ramalar", 0)  # yarim aylana ramasi: 2 burchak
     samorez = (burchak + balkon) * ALD_BURCHAK_SAMOREZ  # 190 Chovushga ham 3,9×16 × 8 (foydalanuvchi, 2026-11-14)
     r.qosh("Aksessuar", t["chovush"], burchak, "dona")
     if s["impost_soni"]:
@@ -868,7 +871,7 @@ def hisobot(k, narxlar):
         r.qatorlar[-1]["oyna_turi"] = t
     # Arka (foydalanuvchi, 2026-11-06): egish 7,5 $ / m (shtapik ichida), arkali oyna m² ga soʻmda ustama
     if s.get("arka_metr"):
-        egish = ARKA_EGISH if n.get("seriya", "Termo 70") == "Termo 70" else ARKA_EGISH_PVX
+        egish = ARKA_EGISH_SERIYA.get(n.get("seriya", "Termo 70"), ARKA_EGISH_PVX)
         r.qosh("Arka", egish, D(str(s["arka_metr"])), "m")
     if s.get("lapsha_samorez"):
         dona = D(s["lapsha_samorez"])
