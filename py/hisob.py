@@ -1017,7 +1017,8 @@ def _eshik(b, z, h, arka=D(0)):
         h.tabaqa("Eshik tabaqasi L2", profil, L2, H1, shtulp_yonida=True, arka=ch2, ichki_impost=ii)
         h.eshik_qanotlari.extend([(L1, H1), (L2, H1)])
         h.markaziy_rezina += H1  # shtulp boʻyi bir marta
-        h.detal("Shtulp", sr.shtulp, H1 - sr.shtulp_ayirma, 1)
+        with _yozuv(h, ("shtulp", b["_yol"]) if "_yol" in b else None):
+            h.detal("Shtulp", sr.shtulp, H1 - sr.shtulp_ayirma, 1)
         h.eshiklar.append(2)
     else:
         raise HisobXato("Eshik tabaqa soni 1 yoki 2 boʻlishi kerak")

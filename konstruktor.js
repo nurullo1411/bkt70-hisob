@@ -92,7 +92,7 @@ let tabOl = {};
 // Profil ustidagi kesish uzunligi (foydalanuvchi, 2026-11-15): har tugunga "_yol", hisob.py "yozuvlar" qaytaradi
 // → {rama: {p: [{nomi, uzunlik}]}, kosa: {p: [uzunlik…]}, imp: {"p|i": uzunlik}, ii: {"p|yol": [uzunlik…]}}
 function chizmaMalumot(k) {
-  const bosh = { tab: {}, yoz: { rama: {}, kosa: {}, imp: {}, ii: {} } };
+  const bosh = { tab: {}, yoz: { rama: {}, kosa: {}, imp: {}, ii: {}, shtulp: {} } };
   if (typeof pyChizma !== "function" || !k || !k.bolak) return bosh;
   const c = nusxa(k), m = bosh.tab, y = bosh.yoz;
   const iiYol = (n, p, yol) => {
@@ -116,6 +116,7 @@ function chizmaMalumot(k) {
     else if (tur === "kosa") (y.kosa[p] = y.kosa[p] || []).push(z.uzunlik);
     else if (tur === "imp") y.imp[`${p}|${i}`] = z.uzunlik;
     else if (tur === "ii") (y.ii[p] = y.ii[p] || []).push(z.uzunlik);
+    else if (tur === "shtulp") y.shtulp[p] = z.uzunlik;
   }
   return bosh;
 }
@@ -840,6 +841,8 @@ function chizmaSVG(k, opts = {}) {
         const aktiv = b.aktiv || "ong", e = o.esh;
         // tabaqalar L1 / L2 nisbatida (ruchkali — L1)
         const wc = e && e.jami > 0 ? w * Math.min(0.9, Math.max(0.1, (aktiv === "chap" ? e.L1 : e.L2) / e.jami)) : w / 2;
+        const shu = opts.kesYoz && opts.kesYoz.shtulp[o.p];
+        if (shu != null) kesYozuv.push(kesMatn(x + wc, y + h * 0.75, shu, true));  // shtulp — tabaqalar tutashgan joyda
         s += tabaqa(x, y, wc, h, "chap", false, aktiv === "chap", false, d, tY, pY, true, { ii: b.tabaqa_impost, p: o.p, tutash: "ong", l: aktiv === "chap" ? "L1" : "L2" }) + tabaqa(x + wc, y, w - wc, h, "ong", false, aktiv === "ong", false, d, tY, pY, true, { ii: b.tabaqa_impost, p: o.p, tutash: "chap", l: aktiv === "ong" ? "L1" : "L2" });
       } else s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", false, true, false, d, tY, pY, true, { ii: b.tabaqa_impost, p: o.p });
     } else s += rect(x, y, w, h, "xt");
