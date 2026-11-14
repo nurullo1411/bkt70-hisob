@@ -18,7 +18,7 @@ from zakaz import _birlashtir
 HIVICH = 650
 # PVX Engelberg 7000 hivichi 6 m (foydalanuvchi, 2026-11-08)
 HIVICH_PROFIL = {p: 600 for p in ("LII", "7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2",
-                                         "183", "181", "182", "105", "185", "198")}  # Aldoks ham 6 m (katalog)
+                                         "183", "181", "182", "105", "185", "198", "109")}  # Aldoks ham 6 m (katalog)
 
 
 def hivich(profil):
@@ -40,14 +40,14 @@ QIYA_AYIRMA = {"182": 5.95}
 # A701 ning 190 sm dan kichigi baribir ishlatilmaydi (foydalanuvchi, 2026-11-03).
 CHEGARASIZ = {"A701", "7058"}  # Engelberg shtulpi ham (200 sm dan kichigi otxod)
 TOGRI_KESIM = {"LII", "M702", "A701", "H702", "7053", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2",
-               "182"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
+               "182", "109"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
 SKLAD_NOMI = {
     "F702": "Kosa F702", "F703": "Kosa F703", "M702": "O'rta M702", "V702": "Qanot V702",
     "V707": "Balkon o'rta V707", "V708": "Balkon qanot V708", "A701": "Shtulp A701", "LII": "Lambri II PVX", "H702": "Lapsha lam",
 }
 TARTIB = ["F702", "F703", "V702", "V707", "V708", "M702", "A701", "H702", "LII", "G24", "G24-R", "G32", "G32-R",
           "7051", "7052", "7054", "7055", "7053", "7058", "7056", "7057", "0701", "0703", "0701-2", "0703-2", "0702-2",
-          "183", "181", "185", "198", "182", "105"]
+          "183", "181", "185", "198", "182", "109", "105"]
 
 
 def _b(x):
@@ -302,6 +302,7 @@ OTXOD_CHEGARA = {
     "7054": 65, "7055": 65, "7058": 200,  # Engelberg eshik (foydalanuvchi, 2026-11-11)
     "LII": 59,  # PVX lambri (foydalanuvchi, 2026-11-10)
     "183": 70, "181": 60, "182": 100, "105": 40, "185": 65, "198": 65,  # Aldoks
+    "109": 280,  # Chift Quloq (foydalanuvchi, 2026-11-14)
 }
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
 
@@ -621,6 +622,7 @@ PROFIL_NOMI = {
     "0701": "Armatura Kosa-Qanot", "0703": "Armatura Urta",
     "0701-2": "Armatura Kosa-Qanot 2 mm", "0703-2": "Armatura Urta 2 mm", "0702-2": "Armatura Balkon Qanot 2 mm",
     "183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P", "185": "Balkon Urta", "198": "Balkon Qanot",  # Aldoks
+    "109": "Chift Quloq",
 }
 
 

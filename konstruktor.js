@@ -86,6 +86,19 @@ function almashtir(p, yangi) {
   if (kal && eski && eski !== yangi && eski[kal] != null) { if (yangi[kal] == null) yangi[kal] = eski[kal]; delete eski[kal]; }
   otaB.bolaklar[o.i] = yangi;
 }
+// Chift Quloq (Aldoks 109; foydalanuvchi, 2026-11-14): ramani boʻladi — faqat eng yuqori boʻlinish.
+// Ildiz shu yoʻnalishdagi chift boʻlsa, bosilgan boʻlak turgan qism ikkiga; aks holda butun rama yoniga yangi qism.
+function chiftQosh(p, yonalish) {
+  const r = tahrir.bolak, q = yolQism(p);
+  if (r.tur === "bolinish" && r.chift && r.yonalish === yonalish && q.length) {
+    const i = q[0];
+    r.bolaklar.splice(i + 1, 0, { tur: "gluxoy" });
+    r.olchamlar.splice(i + 1, 0, null);
+    if (r.olchamlar[i] != null) r.olchamlar[i] = null;
+    return;
+  }
+  tahrir.bolak = { tur: "bolinish", chift: true, yonalish, olchamlar: [null, null], bolaklar: [r, { tur: "gluxoy" }] };
+}
 // Barg yoʻlidan uning ramasi (lapsha guruhi bolasi yoki ildiz) yoʻli
 function ramaYoli(p) {
   let q = p;
@@ -125,7 +138,7 @@ function bolish(p, yonalish, n = 2) {
   const b = tugun(tahrir.bolak, p);
   const o = ota(p);
   const otaB = o ? tugun(tahrir.bolak, o.yol) : null;
-  if (otaB && otaB.tur === "bolinish" && otaB.yonalish === yonalish && !otaB.egilgan && !otaB.lapsha) {
+  if (otaB && otaB.tur === "bolinish" && otaB.yonalish === yonalish && !otaB.egilgan && !otaB.lapsha && !otaB.chift) {
     const x = otaB.olchamlar[o.i];
     for (let j = 1; j < n; j++) { otaB.bolaklar.splice(o.i + j, 0, { tur: "gluxoy" }); otaB.olchamlar.splice(o.i + j, 0, null); }
     // oʻlchami qoʻlda berilgan boʻlak boʻlinsa — oʻz oʻrni ichida teng qismlar (oxirgisi qoldiq),
@@ -794,6 +807,8 @@ const ASBOBLAR = {
     ["yotiq3", "3 ga boʻlish (yotiq)", ik('<line x1="3" y1="8" x2="21" y2="8" class="q"/><line x1="3" y1="16" x2="21" y2="16" class="q"/>')],
     ["lapsha", "Lapsha (tik): yoniga alohida rama", ik('<line x1="10" y1="3" x2="10" y2="21" class="q"/><line x1="14" y1="3" x2="14" y2="21" class="q"/><path d="M10 7h4M10 12h4M10 17h4"/>')],
     ["lapsha_y", "Lapsha (yotiq): ustiga/ostiga alohida rama", ik('<line x1="3" y1="10" x2="21" y2="10" class="q"/><line x1="3" y1="14" x2="21" y2="14" class="q"/><path d="M7 10v4M12 10v4M17 10v4"/>')],
+    ["chift", "Chift Quloq (tik): ramani ikkiga boʻladi", ik('<line x1="12" y1="1" x2="12" y2="23" class="q"/><path d="M10 6h4M10 18h4"/>')],
+    ["chift_y", "Chift Quloq (yotiq): ramani ikkiga boʻladi", ik('<line x1="1" y1="12" x2="23" y2="12" class="q"/><path d="M6 10v4M18 10v4"/>')],
     ["yoy", "Yoy impost (arkaga parallel yoki oʻz chuqurligi)", ik('<path d="M3 15q9-9 18 0" class="q"/>')],
     ["portal", "Portal: arkali oʻrta, atrofida U oyna", ik('<path d="M3 3h18v18H3z" class="q"/><path d="M8 21v-9a4 4 0 0 1 8 0v9"/>')],
     // "Shtulp" asbobi olib tashlandi (foydalanuvchi, 2026-11-08): 2 tabaqali eshik — Eshik boʻlimida
@@ -831,7 +846,7 @@ const BOLIMLAR = [
 
 // Tugma ostidagi qisqa nom (belgining oʻzi tushunarsiz boʻlmasin)
 const QISQA = {
-  tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", portal: "Portal", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", lapsha: "Lapsha tik", lapsha_y: "Lapsha yotiq", ochir: "Impostni olish",
+  tik: "Tik", yotiq: "Yotiq", yoy: "Yoy impost", portal: "Portal", tik3: "Tik 3 ga", yotiq3: "Yotiq 3 ga", lapsha: "Lapsha tik", lapsha_y: "Lapsha yotiq", chift: "Chift tik", chift_y: "Chift yotiq", ochir: "Impostni olish",
   tab_chap: "Chap", tab_ong: "Oʻng", dv_chap: "Dvaynoy chap", dv_ong: "Dvaynoy oʻng", fortochka: "Fortochka ↓", fortochka_tepa: "Fortochka ↑", gluxoy: "Gluxoy",
   esh1_chap: "1 tab. chap", esh1_ong: "1 tab. oʻng", esh2_ong: "2 tab. ruchka oʻng", esh2_chap: "2 tab. ruchka chap",
   togri: "Toʻgʻri", arka_yarim: "Yarim doira", arka: "Pologiy arka", aylana: "Yarim aylana",
@@ -870,7 +885,8 @@ const YOQ_ASBOB = {
 };
 const YOQ_BOLIM = {};
 const seriyaRama = () => (tahrir ? joriy(tahrir).rama : null);
-const asbobBor = (id) => !(YOQ_ASBOB[seriyaRama()] || new Set()).has(id);
+// Chift Quloq faqat Aldoksda (foydalanuvchi, 2026-11-14)
+const asbobBor = (id) => !(YOQ_ASBOB[seriyaRama()] || new Set()).has(id) && (!id.startsWith("chift") || aldmi(seriyaRama()));
 const bolimBor = (id) => !(YOQ_BOLIM[seriyaRama()] || new Set()).has(id);
 const lambriBor = () => !aldmi(seriyaRama());
 
@@ -978,6 +994,13 @@ function asbobniQollaIchki(kalit) {
     saqlaTarix();
     if (!lapshaBolish(p, asbob === "lapsha" ? "vertikal" : "gorizontal")) orqaga.pop();
     if (!tugun(tahrir.bolak, tanlangan) || tugun(tahrir.bolak, tanlangan).tur === "bolinish") tanlangan = geometriya(tahrir).barglar[0].p;
+    yangila();
+    return;
+  }
+  if (asbob === "chift" || asbob === "chift_y") {
+    if (joriy(tahrir).arka) { xabar("Chift Quloq arkali romda boʻlmaydi"); return; }
+    saqlaTarix();
+    chiftQosh(p, asbob === "chift" ? "vertikal" : "gorizontal");
     yangila();
     return;
   }

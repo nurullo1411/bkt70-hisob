@@ -124,10 +124,11 @@ LAMBRI_NOM = {"oq": "Lambri II (N)", "grey": _LAMBRI_ALUX, "alux": _LAMBRI_ALUX,
 
 
 # Aldoks (AKFA roʻyxati 04.11.2026): ADT / (N) / NEO — oʻlcham bir xil, nomi boshqa (tanlov.ald_tur)
-ALD_NOM = {"183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P", "185": "Balkon Urta", "198": "Balkon Qanot"}
+ALD_NOM = {"183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P", "185": "Balkon Urta", "198": "Balkon Qanot",
+           "109": "Chift Quloq"}
 ALD_NEO_KOD = {"183": "F0022", "181": "V0022", "182": "M0022", "105": "G0001", "185": "V0008", "198": "V0007"}
-ALD_N_NOM = {"185": "Balkon Urta New", "198": "Balkon Qanot New"}  # (N) turida eshik profili "New"
-ALD_LAM_NOM = {"198": "Balkon Kanot"}  # laminat roʻyxatida "Kanot" deb yozilgan
+ALD_N_NOM = {"185": "Balkon Urta New", "198": "Balkon Qanot New", "109": "Chift Quloq New"}  # (N) turida eshik profili "New"
+ALD_LAM_NOM = {"198": "Balkon Kanot", "109": "Chift (Uzkiy)"}  # laminat Chift Quloq — "Chift (Uzkiy)"  # laminat roʻyxatida "Kanot" deb yozilgan
 ALD_TURLARI = ("ADT", "N", "NEO")
 
 

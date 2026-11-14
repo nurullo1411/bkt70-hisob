@@ -57,6 +57,8 @@ for _p in ("7054", "7055"):
 # ADT / (N) / NEO — profil kodi va oʻlchami bir xil, faqat diller nomi (tanlov.ald_tur).
 RAMA_R["183"] = D("4.25")
 IMPOST_YARMI["182"] = D("2.125")
+# Chift Quloq 109 (katalog 1-4, 3-6..3-8): koʻrinadigan eni 42,5 — impostdek, yarmi 2,125 (foydalanuvchi, 2026-11-14)
+IMPOST_YARMI["109"] = D("2.125")
 TABAQA_AYIRMA["181"] = 2 * D("5.95")
 # Tabaqa ichidagi impost 182 = qanot ichki = qanot − 5,95 − 5,95 (qanot yuzasi 5,95; foydalanuvchi, 2026-11-14);
 # laminatda yana − 0,16. 182 qanot (yengil eshik tashqariga) ichiga impost hali yoʻq.
@@ -97,6 +99,7 @@ class Seriya:
     eshik_profili_yengil: dict = None  # tanlov "eshik_tur" = "yengil" boʻlsa (Aldoks: Qanot / Urta)
     fortochka_oyna: D = D("1.5")    # fortochka oynasi = qanot ichki − shu
     arka_profilsiz: bool = False    # egiladigan profilni bukuvchi oʻzi beradi: profil hisobiga kirmaydi, faqat xizmat
+    chift: str = None               # ramani boʻladigan profil (Aldoks: 109 Chift Quloq)
 
 
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
@@ -117,9 +120,9 @@ ALDOKS = Seriya("Aldoks", "182", "181", D("1.3"), D(1), D(0), False, {20: "105"}
                 fortochka_oyna=D(1),  # fortochka oynasi ham ichki − 1 (foydalanuvchi, 2026-11-14)
                 # arka (foydalanuvchi, 2026-11-14): bukuvchi profilni AKFA dan oʻzi oladi va bukadi, metriga
                 # toʻlanadi — egiladigan profil hisobdan chiqadi, "Arka bukish (Aldoks)" xizmati ichida
-                arka_profilsiz=True)
+                arka_profilsiz=True, chift="109")
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG, "183": ALDOKS}
-ALDOKS_PROFILLARI = {"183", "181", "182", "105", "185", "198"}
+ALDOKS_PROFILLARI = {"183", "181", "182", "105", "185", "198", "109"}
 # Seriya impostidan ramasi (impost tanlovi tekshiruvi uchun)
 IMPOST_RAMA = {"M702": "F702", "7053": "7051", "182": "183"}
 ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2"}
@@ -603,6 +606,8 @@ def _bolinish(b, z, h, ctx):
         raise HisobXato("Lapsha faqat alohida ramalar orasida boʻladi (rama ichida — impost)")
     if b.get("egilgan") is not None:
         return _egilgan_bolinish(b, z, h, ctx)
+    if b.get("chift"):
+        return _chift_bolinish(b, z, h, ctx, vertikal)
     if vertikal and _tashqari_eshik_bor(b):
         raise HisobXato("Tashqariga ochiladigan eshik yonidagi oyna alohida ramada boʻladi: 'lapshali' turini ishlating")
     yarmi = ctx["yarmi"]
@@ -631,6 +636,52 @@ def _bolinish(b, z, h, ctx):
         else:
             yangi = Zona(z.en, olcham, z.chap, z.ong, boshi, oxiri, z.x, z.y + q,
                          z.tepa_yoy if i == 0 else None, z.past_yoy if i == oxirgi else None)
+        q += olcham
+        _bolak(bola, yangi, h, ichki_ctx)
+
+
+def _chift_bolinish(b, z, h, ctx, vertikal):
+    """Chift Quloq (Aldoks 109; foydalanuvchi, 2026-11-14): impostdek, lekin ramani boʻlib qoʻyadi.
+
+    Chift butun boʻyga (yotiqda — butun eniga) boradi, 90°. Unga tegadigan kosa (tepa/past yoki yonlar)
+    chift oʻqidan 2,125 qolib tugaydi va har uchi Bolshoy soedinitel bilan ulanadi (impostdek).
+    Boʻlaklar impost yonidagidek: chift tomonida oʻqdan − 2,125.
+    """
+    profil = h.seriya.chift
+    if not profil:
+        raise HisobXato(f"{h.seriya.nomi}da Chift Quloq yoʻq")
+    if ctx.get("bolinish_ichida") or h.arka or h.segment:
+        raise HisobXato("Chift Quloq faqat ramaning birinchi boʻlinishida (arkasiz) boʻladi")
+    yarmi = IMPOST_YARMI[profil] + h.lam / 2
+    oxirgi = len(b.get("olchamlar") or []) - 1
+
+    def chetlar(i):
+        boshi = yarmi if i > 0 else (z.chap if vertikal else z.tepa)
+        oxiri = yarmi if i < oxirgi else (z.ong if vertikal else z.past)
+        return boshi, oxiri
+
+    olchamlar = _olchamlar(b, z.en if vertikal else z.boy, [sum(chetlar(i)) for i in range(oxirgi + 1)])
+    nomi = "Chift Quloq vertikal" if vertikal else "Chift Quloq gorizontal"
+    h.detal(nomi, profil, z.boy if vertikal else z.en, oxirgi)
+    # kosa boʻlinadi: butun detal (× 2) oʻrniga boʻlaklar, chift tomonida oʻqdan yarmi qolib
+    rama = ctx["rama"]
+    zapas = h.seriya.rama_payvand
+    kalit = ("Rama eni" if vertikal else "Rama boʻyi", rama, (z.en if vertikal else z.boy) + zapas)
+    h.profillar[kalit] -= 2
+    if not h.profillar[kalit]:
+        del h.profillar[kalit]
+    for i, o in enumerate(olchamlar):
+        uz = o + zapas - yarmi * ((i > 0) + (i < oxirgi))
+        h.detal(kalit[0], rama, uz, 2)
+    h.impost_soni += 2 * oxirgi  # har chiftga 4 kosa uchi — Bolshoy + samorez impost uchidagidek
+    ichki_ctx = {**ctx, "bolinish_ichida": True}
+    q = D(0)
+    for i, (olcham, bola) in enumerate(zip(olchamlar, b["bolaklar"])):
+        boshi, oxiri = chetlar(i)
+        if vertikal:
+            yangi = Zona(olcham, z.boy, boshi, oxiri, z.tepa, z.past, z.x + q, z.y)
+        else:
+            yangi = Zona(z.en, olcham, z.chap, z.ong, boshi, oxiri, z.x, z.y + q)
         q += olcham
         _bolak(bola, yangi, h, ichki_ctx)
 
@@ -948,7 +999,7 @@ def _rama_hisobi(profil, impost, en, boy, bolak, h):
     r = RAMA_R[profil] + h.lam
     h.r = r
     h.rama(profil, en, boy)
-    ctx = {"impost": impost, "yarmi": IMPOST_YARMI[impost] + h.lam / 2, "bolinish_ichida": False}
+    ctx = {"impost": impost, "yarmi": IMPOST_YARMI[impost] + h.lam / 2, "bolinish_ichida": False, "rama": profil}
     _bolak(bolak, Zona(en, boy, r, r, r, r, tepa_yoy=h.arka), h, ctx)
 
 
