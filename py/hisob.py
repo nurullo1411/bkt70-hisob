@@ -100,7 +100,9 @@ class Seriya:
     eshik_profili_yengil: dict = None  # tanlov "eshik_tur" = "yengil" boʻlsa (Aldoks: Qanot / Urta)
     fortochka_oyna: D = D("1.5")    # fortochka oynasi = qanot ichki − shu
     arka_profilsiz: bool = False    # egiladigan profilni bukuvchi oʻzi beradi: profil hisobiga kirmaydi, faqat xizmat
-    chift: str = None               # ramani boʻladigan profil (Aldoks: 109 Chift Quloq)
+    chift: str = None
+    # yoy ostidagi yon shtapik yoy boshlanishigacha, uchi gradusda (foydalanuvchi, 2026-11-15: Termo, Aldoks, Engelberg)
+    shtapik_arka_boshi: bool = True               # ramani boʻladigan profil (Aldoks: 109 Chift Quloq)
 
 
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
@@ -334,7 +336,10 @@ class Hisob:
 
     def burchak(self, nomi, profil, uzunlik, matn):
         """45° va 90° dan boshqa kesish burchagi (foydalanuvchi, 2026-11-14: faqat shular yoziladi)."""
-        self.burchaklar[(nomi, profil, uzunlik)] = matn
+        k = (nomi, profil, uzunlik)
+        eski = self.burchaklar.get(k)
+        # bir xil uzunlikdagi detallar burchagi har xil boʻlsa ikkalasi yoziladi (masalan yoy ostidagi shtapiklar)
+        self.burchaklar[k] = matn if not eski or matn in eski.split(" | ") else f"{eski} | {matn}"
 
     def rama_burchaklari(self):
         """Arka bilan yon devor (yoki yarim aylanada past) tutashgan uchdagi kesish burchagi, tashqi chet boʻyicha.
@@ -393,7 +398,7 @@ class Hisob:
             bitta = 2 if u < ARMATURA_KALTA else math.ceil(u / ARMATURA_QADAM)
             self.armatura_samorez += int(bitta) * soni
 
-    def oyna(self, joy, ichki_en, ichki_boy, ayirma, arka=D(0), past=D(0), yonlar=2):
+    def oyna(self, joy, ichki_en, ichki_boy, ayirma, arka=D(0), past=D(0), yonlar=2, geo=None):
         if self.joriy_oyna == LAMBRI:
             return self.lambri(joy, ichki_en, ichki_boy, arka or past)
         en, boy = ichki_en - ayirma, ichki_boy - ayirma
@@ -417,8 +422,62 @@ class Hisob:
         for c in (arka, past):
             if c:
                 self.egilgan("Shtapik arka", self.sht_nomi(), ichki_en, c, egish=False)
-        if yonlar:
+        if geo and (arka or past) and yonlar == 2 and not self.segment and self.seriya.shtapik_arka_boshi:
+            self._yoy_shtapik(geo, ichki_en, arka, past)
+        elif yonlar:
             self.detal("Shtapik vertikal", self.sht_nomi(True), ichki_boy - self.sht_ayirma(), yonlar)
+
+    def _yoy_shtapik(self, geo, ichki_en, arka, past):
+        """Yoy ostidagi oyna yon shtapigi (foydalanuvchi, 2026-11-15): yoy boshlanishigacha (toʻrtburchak choʻqqisigacha
+        emas). Uzunlik = shtapik tashqi cheti chizigʻi (x) ichki yoyga tegadigan joydan pastgacha; toʻgʻri uchida
+        Termo/Aldoks qoidasidagidek bitta shtapik qalinligi ayiriladi (Engelberg 45° — ayirilmaydi). Yoyga tegadigan
+        uchi qiya: (90° + α) : 2, α — shu nuqtada yoy urinmasi qiyaligi (rama gradusidek); arka shtapigi uchlari ham."""
+        ust = geo["tepa"] if arka else None
+        ost = geo["past"] if past else None
+        yarim = self.sht_ayirma() / 2
+        tomonlar = []
+        for x in (geo["x1"], geo["x2"]):
+            yt = D(str(round(ust[0].y(x, ust[1]), 2))) if ust else geo["y1"]
+            yb = D(str(round(ost[0].y(x, -ost[1]), 2))) if ost else geo["y2"]
+            u = yb - yt - yarim * ((ust is None) + (ost is None))
+            uchlar = []
+            if ust:
+                uchlar.append(("tepa", self.gradus((90 + ust[0].qiyalik(x, ust[1])) / 2)))
+            if ost:
+                uchlar.append(("past", self.gradus((90 + ost[0].qiyalik(x, -ost[1])) / 2)))
+            tomonlar.append((u, tuple((a, m) for a, m in uchlar if m)))
+        nom = self.sht_nomi(True)
+        tomonlar_u = [t[0] for t in tomonlar]
+        if tomonlar[0] == tomonlar[1]:
+            tomonlar = [(tomonlar[0], 2)]
+        else:
+            tomonlar = [(t, 1) for t in tomonlar]
+        for (u, uchlar), soni in tomonlar:
+            if u <= 0:
+                continue  # yoy shu tomonda pastki shtapikkacha tushadi — yon shtapik yoʻq
+            self.detal("Shtapik vertikal", nom, u, soni)
+            if uchlar:
+                self.burchak("Shtapik vertikal", nom, u, ", ".join(f"{a} uchi {m}" for a, m in uchlar))
+        for yoy, c in ((ust, arka), (ost, past)):
+            if not yoy:
+                continue
+            ich = yoy[1] if yoy is ust else -yoy[1]
+
+            def uch(i):
+                x = geo["x1"] if i == 0 else geo["x2"]
+                if tomonlar_u[i] > 0:
+                    return self.gradus((90 + yoy[0].qiyalik(x, ich)) / 2)
+                # yon shtapik yoʻq: yoy toʻgʻri shtapikka tegadi — tutashuv α, har detalga α : 2
+                y = geo["y2"] - yarim if yoy is ust else geo["y1"] + yarim
+                w = yoy[0].yarim_en(y, ich)
+                if w is None:
+                    return None
+                return self.gradus(yoy[0].qiyalik(yoy[0].cx + w, ich) / 2)
+            m1, m2 = sorted((uch(0) or "90°", uch(1) or "90°"), key=lambda m: float(m[:-1].replace(",", ".")))
+            m1, m2 = (None if m == "90°" else m for m in (m1, m2))
+            if m1 or m2:
+                matn = f"ikki uchi {m1}" if m1 == m2 else f"bir uchi {m1 or '90°'}, ikkinchisi {m2 or '90°'}"
+                self.burchak("Shtapik arka", self.sht_nomi(), ichki_en + c + self.seriya.arka_zapas, matn)
 
     def sht_nomi(self, vertikal=False):
         """Termo: G24 (vertikal G24-R); Engelberg: 7056 / 7057 hamma tomonga (foydalanuvchi, 2026-11-08)."""
@@ -469,7 +528,7 @@ class Hisob:
         self.oyna_rezinasi += rezina
 
     def tabaqa(self, joy, profil, en, boy, shtulp_yonida=False, rom=False, dvaynoy=False, fortochka=None, arka=D(0), past=D(0),
-               ichki_impost=None):
+               ichki_impost=None, geo=None):
         if self.belgi is not None:
             self.belgilangan.append((self.belgi, joy, en, boy))
         self.tabaqa_soni += 1
@@ -502,7 +561,7 @@ class Hisob:
             self._tabaqa_ichi(joy, en - ayirma, boy - ayirma, oyna_ayirma, ichki_impost, arka or past,
                               chuqur, (True, True, True, True))
         else:
-            self.oyna(joy, en - ayirma, boy - ayirma, oyna_ayirma, arka, past)
+            self.oyna(joy, en - ayirma, boy - ayirma, oyna_ayirma, arka, past, geo=_geo_ich(geo, ayirma / 2, ayirma / 2))
 
     def _tabaqa_ichi(self, joy, ichki_en, ichki_boy, oyna_ayirma, ii, yoy, chuqur=D(0), tabaqada=(True,) * 4):
         """Tabaqa ichidagi M702 impost (foydalanuvchi, 2026-11-09; eshik va rom tabaqasi).
@@ -1042,6 +1101,24 @@ def _bolak(b, z, h, ctx):
         h.joriy_oyna, h.belgi = eski, eski_b
 
 
+def _geo(z):
+    """Boʻlak ichki chegarasi (rama tashqi chap-tepa burchagidan) va tepa/past yoyi (yoy, ichkari) — yon shtapik uchun."""
+    if not (z.tepa_yoy or z.past_yoy):
+        return None
+    return {"x1": z.x + z.chap, "x2": z.x + z.en - z.ong, "y1": z.y + z.tepa, "y2": z.y + z.boy - z.past,
+            "tepa": (z.tepa_yoy, float(z.tepa)) if z.tepa_yoy else None,
+            "past": (z.past_yoy, float(z.past)) if z.past_yoy else None}
+
+
+def _geo_ich(g, dx, dy):
+    """Chegarani har tomondan dx (eni) / dy (boʻyi) ichkariga suradi (manfiy — tashqariga)."""
+    if not g:
+        return None
+    return {"x1": g["x1"] + dx, "x2": g["x2"] - dx, "y1": g["y1"] + dy, "y2": g["y2"] - dy,
+            "tepa": (g["tepa"][0], g["tepa"][1] + float(dy)) if g["tepa"] else None,
+            "past": (g["past"][0], g["past"][1] + float(dy)) if g["past"] else None}
+
+
 def _bolak_ichi(b, z, h, ctx):
     if z.ichki_en <= 0 or z.ichki_boy <= 0:
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
@@ -1059,21 +1136,23 @@ def _bolak_ichi(b, z, h, ctx):
         yonlar = 2
         if h.segment and z.tepa_yoy is h.arka:
             yonlar -= (z.x == 0) + (z.x + z.en == D(str(h.arka.en)))
-        h.oyna("Gluxoy", z.ichki_en, z.ichki_boy, h.seriya.gluxoy_oyna, arka, past, yonlar=yonlar)
+        h.oyna("Gluxoy", z.ichki_en, z.ichki_boy, h.seriya.gluxoy_oyna, arka, past, yonlar=yonlar, geo=_geo(z))
     elif tur == "tabaqa" and b.get("fortochka"):
         # Fortochka (foydalanuvchi, 2026-11-05): qanot, shtapik, oyna rom tabaqasidagidek, faqat furnitura boshqa
         ruchka = bool(b.get("ruchka")) or h.seriya.pvx  # Engelberg fortochkasida doim ruchka
         q = h.seriya.tabaqa_qoshimcha
         qb = h.seriya.tabaqa_qoshimcha_boy if h.seriya.tabaqa_qoshimcha_boy is not None else q  # Aldoks + 1,5
         h.tabaqa("Fortochka", h.seriya.rom_tabaqa, z.ichki_en + q, z.ichki_boy + qb, rom=True,
-                 fortochka=ruchka, arka=arka, past=past, ichki_impost=b.get("tabaqa_impost"))
+                 fortochka=ruchka, arka=arka, past=past, ichki_impost=b.get("tabaqa_impost"),
+                 geo=_geo_ich(_geo(z), -q / 2, -qb / 2))
     elif tur == "tabaqa":
         q = h.seriya.tabaqa_qoshimcha
         qb = h.seriya.tabaqa_qoshimcha_boy if h.seriya.tabaqa_qoshimcha_boy is not None else q
         if b.get("dvaynoy"):
             h.dvaynoy_tomonlari.append(b.get("petlya_tomoni") or "chap")
         h.tabaqa("Rom tabaqasi", h.seriya.rom_tabaqa, z.ichki_en + q, z.ichki_boy + qb, rom=True,
-                 dvaynoy=bool(b.get("dvaynoy")), arka=arka, past=past, ichki_impost=b.get("tabaqa_impost"))
+                 dvaynoy=bool(b.get("dvaynoy")), arka=arka, past=past, ichki_impost=b.get("tabaqa_impost"),
+                 geo=_geo_ich(_geo(z), -q / 2, -qb / 2))
     elif tur == "eshik":
         _eshik(b, z, h, arka)
     elif tur == "portal":
