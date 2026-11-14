@@ -967,9 +967,8 @@ def _eshik(b, z, h, arka=D(0)):
     if ochilish not in sr.eshik_profili:
         raise HisobXato("Eshik ochilishi 'ichkariga' yoki 'tashqariga' boʻlishi kerak")
     profil = sr.eshik_profili[ochilish]
-    if h.eshik_tur == "yengil":
-        if not sr.eshik_profili_yengil:
-            raise HisobXato(f"{sr.nomi}da yengil eshik yoʻq")
+    # "yengil" faqat Aldoks tanlovi: boshqa seriyaga oʻtilganda qolib ketsa — e'tiborsiz, balkon eshigi (2026-11-15)
+    if h.eshik_tur == "yengil" and sr.eshik_profili_yengil:
         profil = sr.eshik_profili_yengil[ochilish]
 
     def ustma(*tomonlar):  # qanot kesishi ichki oʻlchamdan shuncha katta: kosa tomoni / impost tomoni
