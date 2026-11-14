@@ -1030,9 +1030,9 @@ def _bolak_ichi(b, z, h, ctx):
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
     tur = b.get("tur")
     if h.seriya.faqat_rom and (tur not in ("gluxoy", "tabaqa", "bolinish", "eshik", "portal")
-                               or b.get("dvaynoy") or b.get("lapsha") or h.joriy_oyna == LAMBRI):
-        raise HisobXato(f"{h.seriya.nomi}da hozircha: gluxoy, tabaqa, fortochka, eshik, impost, arka, portal "
-                        "(dvaynoy, lapsha, lambri yoʻq)")
+                               or b.get("dvaynoy") or b.get("lapsha")):
+        raise HisobXato(f"{h.seriya.nomi}da hozircha: gluxoy, tabaqa, fortochka, eshik, impost, arka, portal, lambri "
+                        "(dvaynoy, lapsha yoʻq)")
     if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("egilgan") is not None):
         raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, fortochka, impost) hisoblanadi")
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas

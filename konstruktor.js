@@ -947,7 +947,7 @@ const seriyaRama = () => (tahrir ? joriy(tahrir).rama : null);
 // Chift Quloq faqat Aldoksda (foydalanuvchi, 2026-11-14)
 const asbobBor = (id) => !(YOQ_ASBOB[seriyaRama()] || new Set()).has(id) && (!id.startsWith("chift") || aldmi(seriyaRama()));
 const bolimBor = (id) => !(YOQ_BOLIM[seriyaRama()] || new Set()).has(id);
-const lambriBor = () => !aldmi(seriyaRama());
+const lambriBor = () => true;  // Aldoksda ham PVX lambri (foydalanuvchi, 2026-11-14)
 
 function asboblarniChiz() {
   if (!bolimBor(bolim)) bolim = "impost";
@@ -1776,7 +1776,7 @@ function sozlamaOynasi() {
     <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
     <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama) && !aldmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button><button data-sz="s:rama" data-v='"183"' class="${faol(j.rama === "183")}">Aldoks</button></div>
     ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax / Roto), eshik, arka, portal, lambri.</div>` : ""}
-    ${aldmi(j.rama) ? `<div class="xira">Aldoks: rom, fortochka, eshik, arka, portal; oyna 20 mm.</div>` : ""}
+    ${aldmi(j.rama) ? `<div class="xira">Aldoks: rom, fortochka, eshik, arka, portal, lambri (PVX); oyna 20 mm.</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>
     <div class="sz-seg">${(aldmi(j.rama) ? [[20, "20 mm"]] : [[24, "24 mm (ikki qavat)"], [32, "32 mm"]]).map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
