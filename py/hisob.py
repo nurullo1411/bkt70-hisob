@@ -58,10 +58,10 @@ for _p in ("7054", "7055"):
 RAMA_R["183"] = D("4.25")
 IMPOST_YARMI["182"] = D("2.125")
 TABAQA_AYIRMA["181"] = 2 * D("5.95")
-# Tabaqa ichidagi impost 182 = qanot − 11,5 (181), − 18,0 (185, 198); laminatda yana − 0,16 (ProfOkna T-ulanish
-# 57,5 / 90 mm; foydalanuvchi, 2026-11-14). 182 qanot (yengil eshik tashqariga) ichiga impost hali yoʻq.
-TABAQA_IMPOST_AYIRMA["181"] = D("11.5")
-TABAQA_IMPOST_AYIRMA["185"] = TABAQA_IMPOST_AYIRMA["198"] = D("18.0")
+# Tabaqa ichidagi impost 182 = qanot ichki = qanot − 5,95 − 5,95 (qanot yuzasi 5,95; foydalanuvchi, 2026-11-14);
+# laminatda yana − 0,16. 182 qanot (yengil eshik tashqariga) ichiga impost hali yoʻq.
+for _p in ("181", "185", "198"):
+    TABAQA_IMPOST_AYIRMA[_p] = 2 * D("5.95")
 # Eshik (foydalanuvchi, 2026-11-14): ichkariga 198 Balkon Qanot, tashqariga 185 Balkon Urta; qanot ichki = kesim − 5,95 − 5,95
 for _p in ("198", "185", "182"):  # 182 — yengil eshik qanoti tashqariga (foydalanuvchi, 2026-11-14)
     TABAQA_AYIRMA[_p] = 2 * D("5.95")
