@@ -204,6 +204,15 @@ class Yoy:
         eng_baland = self.y(min(max(self.cx, x1), x2))
         return D(round(max(self.y(x1), self.y(x2)) - eng_baland, 2))
 
+    def qiyalik(self, x, ichkari=0.0):
+        """x nuqtada urinmaning gorizontalga qiyaligi, gradus."""
+        r = self.R - float(ichkari)
+        return math.degrees(math.asin(min(1.0, abs(float(x) - self.cx) / r)))
+
+    def uch_qiyaligi(self):
+        """Yoy uchida (choʻqqidan eni/2 da) urinmaning gorizontalga qiyaligi, gradus."""
+        return math.degrees(math.asin(min(1.0, self.en / 2 / self.R)))
+
     def yarim_en(self, y, ichkari):
         """y balandlikda (tepadan) ichki yoyning markazdan yarim kengligi; yoy yoʻq boʻlsa None."""
         r = self.R - float(ichkari)
@@ -309,11 +318,23 @@ class Hisob:
         alfa = math.degrees(math.asin(min(1.0, self.arka.en / 2 / self.arka.R)))
         return (alfa / 2) if self.segment else (90 + alfa) / 2
 
+    @staticmethod
+    def gradus(b):
+        """Kesish burchagi matni; 45° va 90° boʻlsa None (ustalar biladi)."""
+        b = round(b, 2)
+        if b in (45, 90, 0):
+            return None
+        return f"{b:.2f}".rstrip("0").rstrip(".").replace(".", ",") + "°"
+
+    def burchak_qosh(self, nomi, profil, uzunlik, uch, b):
+        m = self.gradus(b)
+        if m:
+            self.burchak(nomi, profil, uzunlik, f"{uch} {m}")
+
     def _arka_burchak(self, profil, en, a, yon):
-        b = round(self.rama_burchaklari(), 2)
-        if b in (45, 90):
+        m = self.gradus(self.rama_burchaklari())
+        if not m:
             return
-        m = f"{b:.2f}".rstrip("0").rstrip(".").replace(".", ",") + "°"
         self.burchak(yon[0], profil, yon[1], f"{yon[2]} {m}")
         self.burchak("Rama arka", profil, en + a + self.seriya.arka_zapas, f"ikki uchi {m}")
 
@@ -597,7 +618,9 @@ def _bolinish(b, z, h, ctx):
     joy = D(0)
     for o in olchamlar[:-1]:
         joy += o
-        h.detal(nomi, ctx["impost"], _impost_uzunligi(vertikal, joy, z, h), 1)
+        u = _impost_uzunligi(vertikal, joy, z, h)
+        h.detal(nomi, ctx["impost"], u, 1)
+        _impost_burchagi(nomi, ctx["impost"], u, vertikal, joy, z, h)
     h.impost_soni += len(olchamlar) - 1
     ichki_ctx = {**ctx, "bolinish_ichida": True}
     q = D(0)
@@ -637,6 +660,9 @@ def _egilgan_bolinish(b, z, h, ctx):
         raise HisobXato("Egilgan impost uchlari boʻlakdan pastga tushib ketdi: chuqurlik yoki oʻlcham katta")
     yoy = Yoy(z.x + z.en / 2, z.en, c, z.y + tepa_ol)
     h.egilgan("Impost egilgan", ctx["impost"], z.ichki_en, c)
+    # uchlari tik chetga tiraladi: kesim 90° − α (foydalanuvchi, 2026-11-14)
+    h.burchak_qosh("Impost egilgan", ctx["impost"], z.ichki_en + c + h.seriya.arka_zapas, "ikki uchi",
+                   90 - Yoy(0, z.ichki_en, c).uch_qiyaligi())
     h.impost_soni += 1
     ichki_ctx = {**ctx, "bolinish_ichida": True}
     # Toʻgʻri toʻrtburchak boʻyicha: tepadagi boʻlak impost uchlarigacha, pastdagisi choʻqqidan
@@ -644,6 +670,24 @@ def _egilgan_bolinish(b, z, h, ctx):
            h, ichki_ctx)
     _bolak(b["bolaklar"][1], Zona(z.en, z.boy - tepa_ol, z.chap, z.ong, yarmi, z.past, z.x, z.y + tepa_ol,
                                   yoy, z.past_yoy), h, ichki_ctx)
+
+
+def _impost_burchagi(nomi, profil, u, vertikal, joy, z, h):
+    """Arka ostidagi impost yoyga tiralgan uchining kesimi (45°/90° dan boshqasi; foydalanuvchi, 2026-11-14)."""
+    if vertikal:
+        for yoy, ichkari, uch in ((z.tepa_yoy, z.tepa, "tepa uchi"), (z.past_yoy, -z.past, "past uchi")):
+            if yoy:
+                h.burchak_qosh(nomi, profil, u, uch, 90 - yoy.qiyalik(z.x + joy, ichkari))
+        return
+    yoy = z.tepa_yoy
+    y = float(z.y + joy)
+    if not yoy or y >= max(yoy.y(z.x), yoy.y(z.x + z.en)):
+        return
+    yarim = yoy.yarim_en(y, float(z.tepa))
+    uchlar = [x for x in (yoy.cx - yarim, yoy.cx + yarim) if float(z.x + z.chap) < x < float(z.x + z.en - z.ong)]
+    if uchlar:
+        b = yoy.qiyalik(uchlar[0], float(z.tepa))
+        h.burchak_qosh(nomi, profil, u, "ikki uchi" if len(uchlar) == 2 else "yoyga tegadigan uchi", b)
 
 
 def _impost_uzunligi(vertikal, joy, z, h):
@@ -724,6 +768,8 @@ def _portal(b, z, h, ctx):
 
     h.detal("Impost vertikal", impost, pastki - ys, 2)
     h.egilgan("Impost egilgan", impost, orta - 2 * yarmi, c)
+    # portal arkasi tik impostlar ustiga oʻtiradi: uchi gorizontal tekislikka, kesim α (foydalanuvchi, 2026-11-14)
+    h.burchak_qosh("Impost egilgan", impost, orta - 2 * yarmi + c + h.seriya.arka_zapas, "ikki uchi", yoy.uch_qiyaligi())
     h.impost_soni += 3
 
     oyoqlar = []  # (oyoq eni ichki, oyoq pasti y)
