@@ -697,6 +697,7 @@ ALD_DVERNAYA = {"Oq": "Petlya Dvernaya Alyumin. (Oq) (Uz)", "9005": "(9005) Petl
 ALD_SHPINGALET = {"Oq": "Shpingalet ALD (Oq) (300sht) (Uz)", "9005": "(9005) Shpingalet ALD (Uz)",
                   "SW306G": "(SW306G) Shpingalet ALD (Uz)"}
 ALD_ESHIK_MAX = (D(110), D(240))  # qanot eni, boʻyi
+ALD_BALKON_CHOVUSH = "190 Balkon Chovush (Nekr) (Adt) Metr"
 
 
 def _ald_rang(rang):
@@ -713,7 +714,8 @@ def _ald_eshik(s, tanlov, rang, r):
         if e > ALD_ESHIK_MAX[0] or b > ALD_ESHIK_MAX[1]:
             raise HisobXato(f"Aldoks eshik qanoti eni 110 dan, boʻyi 240 dan oshmaydi: {e} × {b}")
     rk = _ald_rang(rang)
-    zamok = tanlov.get("ald_eshik_zamok") or ALD_ESHIK_ZAMOKLAR[0]
+    # yengil eshik (Qanot/Urtadan) standart zamogʻi 153/23/25 (foydalanuvchi, 2026-11-14)
+    zamok = tanlov.get("ald_eshik_zamok") or ALD_ESHIK_ZAMOKLAR[1 if tanlov.get("eshik_tur") == "yengil" else 0]
     if zamok not in ALD_ESHIK_ZAMOKLAR:
         raise HisobXato(f"Aldoks eshik zamogʻi notoʻgʻri: {zamok}")
     ruchka = tanlov.get("ald_eshik_ruchka") or ALD_ESHIK_RUCHKALAR[0]
@@ -749,7 +751,11 @@ def _ald_hisobot(s, rang, r, tanlov=None):
     r.qosh("Rezina", ALD_REZINA_QISHKI, oyna, "m")
     if perimetr:
         r.qosh("Rezina", ALD_REZINA_BOSMA, perimetr * 2, "m")
-    # eshik qanoti (185/198) burchagi — "190 Balkon Chovush" (qoidasi soʻralmoqda), bu yerga kirmaydi
+    # balkon qanoti (185/198) burchagiga "190 Balkon Chovush" 4,2 sm × 1, metrga (foydalanuvchi, 2026-11-14);
+    # Qanot/Urtadan yengil eshikda — romdagidek Chovush (4sm) (151)
+    balkon = 4 * sum(v for p, v in s["tabaqalar"].items() if p in ("185", "198"))
+    if balkon:
+        r.qosh("Aksessuar", ALD_BALKON_CHOVUSH, D(balkon) * D("4.2") / 100, "m")
     burchak = 4 * (sum(s["ramalar"].values()) + sum(v for p, v in s["tabaqalar"].items() if p not in ("185", "198")))
     samorez = burchak * ALD_BURCHAK_SAMOREZ
     r.qosh("Aksessuar", ALD_CHOVUSH, burchak, "dona")

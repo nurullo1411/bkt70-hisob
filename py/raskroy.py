@@ -32,7 +32,8 @@ QOLDIQ_CHEGARA = 10
 # 7,6 sm kam joy oladi (arra shu ichida): 600 − 69,9 − (69,9 − 7,6) − … Qoldiq uchi qiya — belgi "◣".
 # 182 Urta tabaqada ishlatilsa ham aylantiriladi; romda u impost (90°) — aylantirilmaydi.
 AYLANTIRISH = {"181": 7.6, "185": 11, "198": 11}
-# 185 Balkon Urta va 198 Balkon Qanot faqat laminatsiz (oq, 306g) va NEO boʻlmaganda aylantiriladi (foydalanuvchi, 2026-11-14)
+# 185 Balkon Urta va 198 Balkon Qanot NEO boʻlmaganda aylantiriladi, laminatda ham (foydalanuvchi, 2026-11-14);
+# 182 doim 90°, eshik qanoti boʻlsa ham
 AYLANTIRISH_LAMINATSIZ = {"185", "198"}
 _AYLANTIRILMAYDI = set()  # joriy zakazda aylantirilmaydigan profillar (detallarni_yig belgilaydi)
 AYLANTIRISH_BELGI = "◣"
@@ -87,7 +88,7 @@ def detallarni_yig(zakaz):
             raise HisobXato(f"{nom}: {e}") from e
         detallar = [_zapas(d) for d in n["profillar"]]
         t = k.get("tanlov") or {}
-        if t.get("rang") == "Laminatsiya" or t.get("ald_tur") == "NEO":
+        if t.get("ald_tur") == "NEO":
             _AYLANTIRILMAYDI.update(d["profil"] for d in detallar if d["profil"] in AYLANTIRISH_LAMINATSIZ)
         royxat.append({"nom": nom, "soni": soni, "L": k["L"], "H": k["H"], "detallar": detallar})
         for d in detallar:

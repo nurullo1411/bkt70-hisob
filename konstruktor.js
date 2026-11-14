@@ -1577,9 +1577,12 @@ function aldEshikHtml(k, faol) {
   const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
   const v = (kalit, std) => t[kalit] ?? ut[kalit] ?? std;
   const seg = (kalit, std, royxat) => `<div class="sz-seg sz-fur">${royxat.map(([q, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(q))}" class="${faol(v(kalit, std) === q)}">${esc(y)}</button>`).join("")}</div>`;
+  const yengil = v("eshik_tur", "balkon") === "yengil";
   return `<div class="sz-sarlavha">Eshik furniturasi <span class="xira">(Aldoks, rangi romga qarab)</span></div>
+    <div class="sz-bolim">Eshik turi <span class="xira">(yengil — ichkariga Qanot 181, tashqariga Urta 182)</span></div>
+    ${seg("eshik_tur", "balkon", [["balkon", "Balkon (198 / 185)"], ["yengil", "Yengil (181 / 182)"]])}
     <div class="sz-bolim">Zamok</div>
-    ${seg("ald_eshik_zamok", ALD_ESHIK_ZAMOKLAR[0][0], ALD_ESHIK_ZAMOKLAR)}
+    ${seg("ald_eshik_zamok", ALD_ESHIK_ZAMOKLAR[yengil ? 1 : 0][0], ALD_ESHIK_ZAMOKLAR)}
     <div class="sz-bolim">Ruchka</div>
     ${seg("ald_eshik_ruchka", ALD_ESHIK_RUCHKALAR[0][0], ALD_ESHIK_RUCHKALAR)}
     <div class="sz-bolim">Petlya</div>

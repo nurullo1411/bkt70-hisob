@@ -60,7 +60,7 @@ IMPOST_YARMI["182"] = D("2.125")
 TABAQA_AYIRMA["181"] = 2 * D("5.95")
 TABAQA_IMPOST_AYIRMA["181"] = 2 * D("5.95")
 # Eshik (foydalanuvchi, 2026-11-14): ichkariga 198 Balkon Qanot, tashqariga 185 Balkon Urta; qanot ichki = kesim − 5,95 − 5,95
-for _p in ("198", "185"):
+for _p in ("198", "185", "182"):  # 182 — yengil eshik qanoti tashqariga (foydalanuvchi, 2026-11-14)
     TABAQA_AYIRMA[_p] = 2 * D("5.95")
 
 
@@ -91,6 +91,7 @@ class Seriya:
     rang_yoq: tuple = ()            # bu seriyada boʻlmaydigan rang turkumlari
     eshik_en_jami: D = None         # eshik qanoti eni = ichki + shu (None — eshik_kosa / eshik_impost har tomonga)
     eshik_boy_jami: D = None        # eshik qanoti boʻyi = ichki + shu
+    eshik_profili_yengil: dict = None  # tanlov "eshik_tur" = "yengil" boʻlsa (Aldoks: Qanot / Urta)
 
 
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
@@ -106,6 +107,7 @@ ALDOKS = Seriya("Aldoks", "182", "181", D("1.3"), D(1), D(0), False, {20: "105"}
                 # eshik (foydalanuvchi, 2026-11-14): qanot ichki + 1,3 / + 1,5; 2 tabaqa L1 + L2 = ichki − 0,5;
                 # shtulp oʻrnida Urta 182 = eshik ichki boʻyi − 0,3 (qanot boʻyi − 1,8)
                 eshik_profili={"ichkariga": "198", "tashqariga": "185"}, eshik_en_jami=D("1.3"),
+                eshik_profili_yengil={"ichkariga": "181", "tashqariga": "182"},
                 eshik_boy_jami=D("1.5"), eshik_2_qoshimcha=D("-0.5"), shtulp="182", shtulp_ayirma=D("1.8"))
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG, "183": ALDOKS}
 ALDOKS_PROFILLARI = {"183", "181", "182", "105", "185", "198"}
@@ -239,6 +241,7 @@ class Hisob:
             raise HisobXato(f"Metall qalinligi notoʻgʻri: {metall} (1.5 yoki 2)")
         self.metall = metall
         self.lam = lam  # laminatsiyada 0,08, aks holda 0
+        self.eshik_tur = "balkon"  # Aldoks: "yengil" — qanot 181 / urta 182 dan (foydalanuvchi, 2026-11-14)
         self.shtapik = self.seriya.shtapik_qalinligi + lam
         turlar = set(self.seriya.shtapik) or SHTAPIK_TURLARI
         if oyna_qalinligi not in turlar:
@@ -754,6 +757,10 @@ def _eshik(b, z, h, arka=D(0)):
     if ochilish not in sr.eshik_profili:
         raise HisobXato("Eshik ochilishi 'ichkariga' yoki 'tashqariga' boʻlishi kerak")
     profil = sr.eshik_profili[ochilish]
+    if h.eshik_tur == "yengil":
+        if not sr.eshik_profili_yengil:
+            raise HisobXato(f"{sr.nomi}da yengil eshik yoʻq")
+        profil = sr.eshik_profili_yengil[ochilish]
 
     def ustma(*tomonlar):  # qanot kesishi ichki oʻlchamdan shuncha katta: kosa tomoni / impost tomoni
         return sum((sr.eshik_kosa if t == h.r else sr.eshik_impost) for t in tomonlar)
@@ -934,6 +941,9 @@ def hisobla(k):
     lam = LAMINAT_QOSHIMCHA if rang == "Laminatsiya" else D(0)
     metall = str((k.get("tanlov") or {}).get("eng_metall") or "1.5")
     h = Hisob(k.get("oyna_qalinligi", seriya.oyna_standart), vertikal_r=vertikal == "R", lam=lam, seriya=seriya, metall=metall)
+    h.eshik_tur = (k.get("tanlov") or {}).get("eshik_tur") or "balkon"
+    if h.eshik_tur not in ("balkon", "yengil"):
+        raise HisobXato(f"Eshik turi balkon yoki yengil boʻlishi kerak: {h.eshik_tur}")
     if (not seriya.eshik or seriya.faqat_rom) and k.get("arka"):
         raise HisobXato(f"{seriya.nomi}: arka hozircha yoʻq")
     if seriya.faqat_rom and (k.get("tur") == "lapshali" or _lapshami(k.get("bolak"))):
