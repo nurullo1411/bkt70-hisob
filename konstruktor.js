@@ -437,11 +437,15 @@ function eshikTabaqalari(k, g, o) {
   const rr = (rama === "F703" ? 5.8 : rama === "7051" ? 5.4 : ald ? 4.25 : 3.8) + lam;
   const im = (rama === "7051" ? 2.2 : ald ? 2.125 : 1.9) + lam / 2;
   const a = o.rama || g.ramalar[0], yaqin = (u, v) => Math.abs(u - v) < 0.01;
-  const ichki = o.w - (yaqin(o.x, a.x) ? rr : im) - (yaqin(o.x + o.w, a.x + a.w) ? rr : im);
+  const offC = yaqin(o.x, a.x) ? rr : im, offO = yaqin(o.x + o.w, a.x + a.w) ? rr : im;
+  const ichki = o.w - offC - offO;
   // 2 tabaqa: L1 + L2 = ichki + 0,5 (Termo) / + 1 (Engelberg, foydalanuvchi 2026-11-11) / − 0,5 (Aldoks, 2026-11-14)
   const jami = Math.round((ichki + (rama === "7051" ? 1 : ald ? -0.5 : 0.5)) * 1000) / 1000;
   const L1 = o.b.L1 != null ? Number(o.b.L1) : Math.max(65, jami / 2);
-  return { L1, L2: jami - L1, jami, avto: o.b.L1 == null, aktiv: o.b.aktiv || "ong" };
+  const aktiv = o.b.aktiv || "ong", dl = (ichki - jami) / 2;
+  // chizma ostidagi oʻlcham: rama chetidan (yoki impost oʻqidan) ikki tabaqa tutashgan joygacha (foydalanuvchi, 2026-11-14)
+  const A1 = (aktiv === "chap" ? offC : offO) + L1 + dl, A2 = o.w - A1;
+  return { L1, L2: jami - L1, jami, avto: o.b.L1 == null, aktiv, A1, A2, dl, off1: aktiv === "chap" ? offC : offO };
 }
 
 function olchamTaxmin(p) {
@@ -889,8 +893,8 @@ function chizmaSVG(k, opts = {}) {
     // 2 tabaqali eshik: L1 / L2 (tabaqa eni), bosib oʻzgartiriladi
     for (const o of g.barglar.filter((o) => o.esh)) {
       const e = o.esh, yy = H + qadam * (++pastQator), d = t * 0.5;
-      const chap = e.aktiv === "chap" ? ["L1", e.L1] : ["L2", e.L2], ong = e.aktiv === "chap" ? ["L2", e.L2] : ["L1", e.L1];
-      const xm = o.x + d + (o.w - 2 * d) * Math.min(0.9, Math.max(0.1, chap[1] / e.jami));
+      const chap = e.aktiv === "chap" ? ["A1", e.A1] : ["A2", e.A2], ong = e.aktiv === "chap" ? ["A2", e.A2] : ["A1", e.A1];
+      const xm = o.x + Math.min(o.w * 0.9, Math.max(o.w * 0.1, chap[1]));
       s += olchamChizigi(o.x, yy, xm, yy, chap[1], e.avto, `${o.p}|${chap[0]}`, H + qadam * 0.2) +
         olchamChizigi(xm, yy, o.x + o.w, yy, ong[1], e.avto, `${o.p}|${ong[0]}`, H + qadam * 0.2);
     }
@@ -1309,6 +1313,18 @@ async function olchamniOzgartirIchki(kalit) {
       saqlaTarix();
       ii.olchamlar[j_] = j.bosh ? null : j.son;
       if (ii.olchamlar.every((x) => x != null)) ii.olchamlar[j_ === ii.olchamlar.length - 1 ? 0 : ii.olchamlar.length - 1] = null;
+      yangila();
+      return;
+    }
+    if (b.tur === "eshik" && (i === "A1" || i === "A2")) {
+      // tashqi oʻlcham: chetdan tabaqalar tutashgan joygacha → L1
+      const g = geometriya(tahrir), o = g.barglar.find((x) => x.p === p), e = eshikTabaqalari(tahrir, g, o);
+      const j = await soraSon(i === "A1" ? "Ruchkali tomon: chetdan tabaqalar tutashgan joygacha, sm (Teng — avtomatik)" : "Ikkinchi tomon: chetdan tabaqalar tutashgan joygacha, sm (Teng — avtomatik)", i === "A1" ? e.A1 : e.A2, true);
+      if (!j) return;
+      const A1 = i === "A1" ? j.son : o.w - j.son, L1 = A1 - e.off1 - e.dl;
+      if (!j.bosh && !(L1 > 0 && e.jami - L1 > 0)) { xabar("Bunday oʻlchamda tabaqa sigʻmaydi"); return; }
+      saqlaTarix();
+      if (j.bosh) delete b.L1; else b.L1 = Math.round(L1 * 1000) / 1000;
       yangila();
       return;
     }
