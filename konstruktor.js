@@ -655,6 +655,11 @@ function chizmaSVG(k, opts = {}) {
         // tabaqalar L1 / L2 nisbatida (ruchkali — L1)
         const wc = e && e.jami > 0 ? w * Math.min(0.9, Math.max(0.1, (aktiv === "chap" ? e.L1 : e.L2) / e.jami)) : w / 2;
         s += tabaqa(x, y, wc, h, "chap", false, aktiv === "chap", false, d, tY, pY, true, { ii: b.tabaqa_impost, p: o.p }) + tabaqa(x + wc, y, w - wc, h, "ong", false, aktiv === "ong", false, d, tY, pY, true, { ii: b.tabaqa_impost, p: o.p });
+        // shtulp (Termo A701, Engelberg 7058, Aldoks Urta 182) passiv tabaqa chetida, tabaqalar tutashgan joyda (2026-11-14)
+        if (!tY && !pY) {
+          const sw = t * 0.7, jx = x + wc, sx = aktiv === "chap" ? jx : jx - sw;
+          s += rect(sx, y + t * 0.25, sw, h - t * 0.5, "tb shtulp");
+        }
       } else s += tabaqa(x, y, w, h, b.petlya_tomoni || "chap", false, true, false, d, tY, pY, true, { ii: b.tabaqa_impost, p: o.p });
     } else s += rect(x, y, w, h, "xt");
   }
