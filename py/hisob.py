@@ -620,12 +620,13 @@ def _bolinish(b, z, h, ctx):
 
     olchamlar = _olchamlar(b, z.en if vertikal else z.boy, [sum(chetlar(i)) for i in range(oxirgi + 1)])
     nomi = "Impost vertikal" if vertikal else "Impost gorizontal"
+    turlar = _impost_turlari(b, h, ctx)
     joy = D(0)
-    for o in olchamlar[:-1]:
+    for i, o in enumerate(olchamlar[:-1]):
         joy += o
         u = _impost_uzunligi(vertikal, joy, z, h)
-        h.detal(nomi, ctx["impost"], u, 1)
-        _impost_burchagi(nomi, ctx["impost"], u, vertikal, joy, z, h)
+        h.detal(nomi, turlar[i], u, 1)
+        _impost_burchagi(nomi, turlar[i], u, vertikal, joy, z, h)
     h.impost_soni += len(olchamlar) - 1
     ichki_ctx = {**ctx, "bolinish_ichida": True}
     q = D(0)
@@ -638,6 +639,26 @@ def _bolinish(b, z, h, ctx):
                          z.tepa_yoy if i == 0 else None, z.past_yoy if i == oxirgi else None)
         q += olcham
         _bolak(bola, yangi, h, ichki_ctx)
+
+
+# Aldoksda impost oʻrnida boshqa profil (foydalanuvchi, 2026-11-14, Romchi kabi): Qanot 181, Balkon Qanot 198,
+# Balkon Urta 185 — Urta 182 qoidasida (uzunlik H − 2r, yarmi 2,125, 90°, uchiga Bolshoy + 3,9×16 × 7)
+IMPOST_TURLARI = {"183": {"182", "181", "198", "185"}}
+
+
+def _impost_turlari(b, h, ctx):
+    """Har boʻlinish chizigʻining impost profili: "impost_profil": [null | "181" | …] (null — standart)."""
+    n = max(len(b.get("olchamlar") or []) - 1, 0)
+    t = b.get("impost_profil")
+    if not t:
+        return [ctx["impost"]] * n
+    if not isinstance(t, list) or len(t) != n:
+        raise HisobXato("impost_profil roʻyxati impostlar soniga teng emas")
+    ruxsat = IMPOST_TURLARI.get(ctx.get("rama"), set())
+    for x in t:
+        if x and x not in ruxsat:
+            raise HisobXato(f"{h.seriya.nomi}da impost oʻrnida {x} boʻlmaydi")
+    return [x or ctx["impost"] for x in t]
 
 
 def _chift_mask(b):
@@ -664,6 +685,7 @@ def _chift_bolinish(b, z, h, ctx, vertikal):
     if ctx.get("bolinish_ichida") or h.arka or h.segment:
         raise HisobXato("Chift Quloq faqat ramaning birinchi boʻlinishida (arkasiz) boʻladi")
     mask = _chift_mask(b)
+    turlar = _impost_turlari(b, h, ctx)
     cy = IMPOST_YARMI[profil] + h.lam / 2
     iy = ctx["yarmi"]
     oxirgi = len(b.get("olchamlar") or []) - 1
@@ -695,7 +717,7 @@ def _chift_bolinish(b, z, h, ctx, vertikal):
             h.impost_soni += 2   # 4 kosa uchi — Bolshoy + samorez impost uchidagidek
         else:
             nomi = "Impost vertikal" if vertikal else "Impost gorizontal"
-            h.detal(nomi, ctx["impost"], _impost_uzunligi(vertikal, joy, z, h), 1)
+            h.detal(nomi, turlar[i], _impost_uzunligi(vertikal, joy, z, h), 1)
             h.impost_soni += 1
     ichki_ctx = {**ctx, "bolinish_ichida": True}
     q = D(0)

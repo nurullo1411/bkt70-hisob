@@ -104,10 +104,22 @@ function chiftQosh(p, yonalish) {
 const chiftMask = (b) => (b && b.chift ? (Array.isArray(b.chift) ? b.chift : b.olchamlar.slice(1).map(() => true)) : null);
 // Boʻlinishga chiziq qoʻshilsa/olinsa chift roʻyxati ham (olchamlar oʻzgarishidan OLDIN chaqiriladi)
 function chiftSplice(b, i, del, ...ins) {
+  if (Array.isArray(b.impost_profil)) {
+    const t = b.impost_profil.slice();
+    t.splice(i, del, ...ins.map(() => null));
+    if (t.some(Boolean)) b.impost_profil = t; else delete b.impost_profil;
+  }
   if (!b.chift) return;
   const m = chiftMask(b).slice();
   m.splice(i, del, ...ins);
   if (m.some(Boolean)) b.chift = m; else delete b.chift;
+}
+// Aldoksda impost oʻrnidagi profil (foydalanuvchi, 2026-11-14): Urta 182 (standart), Qanot 181, Balkon Qanot 198, Balkon Urta 185
+const IMPOST_TURLARI = [["", "Urta 182"], ["181", "Qanot 181"], ["198", "Balkon Qanot 198"], ["185", "Balkon Urta 185"]];
+function impostProfil(ip, ii, kod) {
+  const b = tugun(tahrir.bolak, ip), t = (b.impost_profil || b.olchamlar.slice(1).map(() => null)).slice();
+  t[ii - 1] = kod || null;
+  if (t.some(Boolean)) b.impost_profil = t; else delete b.impost_profil;
 }
 // Tanlangan impost (ildiz boʻlinishida) — Urta ⇄ Chift Quloq (Romchi kabi, foydalanuvchi, 2026-11-14)
 function chiftBolishiMumkin(ip) {
@@ -1511,14 +1523,19 @@ function ichkiPanel(b, bosh) {
 function panelniChiz() {
   if (tanlanganImpost) {
     const [ip, ii] = tanlanganImpost.split("|"), ib = tugun(tahrir.bolak, ip), lap = ib?.lapsha;
-    const ch = !!(chiftMask(ib) || [])[ii - 1];
-    const tur = chiftBolishiMumkin(ip)
-      ? `<div class="sarlavha">Turi</div><div class="tugmalar"><button data-imptur="0" class="${ch ? "" : "faol"}">Urta 182</button><button data-imptur="1" class="${ch ? "faol" : ""}">Chift Quloq 109</button></div>`
+    const ch = !!(chiftMask(ib) || [])[ii - 1], kod = ch ? "109" : ((ib?.impost_profil || [])[ii - 1] || "");
+    const turlar = [...IMPOST_TURLARI, ...(chiftBolishiMumkin(ip) ? [["109", "Chift Quloq 109"]] : [])];
+    const tur = aldmi(seriyaRama()) && !lap && !ib?.egilgan
+      ? `<div class="sarlavha">Turi</div><div class="tugmalar">${turlar.map(([v, n]) => `<button data-imptur="${v}" class="${v === kod ? "faol" : ""}">${n}</button>`).join("")}</div>`
       : "";
     $("k-panel").innerHTML = `<div class="panel-bosh"><b>${lap ? "Lapsha" : ch ? "Chift Quloq" : "Impost"} tanlandi</b></div>${tur}
       <div class="xira">🗑 bosing — ${lap ? "lapsha" : ch ? "chift quloq" : "impost"} olinadi, ikki ${lap ? "rama" : "boʻlak"} bittaga qoʻshiladi (↶ bilan qaytariladi).</div>`;
     $("k-panel").querySelectorAll("[data-imptur]").forEach((t) => t.addEventListener("click", () => {
-      saqlaTarix(); impostTuri(ip, +ii, t.dataset.imptur === "1"); yangila();
+      saqlaTarix();
+      const v = t.dataset.imptur;
+      if (chiftMask(ib) || v === "109") impostTuri(ip, +ii, v === "109");
+      impostProfil(ip, +ii, v === "109" ? "" : v);
+      yangila();
     }));
     return;
   }
