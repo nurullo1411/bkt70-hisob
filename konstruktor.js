@@ -86,6 +86,61 @@ function almashtir(p, yangi) {
   if (kal && eski && eski !== yangi && eski[kal] != null) { if (yangi[kal] == null) yangi[kal] = eski[kal]; delete eski[kal]; }
   otaB.bolaklar[o.i] = yangi;
 }
+// Tabaqa kesish oʻlchami (hisob.py dan): tanlangan boʻlak belgilanadi, natijada "belgilangan"
+function tabaqaOlchami(p) {
+  if (typeof pyTabaqa !== "function") return [];
+  const k = nusxa(tahrir);
+  try { tugun(k.bolak, p)._belgi = true; } catch (_) { return []; }
+  return pyTabaqa({ ...k, nom: k.nom || "K", soni: 1 });
+}
+// Tabaqa eni / boʻyi berilsa: shu yoʻnalishdagi eng yaqin boʻlinishda boʻlak oʻlchami farq qadar oʻzgaradi
+// (tabaqa = boʻlak − doimiy son); boʻlinish yoʻq boʻlsa — konstruksiya L / H. 2 tabaqali eshik eni — L1.
+async function tabaqaOlchamiOzgartir(qaysi) {
+  const ts = tabaqaOlchami(tanlangan);
+  if (!ts.length) return;
+  const b = tugun(tahrir.bolak, tanlangan), en = qaysi === "en";
+  const ikki = b.tur === "eshik" && b.tabaqa_soni === 2;
+  const joriy = en ? ts[0].en : ts[0].boy;
+  const j = await soraSon(en ? (ikki ? "Ruchkali tabaqa (L1) kesish eni, sm" : "Tabaqa kesish eni, sm") : "Tabaqa kesish boʻyi, sm", joriy, false);
+  if (!j || j.bosh || !(j.son > 0)) return;
+  const d = Math.round((j.son - joriy) * 1000) / 1000;
+  if (!d) return;
+  await tekshirib(() => {
+    saqlaTarix();
+    if (en && ikki) {
+      const g = geometriya(tahrir), o = g.barglar.find((x) => x.p === tanlangan), e = eshikTabaqalari(tahrir, g, o);
+      b.L1 = Math.round((e.L1 + d) * 1000) / 1000;
+      yangila();
+      return;
+    }
+    const yon = en ? "vertikal" : "gorizontal", g = geometriya(tahrir);
+    let q = tanlangan;
+    for (;;) {
+      const o = ota(q);
+      if (!o) break;
+      const ob = tugun(tahrir.bolak, o.yol), bo = g.bolinishlar.find((x) => x.p === o.yol);
+      if (ob.tur === "bolinish" && ob.yonalish === yon && !ob.egilgan && bo && ob.olchamlar.length > 1) {
+        const i = o.i;
+        ob.olchamlar[i] = Math.round((bo.s[i] + d) * 1000) / 1000;
+        if (ob.olchamlar.every((x) => x != null)) {
+          const k_ = ob.olchamlar.findIndex((x, m) => m !== i);
+          ob.olchamlar[ob.olchamlar.length - 1 === i ? k_ : ob.olchamlar.length - 1] = null;
+        }
+        // chizmadagi oʻlcham taxminiy (≈) boʻlishi mumkin: hisob bilan tekshirib, farqni bir marta tuzatamiz
+        const t2 = tabaqaOlchami(tanlangan)[0];
+        const r = t2 ? Math.round((j.son - (en ? t2.en : t2.boy)) * 1000) / 1000 : 0;
+        if (r) ob.olchamlar[i] = Math.round((ob.olchamlar[i] + r) * 1000) / 1000;
+        yangila();
+        return;
+      }
+      q = o.yol;
+    }
+    if (en) tahrir.L = Math.round((Number(tahrir.L) + d) * 1000) / 1000;
+    else tahrir.H = Math.round((Number(tahrir.H) + d) * 1000) / 1000;
+    xabar(`Boʻlinish yoʻq: konstruksiya ${en ? "eni" : "boʻyi"} ${yx(en ? tahrir.L : tahrir.H)} sm boʻldi`);
+    yangila();
+  });
+}
 // Chift Quloq (Aldoks 109; foydalanuvchi, 2026-11-14): ramani boʻladi — faqat eng yuqori boʻlinish.
 // Ildiz shu yoʻnalishdagi chift boʻlsa, bosilgan boʻlak turgan qism ikkiga; aks holda butun rama yoniga yangi qism.
 function chiftQosh(p, yonalish) {
@@ -1600,6 +1655,14 @@ function panelniChiz() {
       ${gr.bolaklar.some((c) => c[kal] != null) ? `<div class="sarlavha">Kalta ramalar tekislanishi</div>${tugmalar("tekislash", gr.tekislash || (v ? "tepa" : "chap"),
         v ? [["tepa", "Tepaga"], ["orta", "Oʻrtaga"], ["past", "Pastga"]] : [["chap", "Chapga"], ["orta", "Oʻrtaga"], ["ong", "Oʻngga"]])}` : ""}`;
   }
+  // Tabaqa kesish oʻlchami va uni oʻzgartirish (foydalanuvchi, 2026-11-14): eni va boʻyi uchun bittadan tugma
+  if (b.tur === "tabaqa" || b.tur === "eshik") {
+    const ts = tabaqaOlchami(tanlangan);
+    if (ts.length) {
+      p += `<div class="sarlavha">Kesish oʻlchami</div><div class="xira">${ts.map((t) => `${esc(t.joy)}: <b>${son(t.en, 3)} × ${son(t.boy, 3)}</b>`).join("<br>")}</div>
+        <div class="tugmalar"><button class="tugma" data-tabolcham="en">Eni ↔</button><button class="tugma" data-tabolcham="boy">Boʻyi ↕</button></div>`;
+    }
+  }
   // Shu boʻlak oynasi (foydalanuvchi, 2026-11-09: bitta konstruksiyada har xil oyna boʻladi)
   p += `<div class="sarlavha">Shu boʻlak oynasi · ${esc(oynaSarlavha(tanlangan))}</div>
       <div class="sz-oynalar">${oynaTugmalari(b, "amal")}</div>`;
@@ -1943,6 +2006,8 @@ $("k-panel").addEventListener("change", (e) => {
 $("k-panel").addEventListener("click", (e) => {
   const ol_ = e.target.closest("[data-ol]");
   if (ol_) { olchamniOzgartir(ol_.dataset.ol); return; }
+  const to = e.target.closest("[data-tabolcham]");
+  if (to) { tabaqaOlchamiOzgartir(to.dataset.tabolcham); return; }
   const el = e.target.closest("[data-amal]");
   if (!el) return;
   const b = tugun(tahrir.bolak, tanlangan);

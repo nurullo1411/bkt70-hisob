@@ -313,6 +313,22 @@ _natija`));
   }
 }
 
+// Tanlangan boʻlakdagi tabaqa(lar)ning kesish oʻlchami (konstruktor paneli; foydalanuvchi, 2026-11-14)
+function pyTabaqa(k) {
+  py.globals.set("_k", JSON.stringify(k));
+  py.globals.set("_u", JSON.stringify(zakaz.umumiy));
+  try {
+    return JSON.parse(py.runPython(`
+import zakaz as _zm
+try:
+    _kk = json.loads(_k)
+    _t = json.dumps(hisob.hisobla(_zm._birlashtir(json.loads(_u), {a: b for a, b in _kk.items() if a not in ("nom", "soni")})).get("belgilangan") or [])
+except (hisob.HisobXato, KeyError, ValueError, TypeError, AttributeError):
+    _t = "[]"
+_t`));
+  } catch (_) { return []; }
+}
+
 // Ekran avval chiziladi, hisob keyin: "Saqlash" bosilganda ilova qotib turmasin
 let hisobNavbat = 0;
 function hisoblaKeyin() {
