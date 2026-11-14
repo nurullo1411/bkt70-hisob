@@ -757,7 +757,7 @@ def _ald_hisobot(s, rang, r, tanlov=None):
     if balkon:
         r.qosh("Aksessuar", ALD_BALKON_CHOVUSH, D(balkon) * D("4.2") / 100, "m")
     burchak = 4 * (sum(s["ramalar"].values()) + sum(v for p, v in s["tabaqalar"].items() if p not in ("185", "198")))
-    samorez = burchak * ALD_BURCHAK_SAMOREZ
+    samorez = (burchak + balkon) * ALD_BURCHAK_SAMOREZ  # 190 Chovushga ham 3,9×16 × 8 (foydalanuvchi, 2026-11-14)
     r.qosh("Aksessuar", ALD_CHOVUSH, burchak, "dona")
     if s["impost_soni"]:
         uch = 2 * s["impost_soni"]

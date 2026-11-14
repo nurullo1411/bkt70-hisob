@@ -58,7 +58,10 @@ for _p in ("7054", "7055"):
 RAMA_R["183"] = D("4.25")
 IMPOST_YARMI["182"] = D("2.125")
 TABAQA_AYIRMA["181"] = 2 * D("5.95")
-TABAQA_IMPOST_AYIRMA["181"] = 2 * D("5.95")
+# Tabaqa ichidagi impost 182 = qanot − 11,5 (181), − 18,0 (185, 198); laminatda yana − 0,16 (ProfOkna T-ulanish
+# 57,5 / 90 mm; foydalanuvchi, 2026-11-14). 182 qanot (yengil eshik tashqariga) ichiga impost hali yoʻq.
+TABAQA_IMPOST_AYIRMA["181"] = D("11.5")
+TABAQA_IMPOST_AYIRMA["185"] = TABAQA_IMPOST_AYIRMA["198"] = D("18.0")
 # Eshik (foydalanuvchi, 2026-11-14): ichkariga 198 Balkon Qanot, tashqariga 185 Balkon Urta; qanot ichki = kesim − 5,95 − 5,95
 for _p in ("198", "185", "182"):  # 182 — yengil eshik qanoti tashqariga (foydalanuvchi, 2026-11-14)
     TABAQA_AYIRMA[_p] = 2 * D("5.95")
@@ -411,6 +414,8 @@ class Hisob:
         # fortochka oynasi qanot ichki − 1,5, boshqa tabaqalarda − 2 (foydalanuvchi, 2026-11-07); Engelberg − 1,5
         oyna_ayirma = D("1.5") if fortochka is not None else self.seriya.tabaqa_oyna
         if ichki_impost:
+            if profil not in TABAQA_IMPOST_AYIRMA:
+                raise HisobXato(f"{profil} qanoti ichiga impost hali yoʻq")
             # impost tabaqaga tegadigan har uchida ichki chetdan shuncha chuqur kiradi (V707 0,16; V708, V702 0,01)
             chuqur = (TABAQA_AYIRMA[profil] - TABAQA_IMPOST_AYIRMA[profil]) / 2
             self._tabaqa_ichi(joy, en - ayirma, boy - ayirma, oyna_ayirma, ichki_impost, arka or past,
@@ -824,10 +829,10 @@ def _bolak_ichi(b, z, h, ctx):
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
     tur = b.get("tur")
     if h.seriya.faqat_rom and (tur not in ("gluxoy", "tabaqa", "bolinish", "eshik") or b.get("fortochka")
-                               or b.get("dvaynoy") or b.get("tabaqa_impost") or b.get("lapsha")
+                               or b.get("dvaynoy") or b.get("lapsha")
                                or b.get("egilgan") is not None or h.joriy_oyna == LAMBRI):
         raise HisobXato(f"{h.seriya.nomi}da hozircha faqat rom va eshik: gluxoy, tabaqa, eshik, impost "
-                        "(fortochka, dvaynoy, tabaqa ichida impost, lapsha, portal, lambri hali yoʻq)")
+                        "(fortochka, dvaynoy, lapsha, portal, lambri hali yoʻq)")
     if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("egilgan") is not None):
         raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, fortochka, impost) hisoblanadi")
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas
