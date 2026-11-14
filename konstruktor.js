@@ -395,6 +395,9 @@ function chizmaSVG(k, opts = {}) {
   const M = Math.max(L, H);
   const t = Math.max(2.5, Math.min(7, Math.min(L, H) * 0.045));
   const g = geometriya(k);
+  // Aldoks kichik profildan eshik (Qanot 181 / Urta 182) rom tabaqasidek ingichka, balkon eshigi qalin (2026-11-14)
+  const kichikEshik = (k.rama ?? (typeof zakaz !== "undefined" && zakaz && zakaz.umumiy ? zakaz.umumiy.rama : null)) === "183"
+    && ({ ...umumiyTanlov(), ...(k.tanlov || {}) }).eshik_tur === "yengil";
   for (const o of g.barglar) if (o.b && o.b.tur === "eshik" && o.b.tabaqa_soni === 2) o.esh = eshikTabaqalari(k, g, o);
   // oyna turlari: har turga oʻz gradienti; gul — ustidan naqsh
   const turlar = [...new Set(g.barglar.map((o) => bargOynaTuri(k, o.p)))];
@@ -517,7 +520,7 @@ function chizmaSVG(k, opts = {}) {
   function tabaqa(x, y, w, h, petlya, dvaynoy, ruchkaBor, fortochka, d0, tY = null, pY = null, eshik = false, ii = null) {
     // tabaqa rama/impost ichki chetidan kattaroq — ustiga kirib turadi (foydalanuvchi, 2026-11-08)
     // eshik tabaqasi (Balkon Oʻrta V707 / Qanot V708) rom tabaqasidan (V702) kengroq (foydalanuvchi, 2026-11-08)
-    const i = -t * 0.15, ic = i + t * (eshik ? 1.3 : 0.8);
+    const i = -t * 0.15, ic = i + t * (eshik && !kichikEshik ? 1.3 : 0.8);
     let q = yuza(x + i, y + i, w - 2 * i, h - 2 * i, d0 + i, "tb", "", tY, pY) + oyna(x + ic, y + ic, w - 2 * ic, h - 2 * ic, d0 + ic, tY, pY);
     const x1 = x + ic, x2 = x + w - ic, xo = (x1 + x2) / 2;
     const tepa = (xx) => tepaY(tY, xx, y + ic, d0 + ic);  // oyna tepasi shu nuqtada
