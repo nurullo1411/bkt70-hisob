@@ -124,8 +124,10 @@ LAMBRI_NOM = {"oq": "Lambri II (N)", "grey": _LAMBRI_ALUX, "alux": _LAMBRI_ALUX,
 
 
 # Aldoks (AKFA roʻyxati 04.11.2026): ADT / (N) / NEO — oʻlcham bir xil, nomi boshqa (tanlov.ald_tur)
-ALD_NOM = {"183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P"}
-ALD_NEO_KOD = {"183": "F0022", "181": "V0022", "182": "M0022", "105": "G0001"}
+ALD_NOM = {"183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P", "185": "Balkon Urta", "198": "Balkon Qanot"}
+ALD_NEO_KOD = {"183": "F0022", "181": "V0022", "182": "M0022", "105": "G0001", "185": "V0008", "198": "V0007"}
+ALD_N_NOM = {"185": "Balkon Urta New", "198": "Balkon Qanot New"}  # (N) turida eshik profili "New"
+ALD_LAM_NOM = {"198": "Balkon Kanot"}  # laminat roʻyxatida "Kanot" deb yozilgan
 ALD_TURLARI = ("ADT", "N", "NEO")
 
 
@@ -141,14 +143,16 @@ def ald_profil_nomi(profil, rang, tur="ADT"):
     if rang in (None, "oq"):
         if tur == "NEO":
             return f"{neo} (Oq)"
-        return f"{profil} {nom} (Oq) ({'R) (N' if tur == 'N' else 'Adt'})"
+        if tur == "N":
+            return f"{profil} {ALD_N_NOM.get(profil, nom)} (Oq) (R) (N)"
+        return f"{profil} {nom} (Oq) (Adt)"
     if tur == "NEO":
         # sotuvda faqat V Zol Dub, V Dub Mokko, SW306G; boshqa rang zakazga keladi, narxi bir xil (foydalanuvchi, 2026-11-11)
         r = ALD_NEO_RANGI.get(rang) or f"{ALD_LAM_RANGI.get(rang, 'rangi?')}) (zakaz"
         return f"{neo} ({r})"
     if rang == "306g":
         return f"(A) {nom} (SW306G)"
-    return f"LAM ({ALD_LAM_RANGI.get(rang, 'rangi?')}) {nom} Alum"
+    return f"LAM ({ALD_LAM_RANGI.get(rang, 'rangi?')}) {ALD_LAM_NOM.get(profil, nom)} Alum"
 
 
 def profil_nomi(profil, rang, ald_tur="ADT"):

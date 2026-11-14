@@ -59,6 +59,9 @@ RAMA_R["183"] = D("4.25")
 IMPOST_YARMI["182"] = D("2.125")
 TABAQA_AYIRMA["181"] = 2 * D("5.95")
 TABAQA_IMPOST_AYIRMA["181"] = 2 * D("5.95")
+# Eshik (foydalanuvchi, 2026-11-14): ichkariga 198 Balkon Qanot, tashqariga 185 Balkon Urta; qanot ichki = kesim − 5,95 − 5,95
+for _p in ("198", "185"):
+    TABAQA_AYIRMA[_p] = 2 * D("5.95")
 
 
 @dataclass(frozen=True)
@@ -86,6 +89,8 @@ class Seriya:
     oyna_standart: int = 24         # oyna qalinligi berilmasa
     faqat_rom: bool = False         # hozircha faqat gluxoy, rom tabaqasi va impost
     rang_yoq: tuple = ()            # bu seriyada boʻlmaydigan rang turkumlari
+    eshik_en_jami: D = None         # eshik qanoti eni = ichki + shu (None — eshik_kosa / eshik_impost har tomonga)
+    eshik_boy_jami: D = None        # eshik qanoti boʻyi = ichki + shu
 
 
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
@@ -95,11 +100,15 @@ ENGELBERG = Seriya("Engelberg 7000", "7053", "7052", D("2.2"), D("1.5"), D("0.5"
                    pvx=True, arka_zapas=D(20), eshik_profili={"ichkariga": "7055", "tashqariga": "7054"},
                    eshik_kosa=D("1.3"), eshik_impost=D("1.2"), eshik_2_qoshimcha=D(1), shtulp="7058",
                    shtulp_ayirma=D("1.7"))
-ALDOKS = Seriya("Aldoks", "182", "181", D("1.3"), D(1), D(0), False, {20: "105"}, False,
+ALDOKS = Seriya("Aldoks", "182", "181", D("1.3"), D(1), D(0), False, {20: "105"}, True,
                 tabaqa_qoshimcha_boy=D("1.5"), gluxoy_oyna=D(1), shtapik_qalinligi=D("1.7"), oyna_standart=20,
-                faqat_rom=True, rang_yoq=("Anod",))  # anod qoʻshilmaydi (foydalanuvchi, 2026-11-11)
+                faqat_rom=True, rang_yoq=("Anod",),  # anod qoʻshilmaydi (foydalanuvchi, 2026-11-11)
+                # eshik (foydalanuvchi, 2026-11-14): qanot ichki + 1,3 / + 1,5; 2 tabaqa L1 + L2 = ichki − 0,5;
+                # shtulp oʻrnida Urta 182 = eshik ichki boʻyi − 0,3 (qanot boʻyi − 1,8)
+                eshik_profili={"ichkariga": "198", "tashqariga": "185"}, eshik_en_jami=D("1.3"),
+                eshik_boy_jami=D("1.5"), eshik_2_qoshimcha=D("-0.5"), shtulp="182", shtulp_ayirma=D("1.8"))
 SERIYA_RAMA = {"F702": TERMO70, "F703": TERMO70, "7051": ENGELBERG, "183": ALDOKS}
-ALDOKS_PROFILLARI = {"183", "181", "182", "105"}
+ALDOKS_PROFILLARI = {"183", "181", "182", "105", "185", "198"}
 # Seriya impostidan ramasi (impost tanlovi tekshiruvi uchun)
 IMPOST_RAMA = {"M702": "F702", "7053": "7051", "182": "183"}
 ENGELBERG_PROFILLARI = {"7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2"}
@@ -749,11 +758,14 @@ def _eshik(b, z, h, arka=D(0)):
     def ustma(*tomonlar):  # qanot kesishi ichki oʻlchamdan shuncha katta: kosa tomoni / impost tomoni
         return sum((sr.eshik_kosa if t == h.r else sr.eshik_impost) for t in tomonlar)
 
-    H1 = z.ichki_boy + ustma(z.tepa, z.past)
+    if sr.eshik_boy_jami is not None:  # Aldoks: chetlariga qaramay jami qoʻshimcha
+        H1 = z.ichki_boy + sr.eshik_boy_jami
+    else:
+        H1 = z.ichki_boy + ustma(z.tepa, z.past)
     ii = b.get("tabaqa_impost")  # tabaqa ichida impost; 2 tabaqada ikkalasiga bir xil
     soni = b.get("tabaqa_soni")
     if soni == 1:
-        L1 = z.ichki_en + ustma(z.chap, z.ong)
+        L1 = z.ichki_en + (sr.eshik_en_jami if sr.eshik_en_jami is not None else ustma(z.chap, z.ong))
         h.tabaqa("Eshik tabaqasi", profil, L1, H1, arka=arka, ichki_impost=ii)
         h.eshik_qanotlari.append((L1, H1))
         h.eshiklar.append(1)
@@ -804,10 +816,11 @@ def _bolak_ichi(b, z, h, ctx):
     if z.ichki_en <= 0 or z.ichki_boy <= 0:
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
     tur = b.get("tur")
-    if h.seriya.faqat_rom and (tur not in ("gluxoy", "tabaqa", "bolinish") or b.get("fortochka") or b.get("dvaynoy")
-                               or b.get("tabaqa_impost") or b.get("lapsha") or h.joriy_oyna == LAMBRI):
-        raise HisobXato(f"{h.seriya.nomi}da hozircha faqat rom: gluxoy, tabaqa, impost "
-                        "(fortochka, dvaynoy, eshik, lapsha, lambri hali yoʻq)")
+    if h.seriya.faqat_rom and (tur not in ("gluxoy", "tabaqa", "bolinish", "eshik") or b.get("fortochka")
+                               or b.get("dvaynoy") or b.get("tabaqa_impost") or b.get("lapsha")
+                               or b.get("egilgan") is not None or h.joriy_oyna == LAMBRI):
+        raise HisobXato(f"{h.seriya.nomi}da hozircha faqat rom va eshik: gluxoy, tabaqa, eshik, impost "
+                        "(fortochka, dvaynoy, tabaqa ichida impost, lapsha, portal, lambri hali yoʻq)")
     if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("egilgan") is not None):
         raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, fortochka, impost) hisoblanadi")
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas
@@ -921,7 +934,7 @@ def hisobla(k):
     lam = LAMINAT_QOSHIMCHA if rang == "Laminatsiya" else D(0)
     metall = str((k.get("tanlov") or {}).get("eng_metall") or "1.5")
     h = Hisob(k.get("oyna_qalinligi", seriya.oyna_standart), vertikal_r=vertikal == "R", lam=lam, seriya=seriya, metall=metall)
-    if not seriya.eshik and k.get("arka"):
+    if (not seriya.eshik or seriya.faqat_rom) and k.get("arka"):
         raise HisobXato(f"{seriya.nomi}: arka hozircha yoʻq")
     if seriya.faqat_rom and (k.get("tur") == "lapshali" or _lapshami(k.get("bolak"))):
         raise HisobXato(f"{seriya.nomi}da lapsha hozircha yoʻq")

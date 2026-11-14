@@ -674,14 +674,83 @@ ALD_ZATSEP_SAMOREZ = ("3,9×19 YHBM", 4)
 ALD_TABAQA_MAX = (D(100), D(200))  # eni, boʻyi
 
 
-def _ald_hisobot(s, rang, r):
-    perimetr = D(s["markaziy_rezina"]) / 100  # rom tabaqasida = qanot perimetri
+# Eshik (foydalanuvchi, 2026-11-14). Zamok: balkon qanotida (185/198) "153/23/35", Urta/Qanotdan yasalganda 153/23/25;
+# 155/23/20 ishlatilmaydi; serdtsevina alohida qoʻshilmaydi. Otvetka 153 ruchka rangida. Ruchka standart Comfort 1077.
+# Zamok va ruchka: samorez 3,9×19 × 2 + zaklepka 4×12 × 6. Petlya standart rom petlyasi (Petlya Aldoks), tanlansa
+# dvernaya; 3 ta + qanot eni 75–110 boʻlsa 1 + boʻyi 200–240 boʻlsa 1, har petlyaga 4,8×19 × 4. Passiv qanot:
+# Shpingalet ALD × 2 (petlya rangida) + 3,9×19 × 6; shtulp oʻrnidagi Urta 182 passivga 4,8×60 YSB × 3 bilan.
+ALD_ESHIK_ZAMOKLAR = ("Zamok S Tsilindrom 153/23/35 (Tr)", "Zamok S Tsilindrom 153/23/25 (Tr)",
+                      "Zamok S Tsilindrom 153/23/35 Rolik (DWG) (Tr)", "Zamok S Tsilindrom 153/23/25 Rolik (DWG) (Tr)")
+ALD_ESHIK_RUCHKALAR = ("Comfort 1077", "Stublina 1177", "Hi-Tech", "Fornax")
+ALD_RUCHKA_NOMI = {
+    "Comfort 1077": {"Oq": "Ruchka Dvernaya COMFORT (1077.85.28) (Oq) (Uz)",
+                     "9005": "Ruchka Dvernaya COMFORT (1077.85.28) (9005) (Uz)",
+                     "SW306G": "Ruchka Dvernaya COMFORT (1077.85.28) (SW306G) (Uz)"},
+    "Stublina 1177": {"Oq": "Ruchka Dver (1177.85.28) (Oq) (Uz)", "SW306G": "Ruchka Dver (1177.85.28) (SW306G) (Uz)"},
+    "Hi-Tech": {"Oq": "Ruchka Dvernaya Hi-Tech (28mm) (Oq) (Uz)"},
+    "Fornax": {"Oq": "Ruchka Dvernaya FORNAX (Oq) (Tr)"},
+}
+ALD_OTVETKA = {"Oq": "Otvetka 153 (Oq) (500sht) (Uz)", "9005": "(9005) Otvetka 153 (Uz)", "SW306G": "(SW306G) Otvetka 153 (Uz)"}
+ALD_ESHIK_PETLYALAR = ("rom", "dvernaya")
+ALD_DVERNAYA = {"Oq": "Petlya Dvernaya Alyumin. (Oq) (Uz)", "9005": "(9005) Petlya Dvernaya Alyumin (Uz)",
+                "SW306G": "(SW306G) Petlya Dvernaya Alyumin (Uz)"}
+ALD_SHPINGALET = {"Oq": "Shpingalet ALD (Oq) (300sht) (Uz)", "9005": "(9005) Shpingalet ALD (Uz)",
+                  "SW306G": "(SW306G) Shpingalet ALD (Uz)"}
+ALD_ESHIK_MAX = (D(110), D(240))  # qanot eni, boʻyi
+
+
+def _ald_rang(rang):
+    """Furnitura rangi: oq romga Oq, laminatga 9005, 306g ga SW306G (foydalanuvchi, 2026-11-14)."""
+    return {"Oq": "Oq", "Laminatsiya": "9005"}.get(rang, "SW306G")
+
+
+def _ald_eshik(s, tanlov, rang, r):
+    eshiklar = s.get("eshiklar") or []
+    if not eshiklar:
+        return
+    qanotlar = [(D(str(e)), D(str(b))) for e, b in s.get("eshik_qanotlari", [])]
+    for e, b in qanotlar:
+        if e > ALD_ESHIK_MAX[0] or b > ALD_ESHIK_MAX[1]:
+            raise HisobXato(f"Aldoks eshik qanoti eni 110 dan, boʻyi 240 dan oshmaydi: {e} × {b}")
+    rk = _ald_rang(rang)
+    zamok = tanlov.get("ald_eshik_zamok") or ALD_ESHIK_ZAMOKLAR[0]
+    if zamok not in ALD_ESHIK_ZAMOKLAR:
+        raise HisobXato(f"Aldoks eshik zamogʻi notoʻgʻri: {zamok}")
+    ruchka = tanlov.get("ald_eshik_ruchka") or ALD_ESHIK_RUCHKALAR[0]
+    if ruchka not in ALD_RUCHKA_NOMI:
+        raise HisobXato(f"Aldoks eshik ruchkasi notoʻgʻri: {ruchka}")
+    n = len(eshiklar)
+    nomlar = ALD_RUCHKA_NOMI[ruchka]
+    r.qosh("Furnitura", nomlar.get(rk) or nomlar["Oq"], n, "dona")
+    r.qosh("Furnitura", zamok, n, "dona")
+    r.qosh("Furnitura", ALD_OTVETKA[rk], n, "dona")
+    samorez = 2 * n  # 3,9×19: zamok va ruchkaga 2, passiv shpingaletiga 6
+    r.qosh("Furnitura", "Zaklepka 4×12", 6 * n, "dona")
+    petlya_tur = tanlov.get("ald_eshik_petlya") or "rom"
+    if petlya_tur not in ALD_ESHIK_PETLYALAR:
+        raise HisobXato(f"Aldoks eshik petlyasi faqat rom yoki dvernaya: {petlya_tur}")
+    petlya = sum(3 + (75 <= e <= 110) + (200 <= b <= 240) for e, b in qanotlar)
+    pr = "Oq" if petlya_tur == "rom" else rk  # Petlya Aldoks faqat oq
+    r.qosh("Furnitura", ALD_PETLYA if petlya_tur == "rom" else ALD_DVERNAYA[pr], petlya, "dona")
+    r.qosh("Furnitura", ALD_PETLYA_SAMOREZ[0], petlya * ALD_PETLYA_SAMOREZ[1], "dona")
+    passiv = sum(1 for e in eshiklar if e == 2)
+    if passiv:
+        r.qosh("Furnitura", ALD_SHPINGALET[pr], 2 * passiv, "dona")
+        samorez += 6 * passiv
+        r.qosh("Aksessuar", "4,8×60 YSB", 3 * passiv, "dona")
+    r.qosh("Furnitura", "3,9×19 YHBM", samorez, "dona")
+
+
+def _ald_hisobot(s, rang, r, tanlov=None):
+    qanot = [*(s.get("rom_qanotlari") or []), *(s.get("eshik_qanotlari") or [])]
+    perimetr = sum((2 * (D(str(e)) + D(str(b))) for e, b in qanot), D(0)) / 100
     oyna = D(s["oyna_rezinasi"]) / 100
     r.qosh("Rezina", ALD_REZINA_YU, oyna, "m")
     r.qosh("Rezina", ALD_REZINA_QISHKI, oyna, "m")
     if perimetr:
         r.qosh("Rezina", ALD_REZINA_BOSMA, perimetr * 2, "m")
-    burchak = 4 * (sum(s["ramalar"].values()) + sum(s["tabaqalar"].values()))
+    # eshik qanoti (185/198) burchagi — "190 Balkon Chovush" (qoidasi soʻralmoqda), bu yerga kirmaydi
+    burchak = 4 * (sum(s["ramalar"].values()) + sum(v for p, v in s["tabaqalar"].items() if p not in ("185", "198")))
     samorez = burchak * ALD_BURCHAK_SAMOREZ
     r.qosh("Aksessuar", ALD_CHOVUSH, burchak, "dona")
     if s["impost_soni"]:
@@ -689,10 +758,10 @@ def _ald_hisobot(s, rang, r):
         r.qosh("Aksessuar", ALD_BOLSHOY, uch, "dona")
         samorez += uch * ALD_IMPOST_SAMOREZ
     r.qosh("Aksessuar", ARMATURA_SAMOREZ, samorez, "dona")
-    if s["tabaqa_oyna_soni"]:
-        r.qosh("Aksessuar", "Takos Regulirovichniy (24mm)", s["tabaqa_oyna_soni"] * 2, "dona")
+    # Aldoksda tabaqa oynasiga Takos (24mm) kerak emas, faqat gluxoyga CT 203 (foydalanuvchi, 2026-11-14)
     if s["gluxoy_oyna_soni"]:
         r.qosh("Aksessuar", "CT 203", s["gluxoy_oyna_soni"] * 2, "dona")
+    _ald_eshik(s, tanlov or {}, rang, r)
     qanotlar = s.get("rom_qanotlari") or []
     if not qanotlar:
         return
@@ -723,7 +792,7 @@ def hisobot(k, narxlar):
 
     _profillar(n, rang, narxlar, r)
     if n.get("seriya") == "Aldoks":
-        _ald_hisobot(s, rang, r)
+        _ald_hisobot(s, rang, r, tanlov)
     elif n.get("seriya", "Termo 70") == "Termo 70":
         _rezina(s, r)
         _aksessuar(s, narxlar, r, tanlov)

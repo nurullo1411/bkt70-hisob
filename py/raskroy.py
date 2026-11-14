@@ -18,7 +18,7 @@ from zakaz import _birlashtir
 HIVICH = 650
 # PVX Engelberg 7000 hivichi 6 m (foydalanuvchi, 2026-11-08)
 HIVICH_PROFIL = {p: 600 for p in ("LII", "7051", "7052", "7053", "7054", "7055", "7056", "7057", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2",
-                                         "183", "181", "182", "105")}  # Aldoks ham 6 m (katalog)
+                                         "183", "181", "182", "105", "185", "198")}  # Aldoks ham 6 m (katalog)
 
 
 def hivich(profil):
@@ -31,7 +31,10 @@ QOLDIQ_CHEGARA = 10
 # Aldoks (foydalanuvchi, 2026-11-11): 181 Qanot 45° aylantirib kesiladi — birinchi detal toʻliq, har keyingisi
 # 7,6 sm kam joy oladi (arra shu ichida): 600 − 69,9 − (69,9 − 7,6) − … Qoldiq uchi qiya — belgi "◣".
 # 182 Urta tabaqada ishlatilsa ham aylantiriladi; romda u impost (90°) — aylantirilmaydi.
-AYLANTIRISH = {"181": 7.6}
+AYLANTIRISH = {"181": 7.6, "185": 11, "198": 11}
+# 185 Balkon Urta va 198 Balkon Qanot faqat laminatsiz (oq, 306g) va NEO boʻlmaganda aylantiriladi (foydalanuvchi, 2026-11-14)
+AYLANTIRISH_LAMINATSIZ = {"185", "198"}
+_AYLANTIRILMAYDI = set()  # joriy zakazda aylantirilmaydigan profillar (detallarni_yig belgilaydi)
 AYLANTIRISH_BELGI = "◣"
 # 182 Urtaning qiya uchli qoldigʻidan 90° detal olinsa 5,95 ayriladi (foydalanuvchi; sklad bilan ishlashda)
 QIYA_AYIRMA = {"182": 5.95}
@@ -46,7 +49,7 @@ SKLAD_NOMI = {
 }
 TARTIB = ["F702", "F703", "V702", "V707", "V708", "M702", "A701", "H702", "LII", "G24", "G24-R", "G32", "G32-R",
           "7051", "7052", "7054", "7055", "7053", "7058", "7056", "7057", "0701", "0703", "0701-2", "0703-2", "0702-2",
-          "183", "181", "182", "105"]
+          "183", "181", "185", "198", "182", "105"]
 
 
 def _b(x):
@@ -73,6 +76,7 @@ def detallarni_yig(zakaz):
     """(konstruksiya roʻyxati, {profil: Counter({uzunlik_b: soni})})."""
     umumiy = zakaz.get("umumiy", {})
     royxat, jami = [], {}
+    _AYLANTIRILMAYDI.clear()
     for i, el in enumerate(zakaz.get("konstruksiyalar") or []):
         nom = el.get("nom") or f"K{i + 1}"
         soni = el.get("soni", 1)
@@ -82,6 +86,9 @@ def detallarni_yig(zakaz):
         except (HisobXato, KeyError) as e:
             raise HisobXato(f"{nom}: {e}") from e
         detallar = [_zapas(d) for d in n["profillar"]]
+        t = k.get("tanlov") or {}
+        if t.get("rang") == "Laminatsiya" or t.get("ald_tur") == "NEO":
+            _AYLANTIRILMAYDI.update(d["profil"] for d in detallar if d["profil"] in AYLANTIRISH_LAMINATSIZ)
         royxat.append({"nom": nom, "soni": soni, "L": k["L"], "H": k["H"], "detallar": detallar})
         for d in detallar:
             jami.setdefault(d["profil"], Counter())[_b(d["uzunlik"])] += d["soni"] * soni
@@ -113,6 +120,10 @@ def _ald_sklad(nom):
         return "183", False
     if n == "qanot":
         return "181", False
+    if n.startswith(("balkon oʻrta", "balkon o'rta", "balkon o‘rta", "balkon orta", "balkon urta")):
+        return "185", False
+    if n == "balkon qanot":
+        return "198", False
     if n.startswith(("oʻrta", "o'rta", "o‘rta", "orta")):
         return "182", "#>" in n
     return None
@@ -147,7 +158,7 @@ def _ald_sklad_bolaklari(qatorlar, profil, rang):
 
 def sklad_bolaklari(qatorlar, profil, rang):
     """Shu profil va rangdagi boʻlaklar (sm_b) va hisobga olinmagan qatorlar haqida izoh."""
-    if profil in ("183", "181", "182"):
+    if profil in ("183", "181", "182", "185", "198"):
         return _ald_sklad_bolaklari(qatorlar, profil, rang)
     nom = SKLAD_NOMI.get(profil)
     bolak, izoh = [], []
@@ -173,13 +184,17 @@ def sklad_bolaklari(qatorlar, profil, rang):
     return sorted(bolak), izoh
 
 
+def _aylantirish(profil):
+    return None if profil in _AYLANTIRILMAYDI else AYLANTIRISH.get(profil)
+
+
 def _vazn(d, profil):
-    o = AYLANTIRISH.get(profil)
+    o = _aylantirish(profil)
     return d - _b(o) if o else d + _b(ARRA)
 
 
 def _sigim(L, profil):
-    o = AYLANTIRISH.get(profil)
+    o = _aylantirish(profil)
     return L - _b(o) if o else L
 
 
@@ -292,7 +307,7 @@ OTXOD_CHEGARA = {
     "7051": 70, "7052": 45, "7053": 65, "7056": 36, "7057": 36, "0701": 25, "0703": 25, "0701-2": 25, "0703-2": 25, "0702-2": 25,
     "7054": 65, "7055": 65, "7058": 200,  # Engelberg eshik (foydalanuvchi, 2026-11-11)
     "LII": 59,  # PVX lambri (foydalanuvchi, 2026-11-10)
-    "183": 70, "181": 60, "182": 100, "105": 40,  # Aldoks (foydalanuvchi, 2026-11-11, Termodagidek)
+    "183": 70, "181": 60, "182": 100, "105": 40, "185": 65, "198": 65,  # Aldoks (foydalanuvchi, 2026-11-11, Termodagidek)
 }
 STRAXOVKA = 0.03  # butun tannarxga: ish xatosi va kutilmagan rasxot uchun (foydalanuvchi, 2026-11-03)
 
@@ -317,7 +332,7 @@ def otxod_hisobi(profil, kerak, usul="chegara"):
     usul "butun": eng kam hivichli variant, hivich soni × hivich uzunligi.
     Natija eslab qolinadi: narx va kesish chizmasi bir xil detallar uchun qayta hisoblamaydi.
     """
-    kalit = (profil, usul, tuple(sorted((d, n) for d, n in kerak.items() if n > 0)))
+    kalit = (profil, usul, _aylantirish(profil), tuple(sorted((d, n) for d, n in kerak.items() if n > 0)))
     if kalit not in _OTXOD_KESH:
         if len(_OTXOD_KESH) > 300:
             _OTXOD_KESH.clear()
@@ -578,7 +593,7 @@ def _kesim_matni(profil):
     if str(profil).startswith("G"):
         return (f"45°, aylantirilmaydi · Arra {_k(_b(ARRA))} sm · DIQQAT: har shtapik +{_k(_b(SHTAPIK_ZAPAS))} sm uzun "
                 "kesilgan, joyida aniq oʻlchab kaltalang")
-    if profil in AYLANTIRISH:
+    if _aylantirish(profil):
         return (f"45°, aylantirib: birinchidan keyin har detal {_k(_b(AYLANTIRISH[profil]))} sm kam oladi · "
                 f"qoldiq uchi qiya ({AYLANTIRISH_BELGI})")
     if profil in TOGRI_KESIM:
@@ -595,7 +610,7 @@ PROFIL_NOMI = {
     "7054": "Balkon Urta", "7055": "Balkon Kanot", "7058": "Shtulp (Adaptor)",
     "0701": "Armatura Kosa-Qanot", "0703": "Armatura Urta",
     "0701-2": "Armatura Kosa-Qanot 2 mm", "0703-2": "Armatura Urta 2 mm", "0702-2": "Armatura Balkon Qanot 2 mm",
-    "183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P",  # Aldoks
+    "183": "Kosa", "181": "Qanot", "182": "Urta", "105": "Shtapik P", "185": "Balkon Urta", "198": "Balkon Qanot",  # Aldoks
 }
 
 
@@ -697,7 +712,7 @@ def pdf_yoz(reja, r, yol, sarlavha):
             belgi = "□ " if r["profil"] in TOGRI_KESIM else ""
             for d, n in qator:
                 matn(f"{belgi}{_k(d)} × {n}", olcham=11, x=x + 10)
-            qiya = f" {AYLANTIRISH_BELGI}" if r["profil"] in AYLANTIRISH and k["qoldiq"] > 0 else ""
+            qiya = f" {AYLANTIRISH_BELGI}" if _aylantirish(r["profil"]) and k["qoldiq"] > 0 else ""
             matn(f"qoldiq: {_k(k['qoldiq'])} sm{qiya}", "AB", 11, sariq, x + 10)
             pasti = min(pasti, yuq - bal)
             if ustun == 1:
