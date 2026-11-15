@@ -447,6 +447,7 @@ function ustamalar(n = natija) {
 function ustamaKoef(n, seriya) { const u = ustamalar(n).find((x) => x.seriya === (seriya || "Termo 70")); return 1 + (u ? u.foiz : 0) / 100; }
 
 // Qulflangan zakazda yangi hisob eski narxdan farq qilsa — eski narx_som (soʻm), aks holda null
+const TUZATMA_OGOH_FOIZ = 5;
 function narxQulfi(mijozga) {
   const h = hk(), kurs = natija.kurs, ch = h.narx_chegirma_som != null ? Number(h.narx_chegirma_som) : Number(h.chegirma_som) || 0;
   const qulf = !!((zakaz.shartnoma && zakaz.shartnoma.summa) || Number(h.avans_som) > 0 || Number(zakaz.tolangan) > 0 ||
@@ -467,6 +468,10 @@ function hisobKitobniChiz() {
   $("j-tuz-q").hidden = Math.abs(tuz) < 0.005;
   $("j-tuz").textContent = (tuz > 0 ? "+ " : "− ") + pul(Math.abs(tuz));
   $("j-tuz").className = tuz > 0 ? "zarar" : "tejam";
+  // Tuzatma (zarar) jamining 5 % idan oshsa — ogohlantirish (foydalanuvchi, 2026-11-15)
+  const tuzFoiz = n.jami_usd > 0 ? tuz / n.jami_usd * 100 : 0;
+  $("tuz-ogoh").hidden = !(tuzFoiz > TUZATMA_OGOH_FOIZ);
+  $("tuz-ogoh").textContent = `Otxod tuzatmasi jamining ${son(tuzFoiz, 0)} % i — otxod usuli (${n.otxod_usuli_nomi}) yoki birga kesish narxni oshirmoqda.`;
   const ust = ustamalar(n);
   const ustama = ust.reduce((a, u) => a + u.ustama, 0);
   const mijozga = n.jami_usd + ustama;

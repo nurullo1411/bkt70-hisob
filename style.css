@@ -796,3 +796,4 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .ai-javob { width: 100%; margin-top: 6px; }
 #j-tuz.tejam { color: var(--yaxshi); }
 #j-tuz.zarar { color: var(--xato); }
+#tuz-ogoh { color: var(--urgu); background: color-mix(in srgb, var(--urgu) 12%, transparent); border-left: 3px solid var(--urgu); padding: 6px 8px; border-radius: 4px; font-size: .9em; }
