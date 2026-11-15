@@ -81,6 +81,7 @@ footer { text-align: center; padding: 0 16px 24px; }
 .chizma .yoz { fill: var(--matn); font-family: system-ui, sans-serif; }
 .chizma .xira-yoz { fill: var(--xira); }
 .chizma .fon { paint-order: stroke; stroke: var(--karta); stroke-width: .8; }
+.chizma .belgi-yoz { fill: var(--matn); font-family: system-ui, sans-serif; opacity: .38; pointer-events: none; font-weight: 500; }
 .chizma .belgi-fon { fill: var(--karta); fill-opacity: .88; stroke: var(--rama-chiziq); stroke-width: .2; }
 .chizma .bos { fill: transparent; stroke: none; cursor: pointer; }
 .chizma .impbos { fill: transparent; stroke: none; cursor: grab; touch-action: none; }

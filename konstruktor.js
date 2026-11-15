@@ -852,11 +852,9 @@ function chizmaSVG(k, opts = {}) {
   }
   if (!opts.kichik) {
     for (const o of g.barglar) {
-      const cx = o.x + o.w / 2;
-      const yt = tepaY(o.tY, cx, o.y, t), yb = o.u ? o.u.yo.y0 - t : pastY(o.pY, cx, o.y + o.h, t);
-      // eshik belgisi yuqoriroqda: oʻrtada ruchka (shtulp) bor
-      const cy = o.b.tur === "eshik" ? yt + (yb - yt) * 0.3 : (yt + yb) / 2;
-      s += nishon(cx, cy, belgi[o.p]);
+      // F1 / C1 / E1 — boʻlakning chap tepa burchagida mayda, xira (foydalanuvchi, 2026-11-15: xalaqit qilmasin)
+      const bx = o.x + t * 1.6, by = tepaY(o.tY, bx, o.y, t) + t * 0.6 + shrift * 0.45;
+      s += nishon(bx, by, belgi[o.p]);
       const bosCls = "bos" + (o.p === opts.tanlangan ? " tanl" : "");
       s += o.u ? `<path d="${uYol(o, 0)}" class="${bosCls}" data-p="${o.p}"/>` : yuza(o.x, o.y, o.w, o.h, 0, bosCls, `data-p="${o.p}"`, o.tY, o.pY);
     }
@@ -908,10 +906,9 @@ function chizmaSVG(k, opts = {}) {
       s += v ? bosq(cx - k_ / 2, l.y, k_, l.h, `${l.p}|${l.i}`) : bosq(l.x, cy - k_ / 2, l.w, k_, `${l.p}|${l.i}`);
     }
   }
-  // F1 / C1 / E1 belgisi: yumaloq taxtacha
+  // F1 / C1 / E1 belgisi: mayda xira yozuv, bosishga xalaqit qilmaydi
   function nishon(x, y, m) {
-    const w = shrift * (0.75 + 0.62 * String(m).length), h = shrift * 1.45;
-    return rect(x - w / 2, y - h / 2, w, h, "belgi-fon", `rx="${f(h / 2)}"`) + matn(x, y, m, 0.95, "yoz qalin");
+    return `<text x="${f(x)}" y="${f(y)}" font-size="${f(shrift * 0.62)}" class="belgi-yoz" dominant-baseline="central">${esc(m)}</text>`;
   }
 
   // Oʻlcham chiziqlari: tik boʻlinishlar pastda, yotiqlari oʻngda; umumiy L pastda, H chapda.
