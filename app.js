@@ -1479,11 +1479,29 @@ function aiQosh(natija, savollar) {
 }
 
 // Yangi versiya chiqsa: yangi service worker oʻrnashgach sahifa bir marta oʻzi yangilanadi
+let versiyaQayta = false;
 if ("serviceWorker" in navigator) {
   const birinchi = !navigator.serviceWorker.controller;
   navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((r) => r.update()).catch(() => {});
-  let qayta = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => { if (!birinchi && !qayta) { qayta = true; location.reload(); } });
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (!birinchi && !versiyaQayta) { versiyaQayta = true; location.reload(); } });
 }
+// Eski index.html keshdan qolmasin (foydalanuvchi, 2026-11-15): sahifadagi versiya (meta, ilova_yig.py yozadi)
+// py/versiya.txt bilan solishtiriladi — farq boʻlsa SW yangilanadi va sahifa bir marta qayta yuklanadi
+// (ochilganda va ilovaga qaytilganda). Bir versiyaga bir marta — tarmoq eski boʻlsa halqa boʻlmaydi.
+const SAHIFA_VERSIYA = (document.querySelector('meta[name="ilova-versiya"]') || {}).content || "";
+async function versiyaTekshir() {
+  if (!SAHIFA_VERSIYA || versiyaQayta) return false;
+  try {
+    const v = (await (await fetch("py/versiya.txt", { cache: "no-store" })).text()).trim();
+    if (!v || v === SAHIFA_VERSIYA) return false;
+    try { if (sessionStorage.getItem("versiya_qayta") === v) return false; sessionStorage.setItem("versiya_qayta", v); } catch (e) {}
+    const r = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (r) await r.update().catch(() => {});
+    if (!versiyaQayta) { versiyaQayta = true; location.reload(); }
+    return true;
+  } catch (e) { return false; }
+}
+versiyaTekshir();
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") versiyaTekshir(); });
 window.addEventListener("DOMContentLoaded", arxivniChiz);
 yukla();
