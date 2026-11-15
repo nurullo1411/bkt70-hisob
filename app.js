@@ -1151,6 +1151,10 @@ Soni yozilmagan boʻlsa 1. nom: hujjatdagi raqam yoki "Rom 1", "Eshik 1".
 Rasm yonboshlab olingan boʻlsa, raqamlar va yozuvlar yoʻnalishiga qarab konstruksiyani toʻgʻri holatda oʻqi: L gorizontal (eni), H vertikal (boʻyi) oʻlcham. Eshik doim boʻyi enidan katta.
 Agar usta "Nima chizilgan" deb Eshik yoki Vitraj tanlagan boʻlsa, T/Z yozilmagan boʻlsa ham ochiladigan qism eshik; ochilishi bilinmasa "ichkariga" yoz va savollar ga qoʻsh.
 Oʻqib boʻlmagan oʻlchamni taxmin qilma: eng ehtimolini yoz va savollar ga qoʻsh.
+TAXMIN QILGAN HAR JOYINGNI SOʻRA (usta savolga javob beradi, savolsiz taxmin qoldirma):
+- ichki oʻlchamlar yozilmagan, eskizdan chamalangan boʻlsa — har konstruksiyaga bitta savol: qaysi oʻlchamlar chamalanganini sanab, variantlar "Chamalangani toʻgʻri" (ozgarish []) va "Teng boʻlinsin" (shu boʻlinishlar olchamlari null);
+- belgi noaniq boʻlsa (eshikmi yoki rom tabaqasimi, fortochkami, petlya qaysi tomonda) — variantlar bilan;
+- seriya yoki rang yozilmagan boʻlsa soʻrama (dastur standartini oladi).
 
 ROMCHI PDF ("BUYURTMA MA'LUMOTI", har konstruksiya raqamlangan kartochka: chizma + Brend, Seriya, Rangi, Oynasi, ... Soni):
 - Oʻlchamlar mm da: chap tomondagi umumiy boʻy = H, pastdagi eng uzun = L, ichkaridagi kichik raqamlar boʻlak oʻlchamlari (impost oʻrtasigacha). 10 ga boʻl.
@@ -1392,6 +1396,9 @@ function aiQur() {
         if (tl != null && var_[tl]) { k.bolak = var_[tl].b; xato = null; }
       }
     }
+    // boshqa hisob xatosi — usta matn bilan javob beradi (AI ga qayta yuboriladi)
+    if (xato && !savollar.some((q) => q.id === "rama" + i))
+      savollar.push({ id: "xato" + i, k: i, matn: `${k.nom} hisobdan oʻtmadi. Qanday tuzataylik? (masalan: "pastdagi boʻlaklar eshik emas, rom tabaqasi")`, variantlar: [] });
     return { k, xato };
   });
   return { natija, savollar };
@@ -1462,7 +1469,7 @@ function aiQosh(natija, savollar) {
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   hisobla();
   ekran("zakaz");
-  const javobsiz = savollar.filter((q) => !q.id.startsWith("tik") && aiSuhbat.javob[q.id] == null).map((q) => q.matn);
+  const javobsiz = savollar.filter((q) => !q.id.startsWith("tik") && !q.id.startsWith("xato") && aiSuhbat.javob[q.id] == null).map((q) => q.matn);
   $("ai-sarlavha").textContent = qoshildi.length ? `${qoshildi.length} ta konstruksiya qoʻshildi` : "Konstruksiya qoʻshilmadi";
   $("ai-matn").innerHTML = (qoshildi.length ? `<p>${qoshildi.map(esc).join(", ")}</p><p class="xira">Har birini ochib tekshiring: oʻlcham va ochilish tomoni.</p>` : "") +
     (xatolar.length ? `<p class="ogoh">Qoʻshilmadi:<br>${xatolar.map(esc).join("<br>")}</p>` : "") +
