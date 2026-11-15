@@ -2,14 +2,14 @@
 <html lang="uz">
 <head>
 <meta charset="utf-8">
-<meta name="ilova-versiya" content="2026-11-15 · 74c952db">
+<meta name="ilova-versiya" content="2026-11-15 · ed46d667">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d47a1">
 <title>BKT 70 hisob</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=74c952db">
+<link rel="stylesheet" href="style.css?v=ed46d667">
 </head>
 <body>
 <header>
@@ -180,7 +180,7 @@
     </details>
 
     <details class="karta" id="kesish-quti" data-t="s">
-      <summary>Kesish chizmasi (sexga)</summary>
+      <summary>Kesish rejasi (sexga)</summary>
       <div class="sklad-quti">
         <div class="sarlavha-kichik">Sklad bilan reja (sexga)</div>
         <div class="qator"><label for="sklad-rang">Rang</label><select id="sklad-rang"></select>
@@ -189,9 +189,13 @@
         <p id="sklad-holat" class="xira"></p>
         <div id="sklad-reja"></div>
       </div>
-      <div class="sarlavha-kichik">Skladsiz (narx hisobidagi variant)</div>
+      <div id="kesish-ogoh" class="kv-ogoh" hidden></div>
+      <div id="kesish-tayyor" class="kv-tayyor" hidden>✓ Hamma profil kesildi</div>
+      <div id="kesish-manba" class="kv-manba" hidden><button data-manba="sklad">Sklad bilan</button><button data-manba="skladsiz">Skladsiz (narxdagi)</button></div>
+      <div id="kesish-tablar" class="kv-tablar" role="tablist"></div>
       <div id="kesish"></div>
-      <button id="kesish-pdf" class="tugma keng">Kesish chizmasini PDF qilish</button>
+      <div id="kesish-nav" class="kv-nav" hidden></div>
+      <button id="kesish-pdf" class="tugma keng" hidden>📄 Hammasi bitta PDF</button>
     </details>
 
     <section class="karta hujjatlar" data-t="d">
@@ -309,16 +313,16 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
-<script src="ranglar.js?v=74c952db"></script>
-<script src="kesish_karta.js?v=74c952db"></script>
-<script src="app.js?v=74c952db"></script>
-<script src="qalam.js?v=74c952db"></script>
-<script src="fasonlar.js?v=74c952db"></script>
-<script src="konstruktor.js?v=74c952db"></script>
-<script src="kassa.js?v=74c952db"></script>
-<script src="zakaz_baza.js?v=74c952db"></script>
-<script src="hisobot.js?v=74c952db"></script>
-<script src="hisobot_ekran.js?v=74c952db"></script>
-<script src="katalog.js?v=74c952db"></script>
+<script src="ranglar.js?v=ed46d667"></script>
+<script src="kesish_karta.js?v=ed46d667"></script>
+<script src="app.js?v=ed46d667"></script>
+<script src="qalam.js?v=ed46d667"></script>
+<script src="fasonlar.js?v=ed46d667"></script>
+<script src="konstruktor.js?v=ed46d667"></script>
+<script src="kassa.js?v=ed46d667"></script>
+<script src="zakaz_baza.js?v=ed46d667"></script>
+<script src="hisobot.js?v=ed46d667"></script>
+<script src="hisobot_ekran.js?v=ed46d667"></script>
+<script src="katalog.js?v=ed46d667"></script>
 </body>
 </html>

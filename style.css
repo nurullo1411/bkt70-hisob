@@ -956,3 +956,44 @@ header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: 
 }
 .kk-b > span:first-child { white-space: nowrap; }
 .kk-r, .kk-q, .kk-kesim, .kk-sar small { font-size: 16px; }
+
+/* ===== Kesish varoqlari (2026-11-15, docs/dizayn.md "Kesish varoqlari") ===== */
+.kv-ogoh { position: sticky; top: var(--bosh-h, 50px); z-index: 1; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 4px 6px; margin: 8px 0;
+  border-radius: 10px; background: #FFF4C2; border: 1px solid #E0B400; }
+.kv-ogoh::-webkit-scrollbar { display: none; }
+.kv-ogoh button { flex: 0 0 auto; white-space: nowrap; min-height: 40px; border: 0; background: transparent; color: #5A4300; font: 700 15px/1.3 system-ui, sans-serif;
+  padding: 0 6px; cursor: pointer; text-decoration: underline; }
+.kv-tayyor { margin: 8px 0; padding: 10px 14px; border-radius: 12px; background: #DFF3E4; color: #14532D; font-weight: 800; font-size: 16px; }
+.kv-manba { display: flex; gap: 0; margin: 8px 0; border: 1px solid var(--chiziq); border-radius: 10px; overflow: hidden; }
+.kv-manba button { flex: 1; min-height: 40px; border: 0; background: var(--karta); color: var(--matn); font: 600 15px system-ui, sans-serif; }
+.kv-manba button.on { background: var(--aks-s); color: #fff; }
+.kv-tablar { scroll-margin-top: calc(var(--bosh-h, 50px) + 64px); display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 8px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.kv-tablar::-webkit-scrollbar { display: none; }
+.kv-tablar button { flex: 0 0 auto; scroll-snap-align: center; min-height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid var(--chiziq);
+  background: var(--karta); color: var(--matn); font: 600 15px system-ui, sans-serif; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.kv-tablar button.on { background: var(--aks-s); border-color: var(--aks-s); color: #fff; }
+.kv-tablar button.kesildi:not(.on) { color: #14532D; border-color: #2E8B3E; background: #EAF6EC; }
+.kv { font-size: 16px; touch-action: pan-y; }
+.kv-bosh { padding: 4px 0 8px; }
+.kv-q1, .kv-q2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; }
+.kv-q1 { font-size: 17px; }
+.kv-q1 b { font-size: 18px; }
+.kv-q2 { color: var(--xira); font-variant-numeric: tabular-nums; }
+.kv-q2 b { color: var(--matn); }
+.kv-tug { display: flex; gap: 6px; margin-top: 8px; }
+.kv-tug button { min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font: 600 15px system-ui, sans-serif; }
+.kv-tug .kv-kesildi { flex: 1; }
+.kv-tug .kv-kesildi.on { background: #2E8B3E; border-color: #2E8B3E; color: #fff; font-weight: 800; }
+.kv-eski { margin: 4px 0; padding: 6px 10px; border-radius: 8px; background: #EEE; color: #444; font-size: 15px; }
+.kv-diqqat { margin: 4px 0; color: #B00020; font-weight: 700; font-size: 16px; }
+.kv-leg { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 10px; color: var(--xira); font-size: 16px; }
+.kv-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0 8px; font-variant-numeric: tabular-nums; }
+.kv-nav button { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font: 600 16px system-ui, sans-serif; }
+.kv-nav button:disabled { opacity: .35; }
+.kv-nav span { font-weight: 700; font-size: 16px; }
+@media (orientation: landscape) and (min-width: 700px) { .kv .kk-kartalar { grid-template-columns: 1fr 1fr; } }
+@media print {
+  .kv-sahifa + .kv-sahifa { break-before: page; page-break-before: always; }
+  .kv .kk-kartalar { grid-template-columns: 1fr 1fr; }
+  .kv-diqqat { color: #000 !important; }
+}

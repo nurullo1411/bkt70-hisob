@@ -373,7 +373,12 @@ function hisobla() {
   if (natija) chiz();
   royxatniChiz();
   kesishEskirgan = true;
-  if (natija && $("kesish-quti").open) kesishniChiz();
+  // sklad rejasi va manba shu zakazniki boʻlsin (boshqa zakaz ochilsa / konstruksiya oʻzgarsa — eski reja qolmasin)
+  skladReja = null;
+  if (varoqZakaz !== zakaz) { varoqManba = null; varoqZakaz = zakaz; }
+  if (!natija) { kesishNatija = null; varoqlarniTozala(); return; }
+  if ($("kesish-quti").open) { kesishniChiz(); skladRanglariniChiz(); skladRejaniHisobla(); }
+  else varoqlarniTozala();
 }
 
 const yuza = (k) => (Number(k.L) || 0) * (Number(k.H) || 0) / 10000;
@@ -622,50 +627,162 @@ _kn`));
 }
 // "DIQQAT: …" qismi qizil (shtapik +0,4 sm zapas)
 const kesimMatn = (t) => { const i = String(t).indexOf("DIQQAT"); return i < 0 ? esc(t) : esc(t.slice(0, i)) + `<b class="kesim-ogoh">${esc(t.slice(i))}</b>`; };
-// Boʻlak "k" — faol (soni ≠ 0) konstruksiyalar ichidagi indeks (raskroy.kesish_chizmasi bilan bir xil shart)
-// Kesish kartalari (foydalanuvchi, 2026-11-15): profil → kartalar (SKLAD, keyin YANGI), boʻlak yonida konstruksiya raqami
-// (kulrang, rangsiz — qora-oq chop etishda ham). Rangli chiziqli chizma — "Chizma" tugmasi ostida. Logika: kesish_karta.js
-function profilKartaHtml(o) {
-  const j = kartaJami(o.kartalar, o.chegara), H = o.hivich_sm;
-  const belgi = o.togri ? "□ " : "";
+// ---------- Kesish varoqlari (foydalanuvchi, 2026-11-15; docs/dizayn.md "Kesish varoqlari") ----------
+// Har profil — alohida varoq: surilma tablar, swipe, ◀ Oldingi · 2 / 7 · Keyingi ▶, ✓ Kesildi (zakaz bilan saqlanadi).
+// Kartalar: bir xil hivichlar raqamdan qatʼi nazar birlashadi, raqam yonida soni ("① ×4 ② ×4"); sexda uzunlik 1 kasr (mm).
+// Manba: sklad rejasi (bor boʻlsa) yoki skladsiz (narx hisobidagi variant). Logika: kesish_karta.js
+let varoqlar = [], varoqI = 0, varoqManba = null, skladRangYoq = false, varoqZakaz = null;
+function varoqlarniTozala() {
+  varoqlar = [];
+  for (const id of ["kesish-tablar", "kesish-nav", "kesish-ogoh"]) $(id).innerHTML = "";
+  for (const id of ["kesish-nav", "kesish-pdf", "kesish-manba", "kesish-ogoh", "kesish-tayyor"]) $(id).hidden = true;
+}
+const kesishRaqamlari = () => { const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) !== 0); return (i) => faol[i] || { rang_id: i + 1 }; };
+// Skladsiz: boʻlak "k" — faol (soni ≠ 0) konstruksiyalar ichidagi indeks (raskroy.kesish_chizmasi bilan bir xil shart)
+function skladsizVaroqlar(r) {
+  const kk = kesishRaqamlari();
+  const chizma = (p) => p.hivichlar.map((h, i) => `<div class="kb-qator"><span class="kb-n">#${i + 1}</span><div class="kb">${h.bolaklar.map((b) =>
+      `<div style="flex:${b.uzunlik} 0 0;background:${kRang(kk(b.k))[0]};color:${kRang(kk(b.k))[1]}"><i>${kRaqam(kk(b.k))}</i>${kkSon(b.uzunlik)}</div>`).join("")}${h.qoldiq > 0 ?
+      `<div class="kb-q${p.otxod_chegara && h.qoldiq < p.otxod_chegara ? " otx" : ""}" style="flex:${h.qoldiq} 0 0">${qoldiqSon(h.qoldiq)}</div>` : ""}</div></div>`).join("");
+  return r.profillar.map((p) => ({ manba: "skladsiz", profil: p.profil, nom: p.nom, hivich_sm: p.hivich_sm, kesim: p.kesim, chegara: p.otxod_chegara,
+    togri: /90°/.test(p.kesim), samaradorlik: p.samaradorlik, kartalar: hivichKartalar(p.hivichlar, p.hivich_sm, (i) => kRaqam(kk(i))), chizma: chizma(p) }));
+}
+// Sklad: konstruksiya raqami nom boʻyicha — faqat bitta mos kelsa (nomsiz/takror nomda raqam yozilmaydi)
+const skladK = (n) => { const m = zakaz.konstruksiyalar.filter((z) => z.nom === n && (z.soni ?? 1) !== 0); return m.length === 1 ? m[0] : null; };
+function skladVaroqlar(r) {
+  return r.rejalar.map((p) => ({ manba: "sklad", profil: p.profil, nom: p.nom, fayl: p.fayl, hivich_sm: p.hivich_sm || r.hivich_sm, kesim: p.kesim,
+    chegara: otxodChegarasi(p.profil), togri: p.togri, sklad: true, rang: r.rang, konstruksiyalar: p.konstruksiyalar,
+    kartalar: skladKartalar(p.kartalar, p.konstruksiyalar.map((k) => ({ raqam: skladK(k.nom) ? kRaqam(skladK(k.nom)) : null, detallar: k.detallar }))) }));
+}
+// Kalit: skladsiz:profil yoki sklad:rang:profil (sklad rejasi bitta rang guruhiga). Qiymat {imzo, sana};
+// reja oʻzgarsa (imzo boshqa) — "eski": belgi yashirilmaydi, kulrang "eski reja bilan kesilgan (sana)".
+const kesildiKalit = (v) => v.manba === "sklad" ? `sklad:${v.rang}:${v.profil}` : "skladsiz:" + v.profil;
+function kesildiHolat(v) {
+  const b = zakaz.kesildi && zakaz.kesildi[kesildiKalit(v)];
+  return !b ? null : b.imzo === imzo(v.kartalar) ? "ha" : "eski";
+}
+const kesildimi = (v) => kesildiHolat(v) === "ha";
+function varoqHtml(v, pdf) {
+  const j = kartaJami(v.kartalar, v.chegara), H = v.hivich_sm, belgi = v.togri ? "□ " : "";
   // Aylantirib kesishda qoldiq uchi qiya — raskroy qoldigʻi uzun tomoni (foydalanuvchi, 2026-11-15: sex uzun tomonidan oʻlchaydi)
-  const uzun = /aylantirib/.test(String(o.kesim));
-  const sar = o.sklad ? (j.yangi ? `${kkSon(H)} sm × ${j.yangi} dona + skladdan ${j.skladSoni} boʻlak` : `faqat skladdan, ${j.skladSoni} boʻlak`)
-    : `${kkSon(H)} sm × ${j.yangi} dona`;
+  const uzun = /aylantirib/.test(String(v.kesim));
+  const hiv = v.sklad ? (j.yangi ? `${kkSon(H)} sm × ${j.yangi}${j.skladSoni ? " + skladdan " + j.skladSoni : ""}` : `faqat skladdan, ${j.skladSoni} boʻlak`) : `${kkSon(H)} sm × ${j.yangi} dona`;
+  const diqqat = String(v.kesim).indexOf("DIQQAT");
   const karta = (k) => {
-    const b = butunmi(k.qoldiq, o.chegara);
+    const b = butunmi(k.qoldiq, v.chegara);
     return `<div class="kk${k.manba === "SKLAD" ? " sklad" : ""}">
-      <div class="kk-sar">${k.manba === "SKLAD" ? `SKLAD QOLDIQ ${kkSon(k.L)} sm` : `YANGI ${kkSon(k.L)} sm profil`} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
-      ${k.bolaklar.map(([d, n, rq]) => `<div class="kk-b"><span>${belgi}${kkSon(d)} × ${n}</span>${rq.length ? `<span class="kk-r">· ${rq.map(doiraRaqam).join(" ")}</span>` : ""}</div>`).join("")}
-      <div class="kk-q${b ? " butun" : ""}">qoldiq: ${kkSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}${b ? " — butun boʻlak, saqlab qoʻying" : ""}</div></div>`;
+      <div class="kk-sar">${k.manba === "SKLAD" ? `SKLAD QOLDIQ ${kkSon(k.L)} sm` : `YANGI ${kkSon(k.L)} sm`} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
+      ${k.bolaklar.map(([d, n, rq]) => `<div class="kk-b"><span>${belgi}${kkSon(d)} × ${n}</span>${rq.length ? `<span class="kk-r">· ${raqamMatn(rq, n * k.soni)}</span>` : ""}</div>`).join("")}
+      <div class="kk-q${b ? " butun" : ""}">qoldiq: ${qoldiqSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}${b ? " — butun boʻlak, saqlab qoʻying" : ""}</div></div>`;
   };
-  return `<div class="kk-profil">
-    <div class="kk-bosh"><span><b>${esc(o.nom)}</b> — ${sar}</span>${o.chizma ? '<button class="kk-chizma-t" data-chizma aria-expanded="false">Chizma</button>' : ""}</div>
-    <div class="kk-stat">Samaradorlik <b>${son(o.samaradorlik ?? j.samaradorlik, 1)} %</b> · Kesimlar <b>${o.kesimlar ?? j.kesim}</b> · Jami qoldiq <b>${kkSon(o.qoldiq_sm ?? j.qoldiq)} sm</b></div>
-    <div class="kk-kesim">${kesimMatn(o.kesim)}${o.chegara ? ` · ${o.chegara} sm dan kichik qoldiq otxod` : ""}${o.togri ? " · □ — 90°, gradusga kesilmaydi" : ""}</div>
-    ${o.chizma ? `<div class="kk-chizma" hidden>${o.chizma}</div>` : ""}
-    <div class="kk-kartalar">${o.kartalar.map(karta).join("")}</div>
-    <div class="kk-jami">${jamiMatn(j, H)}</div>
+  const rq = [...new Set(v.kartalar.flatMap((k) => k.bolaklar.flatMap((b) => b[2].map((x) => x[0]))))].sort((a, b) => a - b);
+  const leg = rq.map((r) => { const k = zakaz.konstruksiyalar.find((z) => kRaqam(z) === r); return k ? `<span>${doiraRaqam(r)} ${esc(k.nom || "")}</span>` : ""; }).join("");
+  const kes = kesildimi(v), eskiK = kesildiHolat(v) === "eski" && zakaz.kesildi[kesildiKalit(v)];
+  return `<div class="kv${kes ? " kesildi" : ""}">
+    <div class="kv-bosh">
+      <div class="kv-q1"><b>${esc(v.nom)}</b>${v.rang ? " · " + esc(v.rang) : ""} · ${hiv}</div>
+      <div class="kv-q2">${kesimQisqa(v.kesim)} · arra 0,4 · samaradorlik <b>${son(j.samaradorlik, 1)} %</b></div>
+      ${pdf ? "" : `<div class="kv-tug"><button class="kv-kesildi${kes ? " on" : ""}" data-kesildi aria-pressed="${kes}">${kes ? "✓ Kesildi" : "Kesildi deb belgilash"}</button>
+        ${v.chizma ? '<button data-chizma aria-expanded="false">Chizma</button>' : ""}<button data-varoq-pdf>PDF</button></div>`}
+    </div>
+    ${eskiK && !pdf ? `<div class="kv-eski">✓ eski reja bilan kesilgan (${esc(eskiK.sana || "")}) — reja oʻzgargan, tekshiring</div>` : ""}
+    ${diqqat >= 0 ? `<div class="kv-diqqat">${esc(String(v.kesim).slice(diqqat))}</div>` : ""}
+    ${v.chizma && !pdf ? `<div class="kk-chizma" hidden>${v.chizma}</div>` : ""}
+    <div class="kk-kartalar">${v.kartalar.map(karta).join("")}</div>
+    <div class="kk-jami">${jamiMatn(j, H)}${v.chegara ? `<small> · ${v.chegara} sm dan kichik qoldiq otxod</small>` : ""}</div>
+    ${leg ? `<div class="kv-leg">${leg}</div>` : ""}
+    ${pdf && v.konstruksiyalar ? `<div class="sp-sar">Qaysi konstruksiyaga</div>
+      ${v.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${skladK(k.nom) ? doiraRaqam(kRaqam(skladK(k.nom))) + " " : ""}${esc(k.nom)}: ${kkSon(k.L)} × ${kkSon(k.H)} sm, ${k.soni} dona</b>
+        ${k.detallar.map((x) => `<div>${belgi}${esc(x.nomi)}: ${kkSon(x.uzunlik)} × ${x.soni}</div>`).join("")}</div>`).join("")}` : ""}
   </div>`;
 }
-// Skladsiz: boʻlak "k" — faol (soni ≠ 0) konstruksiyalar ichidagi indeks (raskroy.kesish_chizmasi bilan bir xil shart)
-function kesishHtml(r) {
-  const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) !== 0);
-  const kk = (i) => faol[i] || { rang_id: i + 1 };
-  const leg = r.konstruksiyalar.map((k, i) => `<span class="kl">${kRaqamHtml(kk(i))}${esc(k.nom)} × ${k.soni}</span>`).join("");
-  const chizma = (p) => p.hivichlar.map((h, i) => `<div class="kb-qator"><span class="kb-n">#${i + 1}</span><div class="kb">${h.bolaklar.map((b) =>
-      `<div style="flex:${b.uzunlik} 0 0;background:${kRang(kk(b.k))[0]};color:${kRang(kk(b.k))[1]}"><i>${kRaqam(kk(b.k))}</i>${son(b.uzunlik, 1)}</div>`).join("")}${h.qoldiq > 0 ?
-      `<div class="kb-q${p.otxod_chegara && h.qoldiq < p.otxod_chegara ? " otx" : ""}" style="flex:${h.qoldiq} 0 0">${son(h.qoldiq, 1)}</div>` : ""}</div></div>`).join("");
-  return `<div class="k-leg">${leg}</div>` + r.profillar.map((p) => profilKartaHtml({
-    nom: p.nom, hivich_sm: p.hivich_sm, kesim: p.kesim, chegara: p.otxod_chegara,
-    samaradorlik: p.samaradorlik, kesimlar: p.kesimlar, qoldiq_sm: p.qoldiq_sm,
-    kartalar: hivichKartalar(p.hivichlar, p.hivich_sm, (i) => kRaqam(kk(i))), chizma: chizma(p),
-  })).join("");
+function eslanganVaroq() { try { return (JSON.parse(localStorage.getItem("kesish_varoq") || "{}") || {})[zakaz.id]; } catch (e) { return null; } }
+function varoqniEsla() {
+  try { const m = JSON.parse(localStorage.getItem("kesish_varoq") || "{}") || {}; m[zakaz.id] = varoqlar[varoqI].profil; localStorage.setItem("kesish_varoq", JSON.stringify(m)); } catch (e) {}
+}
+function varoqlarniChiz(saqlaI) {
+  if (!zakaz) return;
+  const bor = { sklad: !!skladReja, skladsiz: !!kesishNatija };
+  // boshlangʻich manba — narx qaysi usulda hisoblangan boʻlsa (otxod usuli "sklad…" — sklad bilan)
+  if (!varoqManba) varoqManba = otxodUsuli().startsWith("sklad") ? "sklad" : "skladsiz";
+  if (!bor[varoqManba]) varoqManba = bor.sklad && !bor.skladsiz ? "sklad" : "skladsiz";
+  const eski = varoqlar[varoqI] && varoqlar[varoqI].profil;
+  varoqlar = varoqManba === "sklad" && skladReja ? skladVaroqlar(skladReja) : kesishNatija ? skladsizVaroqlar(kesishNatija) : [];
+  const izla = (p) => varoqlar.findIndex((v) => v.profil === p);
+  const i = izla(saqlaI ? eski : eslanganVaroq());
+  varoqI = i >= 0 ? i : Math.min(varoqI, Math.max(varoqlar.length - 1, 0));
+  $("kesish-manba").hidden = !(bor.sklad && bor.skladsiz);
+  $("kesish-manba").querySelectorAll("[data-manba]").forEach((b) => b.classList.toggle("on", b.dataset.manba === varoqManba));
+  // ogohlantirish qatori (sariq): sklad rangi, qiya kesim, shtapik +0,4 — bosilsa joyiga
+  const qiya = varoqlar.map((v, i) => [v, i]).filter(([v]) => /qiya kesim/.test(v.kesim));
+  const sht = varoqlar.map((v, i) => [v, i]).filter(([v]) => /shtapik/i.test(v.kesim));
+  const og = [];
+  if (skladRangYoq) og.push('<button data-ogoh="rang">⚠ Sklad rangi tanlanmagan</button>');
+  if (qiya.length) og.push(`<button data-ogoh-varoq="${qiya[0][1]}">⚠ Qiya kesim: ${qiya.map(([v]) => esc(qisqaNom(v.nom))).join(", ")}</button>`);
+  if (sht.length) og.push(`<button data-ogoh-varoq="${sht[0][1]}">⚠ Shtapik +0,4 sm uzun: ${sht.map(([v]) => esc(qisqaNom(v.nom))).join(", ")}</button>`);
+  $("kesish-ogoh").innerHTML = og.join("");
+  $("kesish-ogoh").hidden = !og.length;
+  document.documentElement.style.setProperty("--bosh-h", (document.querySelector("header").offsetHeight || 50) + "px");
+  const hammasi = varoqlar.length && varoqlar.every(kesildimi);
+  $("kesish-tayyor").hidden = !hammasi;
+  const qn = varoqlar.map((v) => qisqaNom(v.nom)), tabNom = (v, i) => (qn.indexOf(qn[i]) !== qn.lastIndexOf(qn[i]) ? v.nom : qn[i]);
+  $("kesish-tablar").innerHTML = varoqlar.map((v, i) => `<button role="tab" data-varoq="${i}" aria-selected="${i === varoqI}" class="${i === varoqI ? "on" : ""}${kesildimi(v) ? " kesildi" : ""}">${kesildimi(v) ? "✓ " : kesildiHolat(v) === "eski" ? "✓? " : ""}${esc(tabNom(v, i))} · ${kartaJami(v.kartalar).hivich}</button>`).join("");
+  $("kesish-nav").hidden = !varoqlar.length;
+  $("kesish-pdf").hidden = !varoqlar.length;
+  if (!varoqlar.length) { varoqlarniTozala(); if (!$("kesish").querySelector(".ogoh")) $("kesish").innerHTML = ""; return; }
+  $("kesish").innerHTML = varoqHtml(varoqlar[varoqI]);
+  $("kesish-nav").innerHTML = `<button data-nav="-1"${varoqI ? "" : " disabled"}>◀ Oldingi</button><span>${varoqI + 1} / ${varoqlar.length}</span><button data-nav="1"${varoqI < varoqlar.length - 1 ? "" : " disabled"}>Keyingi ▶</button>`;
+  const t = $("kesish-tablar").children[varoqI];
+  if (t) t.scrollIntoView({ block: "nearest", inline: "center" });
+}
+function varoqOch(i) {
+  if (i < 0 || i >= varoqlar.length) return;
+  varoqI = i; varoqniEsla(); varoqlarniChiz(true);
+}
+$("kesish-tablar").addEventListener("click", (e) => { const b = e.target.closest("[data-varoq]"); if (b) varoqOch(Number(b.dataset.varoq)); });
+$("kesish-nav").addEventListener("click", (e) => { const b = e.target.closest("[data-nav]"); if (b) varoqOch(varoqI + Number(b.dataset.nav)); });
+$("kesish-manba").addEventListener("click", (e) => { const b = e.target.closest("[data-manba]"); if (b) { varoqManba = b.dataset.manba; varoqlarniChiz(true); } });
+$("kesish-ogoh").addEventListener("click", (e) => {
+  const v = e.target.closest("[data-ogoh-varoq]");
+  if (v) { varoqOch(Number(v.dataset.ogohVaroq)); $("kesish-tablar").scrollIntoView({ block: "start", behavior: "smooth" }); return; }
+  if (e.target.closest('[data-ogoh="rang"]')) {
+    const s = $("sklad-rang2-quti").hidden ? $("sklad-rang") : $("sklad-rang2");
+    s.scrollIntoView({ block: "center", behavior: "smooth" }); s.focus();
+  }
+});
+(() => {
+  let x0 = null, y0 = 0;
+  $("kesish").addEventListener("touchstart", (e) => { if (e.touches.length === 1 && e.touches[0].clientX > 20 && e.touches[0].clientX < innerWidth - 20 && !e.target.closest(".kk-chizma")) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; } else x0 = null; }, { passive: true });
+  $("kesish").addEventListener("touchend", (e) => {
+    if (x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && !e.target.closest(".kk-chizma")) varoqOch(varoqI + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+})();
+function varoqPdfSarlavha(v) {
+  return `<div class="p-sarlavha">Profil kesish rejasi</div>
+    <div>Zakaz: ${esc(zakazNomi())}${v.manba === "sklad" && skladReja ? " · Rang: " + esc(skladReja.rang) : " · skladsiz (narx hisobidagi variant)"} · ${new Date().toISOString().slice(0, 10)}</div>`;
 }
 $("kesish").addEventListener("click", (e) => {
+  const v = varoqlar[varoqI];
+  if (!v) return;
+  if (e.target.closest("[data-kesildi]")) {
+    zakaz.kesildi = zakaz.kesildi || {};
+    if (kesildimi(v)) delete zakaz.kesildi[kesildiKalit(v)]; else zakaz.kesildi[kesildiKalit(v)] = { imzo: imzo(v.kartalar), sana: new Date().toISOString().slice(0, 10) };
+    saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+    varoqlarniChiz(true);
+    return;
+  }
+  if (e.target.closest("[data-varoq-pdf]")) {
+    const rangQism = v.manba === "sklad" && skladGuruhlar.length > 1 ? "_" + skladReja.rang.replace(/[^\w-]+/g, "") : "";
+    chopEt(`<div class="kv-sahifa">${varoqPdfSarlavha(v)}${varoqHtml(v, true)}</div>`,
+      `${zakaz.raqam ? "Z-" + zakaz.raqam + "_" : ""}${v.profil}${v.fayl ? "_" + v.fayl.replace("_" + v.profil, "") : ""}${rangQism}`);
+    return;
+  }
   const b = e.target.closest("[data-chizma]");
   if (!b) return;
-  const c = b.closest(".kk-profil").querySelector(".kk-chizma");
+  const c = $("kesish").querySelector(".kk-chizma");
   c.hidden = !c.hidden;
   b.setAttribute("aria-expanded", String(!c.hidden));
   b.textContent = c.hidden ? "Chizma" : "Yopish";
@@ -675,7 +792,8 @@ function kesishniChiz() {
   const d = kesishOl();
   kesishEskirgan = false;
   kesishNatija = d.ok || null;
-  $("kesish").innerHTML = d.xato ? `<p class="ogoh">${esc(d.xato)}</p>` : kesishHtml(d.ok);
+  if (d.xato) { varoqlarniTozala(); $("kesish").innerHTML = `<p class="ogoh">${esc(d.xato)}</p>`; return; }
+  varoqlarniChiz();
 }
 
 // ---------- material rasmi (katalogdan; furnitura rasmi kelguncha belgi) ----------
@@ -1009,7 +1127,7 @@ $("arxiv").addEventListener("click", async (e) => {
     if (z) zakazniOch(JSON.stringify(z));
   } else if (d.dub) {
     const z = JSON.parse(JSON.stringify(a.find((x) => x.id === d.dub)));
-    for (const k of ["id", "raqam", "sana", "holat", "hisob_kitob", "narx_som", "versiya", "baza_id", "tolangan", "shartnoma", "montaj", "ochirilgan", "ish"]) delete z[k];
+    for (const k of ["id", "raqam", "sana", "holat", "hisob_kitob", "narx_som", "versiya", "baza_id", "tolangan", "shartnoma", "montaj", "ochirilgan", "ish", "kesildi"]) delete z[k];
     arxivTab = "yangi";
     zakazniOch(JSON.stringify(z));
   } else if (d.arxOchir) {
@@ -1144,9 +1262,10 @@ function skladRejaniHisobla() {
   const sk = skladSaqlangan();
   if (!sk || !zakaz) return;
   const g = skladGuruhlar[Number($("sklad-rang").value)];
-  if (!g) { $("sklad-reja").innerHTML = '<p class="ogoh">Zakazda konstruksiya yoʻq</p>'; return; }
+  skladRangYoq = false;
+  if (!g) { skladReja = null; $("sklad-reja").innerHTML = '<p class="ogoh">Zakazda konstruksiya yoʻq</p>'; varoqlarniChiz(true); return; }
   const rang = g.rang || $("sklad-rang2").value;
-  if (!rang) { $("sklad-reja").innerHTML = '<p class="ogoh">Sklad rangini tanlang</p>'; return; }
+  if (!rang) { skladReja = null; skladRangYoq = true; $("sklad-reja").innerHTML = ""; varoqlarniChiz(true); return; }
   py.globals.set("_sg", JSON.stringify(g));
   py.globals.set("_zakaz", JSON.stringify(zakaz));
   py.globals.set("_sq", JSON.stringify(sk.qatorlar));
@@ -1162,33 +1281,16 @@ except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
 _sk`));
   } catch (e) { d = { xato: e.message.split("\n").slice(-2).join(" ") }; }
   skladReja = d.ok || null;
-  if (d.xato) { $("sklad-reja").innerHTML = `<p class="ogoh">${esc(d.xato)}</p>`; return; }
+  if (d.xato) { $("sklad-reja").innerHTML = `<p class="ogoh">${esc(d.xato)}</p>`; varoqlarniChiz(true); return; }
   const r = d.ok;
-  $("sklad-reja").innerHTML = r.rejalar.map((p, i) => `<div class="sr-qator">
-      <div><b>${esc(p.nom)}</b><br><span class="xira">yangi ${p.yangi_soni} hivich · skladdan ${p.sklad_soni} boʻlak · ${p.jami_detal} detal</span></div>
-      <button class="tugma" data-sr-pdf="${i}">PDF</button></div>`).join("") +
-    (r.izohlar.length ? `<details class="xira"><summary>Skladdagi ${r.izohlar.length} ta qator olinmadi</summary>${r.izohlar.map(esc).join("<br>")}</details>` : "");
+  varoqlarniChiz(true);
+  $("sklad-reja").innerHTML = (r.izohlar.length ? `<details class="xira"><summary>Skladdagi ${r.izohlar.length} ta qator olinmadi</summary>${r.izohlar.map(esc).join("<br>")}</details>` : "");
 }
 // Profil otxod chegarasi (raskroy.OTXOD_CHEGARA, faqat oʻqiladi) — "butun boʻlak" belgisi uchun
 let otxodChegaralari = null;
 function otxodChegarasi(profil) {
   if (!otxodChegaralari) { try { otxodChegaralari = JSON.parse(py.runPython("import raskroy, json\njson.dumps(raskroy.OTXOD_CHEGARA)")); } catch (e) { return null; } }
   return otxodChegaralari[profil] ?? null;
-}
-function skladPdfHtml(r, p) {
-  const nom = zakaz.raqam ? "№" + zakaz.raqam + " " + ((zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "") : (zakaz.nom || "");
-  const belgi = p.togri ? "□ " : "";
-  // Konstruksiya raqami nom boʻyicha — faqat bitta mos kelsa (nomsiz/takror nomda raqam yozilmaydi)
-  const kOl = (n) => { const m = zakaz.konstruksiyalar.filter((z) => z.nom === n && (z.soni ?? 1) !== 0); return m.length === 1 ? m[0] : null; };
-  const kartalar = skladKartalar(p.kartalar, p.konstruksiyalar.map((k) => ({ raqam: kOl(k.nom) ? kRaqam(kOl(k.nom)) : null, detallar: k.detallar })));
-  return `<div class="sp">
-    <div class="p-sarlavha">Profil kesish rejasi</div>
-    <div>Zakaz: ${esc(nom)} · Rang: ${esc(r.rang)} · ${new Date().toISOString().slice(0, 10)}</div>
-    ${profilKartaHtml({ nom: p.nom, hivich_sm: p.hivich_sm || r.hivich_sm, kesim: p.kesim, chegara: otxodChegarasi(p.profil), togri: p.togri, sklad: true, kartalar })}
-    <div class="sp-sar">Qaysi konstruksiyaga</div>
-    ${p.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${kOl(k.nom) ? kRaqamHtml(kOl(k.nom)) + " " : ""}${esc(k.nom)}: ${son(k.L, 1)} × ${son(k.H, 1)} sm, ${k.soni} dona</b>
-      ${k.detallar.map((x) => `<div>${belgi}${esc(x.nomi)}: ${son(x.uzunlik, 2)} × ${x.soni}</div>`).join("")}</div>`).join("")}
-  </div>`;
 }
 $("sklad-ol").addEventListener("click", async () => {
   $("sklad-ol").disabled = true;
@@ -1207,29 +1309,16 @@ $("sklad-ol").addEventListener("click", async () => {
 });
 $("sklad-rang").addEventListener("change", () => { skladRanglariniChiz(); skladRejaniHisobla(); });
 $("sklad-rang2").addEventListener("change", skladRejaniHisobla);
-$("sklad-reja").addEventListener("click", (e) => {
-  const b = e.target.closest("[data-sr-pdf]");
-  if (!b || !skladReja) return;
-  const p = skladReja.rejalar[Number(b.dataset.srPdf)];
-  $("chop").innerHTML = skladPdfHtml(skladReja, p);
-  const eski = document.title;
-  const rangQism = skladGuruhlar.length > 1 ? "_" + skladReja.rang.replace(/[^\w-]+/g, "") : "";
-  document.title = `${zakaz.raqam ? "Z-" + zakaz.raqam + "_" : ""}${p.profil}_${p.fayl.replace("_" + p.profil, "")}${rangQism}`;
-  setTimeout(() => { window.print(); document.title = eski; }, 100);
-});
 $("kesish-quti").addEventListener("toggle", () => {
   if (!$("kesish-quti").open) return;
   skladRanglariniChiz();
   skladRejaniHisobla();
 });
+// Hammasi bitta PDF: har profil alohida sahifa (joriy manba boʻyicha)
 $("kesish-pdf").addEventListener("click", () => {
-  kesishniChiz();
-  if (!kesishNatija) return;
-  $("chop").innerHTML = `<div class="p-sarlavha">Kesish chizmasi — ${esc(zakaz.raqam ? "№" + zakaz.raqam + " " : "")}${esc((zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "")}</div>
-    <div>Skladsiz (narx hisobidagi variant). Sana: ${new Date().toISOString().slice(0, 10)}</div>` + kesishHtml(kesishNatija);
-  const eski = document.title;
-  document.title = "Kesish " + (zakaz.raqam ? "№" + zakaz.raqam : zakaz.nom || "");
-  setTimeout(() => { window.print(); document.title = eski; }, 100);
+  if (!varoqlar.length) return;
+  chopEt(varoqlar.map((v) => `<div class="kv-sahifa">${varoqPdfSarlavha(v)}${varoqHtml(v, true)}</div>`).join(""),
+    `${zakaz.raqam ? "Z-" + zakaz.raqam + "_" : ""}Kesish_${varoqManba === "sklad" ? "sklad" : "skladsiz"}`);
 });
 
 // ---------- dillerga roʻyxat va oyna roʻyxati (foydalanuvchi, 2026-11-07) ----------
