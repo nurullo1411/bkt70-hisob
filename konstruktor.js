@@ -1512,6 +1512,7 @@ function konstruktorniOch(i) {
   tahrir = i >= 0 ? lapshaDaraxt(nusxa(zakaz.konstruksiyalar[i])) : { nom: "", soni: 1, L: 150, H: 150, bolak: { tur: "gluxoy" } };
   tanlangan = geometriya(tahrir).barglar[0].p;
   asbob = null;
+  faqatShu = alohidami(tahrir);  // jadvaldagi "Butun zakaz | Faqat shu" boshlangʻich holati
   orqaga = []; oldinga = [];
   $("asosiy").hidden = true;
   $("konstruktor").hidden = false;
@@ -2207,7 +2208,9 @@ function jadvalChiz() {
   const esh = eshiklar(tahrir.bolak), barg = !tahrir.bolak.bolaklar;
   const qator = (nom, qiymat, at, bos = true) => `<button class="jq${bos ? "" : " jq-yoq"}" ${at}><span class="jq-nom">${esc(nom)}</span><span class="jq-q">${esc(qiymat || "—")}</span>${bos ? '<span class="jq-ok">›</span>' : ""}</button>`;
   const juft = (nom, tugmalar) => `<div class="jq jq-juft"><span class="jq-nom">${esc(nom)}</span><span class="jq-tg">${tugmalar}</span></div>`;
-  let h = qator("Turi", konstruksiyaTuri(tahrir) + (barg ? "" : " (boʻlaklar — asboblar bilan)"), 'data-jq="__tur"', barg);
+  // Tanlov qayerga yoziladi (foydalanuvchi, 2026-11-15) — ⚙ dagi "Faqat shu konstruksiyaga" belgisi jadvalda
+  let h = juft("Tanlov", [[false, "Butun zakaz"], [true, "Faqat shu"]].map(([v, y]) => `<button class="jb${faqatShu === v ? " faol" : ""}" data-jfaqat="${v}">${y}</button>`).join(""));
+  h += qator("Turi", konstruksiyaTuri(tahrir) + (barg ? "" : " (boʻlaklar — asboblar bilan)"), 'data-jq="__tur"', barg);
   h += `<div class="jq jq-olcham"><span class="jq-nom">Oʻlcham</span><button class="tugma" data-jol="L">Eni ${yx(Number(tahrir.L))}</button><button class="tugma" data-jol="H">Boʻyi ${yx(Number(tahrir.H))}</button></div>`;
   for (const b of szBloklar(tmp)) {
     if (b.nom.startsWith("Eshik") && !esh.length) continue;
@@ -2225,6 +2228,7 @@ function jadvalChiz() {
       h += juft(ikki ? "Ruchkali tabaqa" : "Petlya tomoni", [["chap", "Chap"], ["ong", "Oʻng"]].map(([v, y]) => `<button class="jb${tom === v ? " faol" : ""}" data-jtom="${v}">${y}</button>`).join(""));
     }
   }
+  if (alohidami(tahrir)) h += `<p class="xira sz-izoh">Bu konstruksiyada zakazdan farqli tanlov bor.</p><button data-sz-asosiy class="tugma keng">Shu tanlovni butun zakaz uchun asosiy qilish</button>`;
   el.innerHTML = h;
 }
 
@@ -2374,14 +2378,13 @@ function maydonOzgardi(e) {
 
 // ---------- hodisalar ----------
 $("k-maydon").addEventListener("change", (e) => {
-  if (e.target.matches("[data-sz-faqat]")) { faqatShu = e.target.checked; sozlamaOynasi(); return; }
+  if (e.target.matches("[data-sz-faqat]")) { faqatShu = e.target.checked; sozlamaOynasi(); jadvalChiz(); return; }
   if (e.target.matches("[data-sz-balkon]")) {
     saqlaTarix(); ornat("t", "eshik_tur", e.target.checked ? "balkon" : "yengil"); sozlamaOynasi(); yangila(); return;
   }
   saqlaTarix(); maydonOzgardi(e);
 });
 $("k-sozlama").addEventListener("click", () => {
-  faqatShu = alohidami(tahrir);
   szFokus = null;
   sozlamaOynasi();
 });
@@ -2400,11 +2403,14 @@ $("sozlama-oyna").addEventListener("click", (e) => { if (e.target === e.currentT
     yangila();
     return;
   }
+  const jf = e.target.closest("[data-jfaqat]");
+  if (jf) { faqatShu = jf.dataset.jfaqat === "true"; jadvalChiz(); return; }
+  const as = e.target.closest("[data-sz-asosiy]");
+  if (as) { szBos(as); faqatShu = false; jadvalChiz(); return; }
   const jb = e.target.closest("button.jb");
-  if (jb) { faqatShu = alohidami(tahrir); szBos(jb); return; }
+  if (jb) { szBos(jb); return; }
   const q = e.target.closest("[data-jq]");
   if (!q || q.classList.contains("jq-yoq")) return;
-  faqatShu = alohidami(tahrir);
   szFokus = q.dataset.jq;
   sozlamaOynasi();
 });
