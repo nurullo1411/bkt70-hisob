@@ -1514,7 +1514,7 @@ function konstruktorniYop(saqlansin, tarixdan) {
   }
   tahrir = null;
   try { localStorage.removeItem("qoralama"); } catch (e) {}
-  $("sozlama-oyna").hidden = true;
+  sozlamaYop();
   $("konstruktor").hidden = true;
   $("asosiy").hidden = false;
   if (zakaz) ekran("zakaz", joriyEkran !== "zakaz");
@@ -1544,6 +1544,7 @@ function yangila() {
   saqla("qoralama", JSON.stringify({ tahrir, indeks: tahrirIndeks, orqaga: orqaga.slice(-20) }));
   $("k-nom").innerHTML = `<b>${esc(tahrir.nom || "")}</b><span>${yx(Number(tahrir.L))} × ${yx(Number(tahrir.H))} sm${(tahrir.soni ?? 1) > 1 ? " · " + tahrir.soni + " dona" : ""}</span>`;
   asboblarniChiz();
+  jadvalChiz();
   let kesYoz = null;
   try { const cm = chizmaMalumot(tahrir); tabOl = cm.tab; kesYoz = cm.yoz; } catch (_) { tabOl = {}; }
   $("k-chizma").innerHTML = chizmaSVG(tahrir, { tanlangan: asbob || tanlanganImpost ? null : tanlangan, tanlanganImpost, tabOl, kesYoz });
@@ -1930,14 +1931,87 @@ function eshikFurnitura(k) {
     bolim("Petlya", "petlya", PETLYALAR, PETLYALAR[0]);
 }
 
+// ---------- tanlov jadvali (foydalanuvchi, 2026-11-15): chizma ostida har tanlov bir qatorda, standart qiymati bilan;
+// bosilsa ⚙ oynasining faqat shu boʻlimi ochiladi. Qatorlar ⚙ HTML idan olinadi — seriyaga qarab oʻzi oʻzgaradi.
+let szFokus = null, szBitta = false;
+function szBloklar(root) {
+  const bl = [];
+  let cur = null, old = "";
+  for (const el of root.children) {
+    if (el.matches(".sz-rejim, .sz-izoh, [data-sz-asosiy]")) continue;
+    if (el.matches(".sz-sarlavha")) { cur = null; old = /eshik/i.test(el.textContent) ? "Eshik " : ""; continue; }
+    if (el.matches(".sz-bolim")) {
+      const n = (el.firstChild ? el.firstChild.textContent : el.textContent).trim();
+      cur = { nom: old ? old + n.toLowerCase() : n, els: [el] }; bl.push(cur); continue;
+    }
+    if (!cur) { if (!bl.length && el.matches(".sz-seg")) { cur = { nom: "Seriya", els: [el] }; bl.push(cur); } continue; }
+    cur.els.push(el);
+  }
+  for (const b of bl) {
+    const q = [];
+    for (const el of b.els) {
+      const c = el.querySelector && el.querySelector("input[type=checkbox]");
+      if (c) q.push((el.textContent.trim().split(/\s+/)[0] || "") + (c.checked ? " ✓" : " ✕"));
+      for (const f of el.querySelectorAll ? el.querySelectorAll("button.faol") : []) {
+        const bb = f.querySelector("b");
+        q.push((bb ? bb.textContent : f.textContent).trim());
+      }
+    }
+    b.qiymat = q.join(" · ");
+    b.guruh = b.els.filter((el) => el.querySelector && el.querySelector("button, input")).length;
+  }
+  return bl;
+}
+const alohidami = (k) => !!(k.rama != null || k.oyna_qalinligi != null || (k.tanlov && Object.keys(k.tanlov).length));
+const JADVAL_TURLARI = [["gluxoy", "Gluxoy (ochilmaydi)"], ["tabaqa", "Rom tabaqasi"], ["eshik1", "Eshik · 1 tabaqa"], ["eshik2", "Eshik · 2 tabaqa"]];
+function jadvalChiz() {
+  const el = $("k-jadval");
+  if (!el) return;
+  const tmp = document.createElement("div");
+  try { tmp.innerHTML = sozlamaHtml(); } catch (_) { el.innerHTML = ""; return; }
+  const esh = eshiklar(tahrir.bolak), barg = !tahrir.bolak.bolaklar;
+  const qator = (nom, qiymat, at, bos = true) => `<button class="jq${bos ? "" : " jq-yoq"}" ${at}><span class="jq-nom">${esc(nom)}</span><span class="jq-q">${esc(qiymat || "—")}</span>${bos ? '<span class="jq-ok">›</span>' : ""}</button>`;
+  let h = qator("Turi", konstruksiyaTuri(tahrir) + (barg ? "" : " (boʻlaklar — asboblar bilan)"), 'data-jq="__tur"', barg);
+  h += `<div class="jq jq-olcham"><span class="jq-nom">Oʻlcham</span><button class="tugma" data-jol="L">Eni ${yx(Number(tahrir.L))}</button><button class="tugma" data-jol="H">Boʻyi ${yx(Number(tahrir.H))}</button></div>`;
+  for (const b of szBloklar(tmp)) {
+    if (b.nom.startsWith("Eshik") && !esh.length) continue;
+    h += qator(b.nom, b.qiymat, `data-jq="${esc(b.nom)}"`);
+    if (b.nom === "Eshik profili" && esh.length) {
+      const e = esh[0], ikki = e.tabaqa_soni === 2, tom = ikki ? (e.aktiv || "ong") : (e.petlya_tomoni || "chap");
+      h += qator(ikki ? "Ruchkali tabaqa" : "Petlya tomoni", tom === "chap" ? "Chap" : "Oʻng", 'data-jtom="1"');
+    }
+  }
+  el.innerHTML = h;
+}
+
 function sozlamaOynasi() {
+  const sar = $("sozlama-oyna").querySelector(".sarlavha-katta");
+  if (szFokus === "__tur") {
+    const b = tahrir.bolak, joriyT = b.tur === "eshik" ? "eshik" + (b.tabaqa_soni === 2 ? 2 : 1) : b.tur;
+    $("k-maydon").innerHTML = `<div class="sz-seg sz-fur">${JADVAL_TURLARI.map(([v, y]) => `<button data-jt="${v}" class="${joriyT === v ? " faol" : ""}">${y}</button>`).join("")}</div>`;
+    sar.textContent = "Konstruksiya turi";
+    $("sozlama-oyna").hidden = false;
+    return;
+  }
+  $("k-maydon").innerHTML = sozlamaHtml();
+  const b = szFokus != null ? szBloklar($("k-maydon")).find((x) => x.nom === szFokus) : null;
+  if (b) {
+    for (const el of $("k-maydon").children) el.style.display = b.els.includes(el) ? "" : "none";
+    sar.textContent = b.nom;
+    szBitta = b.guruh === 1;
+  } else { szFokus = null; sar.textContent = "Konstruksiya sozlamalari"; }
+  $("sozlama-oyna").hidden = false;
+}
+function sozlamaYop() { $("sozlama-oyna").hidden = true; szFokus = null; }
+
+function sozlamaHtml() {
   const k = tahrir;
   const j = joriy(k);
   const faol = (shart) => (shart ? " faol" : "");
   const turkum = RANG_TURKUMLARI.find((r) => r[0] === j.rang) || RANG_TURKUMLARI[2];
   const alohida = k.rama != null || k.oyna_qalinligi != null || (k.tanlov && Object.keys(k.tanlov).length);
   const gul = (o) => (o.toLowerCase().includes("gul") ? ";background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)" : "");
-  $("k-maydon").innerHTML = `
+  return `
     <label class="belgi sz-rejim"><input type="checkbox" data-sz-faqat ${faqatShu ? "checked" : ""}> Faqat shu konstruksiyaga</label>
     <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
     <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama) && !aldmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button><button data-sz="s:rama" data-v='"183"' class="${faol(j.rama === "183")}">Aldoks</button></div>
@@ -1975,12 +2049,22 @@ function sozlamaOynasi() {
 
     <p class="xira sz-izoh">${alohida ? "Bu konstruksiyada zakazdan farqli tanlov bor." : "Hamma tanlov zakazning umumiy tanlovi bilan bir xil."}</p>
     <button data-sz-asosiy class="tugma keng"${alohida ? "" : " disabled"}>Shu tanlovni butun zakaz uchun asosiy qilish</button>`;
-  $("sozlama-oyna").hidden = false;
 }
 
 $("k-maydon").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b || b.disabled) return;
+  if (b.dataset.jt) {
+    // jadvaldagi "Turi": bitta boʻlakli konstruksiya turini almashtirish
+    const v = b.dataset.jt, e = tahrir.bolak;
+    saqlaTarix();
+    tahrir.bolak = v === "gluxoy" ? { tur: "gluxoy" } : v === "tabaqa" ? { tur: "tabaqa", petlya_tomoni: e.petlya_tomoni || "chap" }
+      : v === "eshik1" ? { tur: "eshik", tabaqa_soni: 1, ochilish: joriyOchilish(tahrir), petlya_tomoni: e.petlya_tomoni || "chap" }
+      : { tur: "eshik", tabaqa_soni: 2, ochilish: joriyOchilish(tahrir), aktiv: e.aktiv || "ong" };
+    tanlangan = "";
+    sozlamaYop(); yangila();
+    return;
+  }
   if (b.dataset.szEsh) {
     saqlaTarix();
     eshikOchilish = b.dataset.szEsh;
@@ -2012,7 +2096,7 @@ $("k-maydon").addEventListener("click", (e) => {
     // rang turkumi almashsa, rang nomi shu turkumning birinchisi boʻladi
     if (kalit === "rang") ornat("t", "rang_nomi", RANG_TURKUMLARI.find((r) => r[0] === v)[2][0][0]);
   } else return;
-  sozlamaOynasi();
+  if (szFokus != null && szBitta) sozlamaYop(); else sozlamaOynasi();
   yangila();
 });
 
@@ -2043,11 +2127,30 @@ $("k-maydon").addEventListener("change", (e) => {
   saqlaTarix(); maydonOzgardi(e);
 });
 $("k-sozlama").addEventListener("click", () => {
-  const k = tahrir;
-  faqatShu = !!(k.rama != null || k.oyna_qalinligi != null || (k.tanlov && Object.keys(k.tanlov).length));
+  faqatShu = alohidami(tahrir);
+  szFokus = null;
   sozlamaOynasi();
 });
-$("sozlama-yop").addEventListener("click", () => { $("sozlama-oyna").hidden = true; });
+$("sozlama-yop").addEventListener("click", sozlamaYop);
+$("k-jadval").addEventListener("click", (e) => {
+  const ol_ = e.target.closest("[data-jol]");
+  if (ol_) { olchamniOzgartir(ol_.dataset.jol); return; }
+  if (e.target.closest("[data-jtom]")) {
+    // chap ⇄ oʻng: 1 tabaqali eshikda petlya tomoni, 2 tabaqalida ruchkali tabaqa — hamma eshikka
+    saqlaTarix();
+    for (const x of eshiklar(tahrir.bolak)) {
+      if (x.tabaqa_soni === 2) x.aktiv = (x.aktiv || "ong") === "chap" ? "ong" : "chap";
+      else x.petlya_tomoni = (x.petlya_tomoni || "chap") === "chap" ? "ong" : "chap";
+    }
+    yangila();
+    return;
+  }
+  const q = e.target.closest("[data-jq]");
+  if (!q || q.classList.contains("jq-yoq")) return;
+  faqatShu = alohidami(tahrir);
+  szFokus = q.dataset.jq;
+  sozlamaOynasi();
+});
 $("k-bolimlar").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;

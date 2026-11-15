@@ -731,3 +731,22 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .chizma .lb { fill: var(--rama-1, #eef0f2); stroke: var(--rama-chiziq, #8a939c); stroke-width: .3; }
 .chizma .lb-ch { stroke: var(--rama-chiziq, #8a939c); stroke-width: .35; opacity: .7; }
 .lambri-namuna { background: repeating-linear-gradient(90deg, #d9dde1 0 5px, #8a939c 5px 6px) !important; }
+
+/* tanlov jadvali (konstruktor): har tanlov bir qatorda */
+.jadval { padding: 4px 12px; }
+.jadval .jq { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 6px 0; background: none; border: 0;
+  border-bottom: 1px solid var(--chiziq); text-align: left; font: inherit; color: var(--matn); cursor: pointer; }
+.jadval .jq:last-child { border-bottom: 0; }
+.jadval .jq-nom { flex: 0 0 38%; color: var(--xira, #6b7785); font-size: 14px; }
+.jadval .jq-q { flex: 1; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.jadval .jq-ok { color: var(--asosiy); font-size: 20px; }
+.jadval .jq-yoq { cursor: default; }
+.jadval .jq-olcham { cursor: default; }
+.jadval .jq-olcham .tugma { flex: 1; min-height: 36px; padding: 4px 8px; }
+/* planshet / yotiq ekran: jadval chapda, chizma oʻngda */
+@media (min-width: 900px) and (orientation: landscape) {
+  #konstruktor:not([hidden]) { display: grid; grid-template-columns: 340px 1fr; column-gap: 16px; align-items: start; }
+  #konstruktor > * { grid-column: 2; }
+  #konstruktor > .k-tepa { grid-column: 1 / -1; }
+  #konstruktor > #k-jadval { grid-column: 1; grid-row: 2 / span 6; }
+}
