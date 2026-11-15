@@ -1106,6 +1106,7 @@ function asboblarniChiz() {
   $("k-asboblar").innerHTML = html;
   const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
   $("k-chizma").classList.toggle("qalam", qalam);
+  $("qalam-tugat").hidden = !qalam || $("konstruktor").hidden;
   if (qalam) { $("k-maslahat").textContent = QALAM_MASLAHAT; return; }
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
   $("k-maslahat").textContent = asbob === "ochir" ? "Impostni olib tashlash: impost yonidagi boʻlakka bosing — shu boʻlak va uning chap/tepa impost(i) olinadi, joyi qoʻshnisiga oʻtadi"
@@ -1520,6 +1521,7 @@ function konstruktorniYop(saqlansin, tarixdan) {
   try { localStorage.removeItem("qoralama"); } catch (e) {}
   sozlamaYop();
   $("konstruktor").hidden = true;
+  qalam = false; $("qalam-tugat").hidden = true;
   $("asosiy").hidden = false;
   if (zakaz) ekran("zakaz", joriyEkran !== "zakaz");
   hisoblaKeyin();
@@ -1625,11 +1627,13 @@ function svgNuqta(e) {
 }
 // olchamlar — oʻzgaradigan roʻyxat, s — haqiqiy oʻlchamlar, i — chap/tepa boʻlak, d — siljish (sm)
 // ---------- qoʻlda chizish (foydalanuvchi, 2026-11-15): chiziq tanilib, tekis konstruksiyaga aylanadi (qalam.js) ----------
-let qalam = false, qalamYutish = false;
+let qalam = false, qalamYutish = false, qalamIz = null;
 const QALAM_MASLAHAT = "✏️ Qoʻlda chizing: tik / yotiq chiziq — impost (chizilgan joyida), > < — tabaqa (uchi — ruchka tomoni), " +
   "Λ — fortochka, V — fortochka (petlya tepada), > (yoki <) va V (yoki Λ) bitta boʻlakka — dvaynoy, O — oddiy oyna. Toʻxtatish — ✏️ ni yana bosing.";
 $("k-chizma").addEventListener("pointerdown", (e) => {
   if (!qalam || e.button > 0) return;
+  // ikkinchi barmoq — chizish bekor (ikki barmoq bilan kattalashtirish / surish uchun)
+  if (!e.isPrimary || qalamIz) { if (qalamIz) qalamIz.bekor(); return; }
   const svg = $("k-chizma").querySelector("svg"), n0 = svgNuqta(e);
   if (!svg || !n0) return;
   e.stopImmediatePropagation(); e.preventDefault();
@@ -1638,14 +1642,22 @@ $("k-chizma").addEventListener("pointerdown", (e) => {
   svg.appendChild(iz);
   const chiz = () => iz.setAttribute("d", "M" + pts.map((q) => `${q.x.toFixed(1)} ${q.y.toFixed(1)}`).join("L"));
   const sur = (m) => { m.preventDefault(); const q = svgNuqta(m); if (q) { pts.push(q); chiz(); } };
-  const tugat = () => {
-    document.removeEventListener("pointermove", sur); document.removeEventListener("pointerup", tugat); document.removeEventListener("pointercancel", tugat);
-    iz.remove();
+  const toxta = () => {
+    document.removeEventListener("pointermove", sur); document.removeEventListener("pointerup", tugat); document.removeEventListener("pointercancel", bekor);
+    iz.remove(); qalamIz = null;
     qalamYutish = true; setTimeout(() => { qalamYutish = false; }, 400);  // chizmadagi "click" boʻlak tanlamasin
-    qalamQolla(qalamTani(pts, Math.min(Number(tahrir.L), Number(tahrir.H))));
   };
-  document.addEventListener("pointermove", sur, { passive: false }); document.addEventListener("pointerup", tugat); document.addEventListener("pointercancel", tugat);
+  const bekor = () => toxta();
+  const tugat = (m) => {
+    if (m && m.pointerId !== e.pointerId) return;
+    toxta();
+    try { qalamQolla(qalamTani(pts, Math.min(Number(tahrir.L), Number(tahrir.H)))); }
+    catch (x) { xabar("✏️ Xato: " + (x && x.message || x)); }
+  };
+  qalamIz = { bekor };
+  document.addEventListener("pointermove", sur, { passive: false }); document.addEventListener("pointerup", tugat); document.addEventListener("pointercancel", bekor);
 }, true);
+$("qalam-tugat").addEventListener("click", () => { qalam = false; yangila(); });
 $("k-chizma").addEventListener("click", (e) => { if (qalam || qalamYutish) { e.stopPropagation(); e.preventDefault(); } }, true);
 
 function qalamQolla(r) {
