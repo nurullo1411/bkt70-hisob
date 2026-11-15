@@ -1782,21 +1782,25 @@ function fasonChiz() {
   d.querySelector(".fason-tablar").innerHTML = FASON_TABLAR.filter(([id]) => id !== "arka" || bolimBor("shakl"))
     .map(([id, nom]) => `<button data-ftab="${id}" class="${id === fasonTab ? "faol" : ""}">${nom}</button>`).join("");
   d.querySelector(".fason-savol").hidden = true;
-  d.querySelector(".fason-tor").innerHTML = FASONLAR.map((f, i) => [f, i]).filter(([f]) => f.tab === fasonTab)
+  // Aldoksda lapsha yoʻq — alohida ramali (lapshali) fasonlar koʻrinmaydi
+  const ald = aldmi(seriyaRama()), mos = (f) => !ald || !JSON.stringify(fasonYasa(f, 250, 220, { ochilish: "ichkariga", aldoks: true }).bolak).includes('"lapsha":true');
+  d.querySelector(".fason-tor").innerHTML = FASONLAR.map((f, i) => [f, i]).filter(([f]) => f.tab === fasonTab && mos(f))
     .map(([f, i]) => `<button class="fason" data-fi="${i}">${fasonRasm(f)}<span>${esc(f.nom)}</span></button>`).join("");
 }
 function fasonQolla(i) {
   const f = FASONLAR[i], L = Number(tahrir.L), H = Number(tahrir.H);
-  const r = f.yasa(L, H, { ochilish: joriyOchilish(tahrir), aldoks: aldmi(seriyaRama()) });
+  const r = fasonYasa(f, L, H, { ochilish: joriyOchilish(tahrir), aldoks: aldmi(seriyaRama()) });
   if (r.arka && Number(r.arka.balandlik) >= H) { xabar(`Arka uchun boʻy yetmaydi: boʻyi ${yx(r.arka.balandlik)} sm dan katta boʻlishi kerak`); fasonOyna().hidden = true; return; }
   tekshirib(() => {
     saqlaTarix();
     delete tahrir.tur; delete tahrir.chap; delete tahrir.ong;
     tahrir.bolak = r.bolak;
     if (r.arka) tahrir.arka = r.arka; else delete tahrir.arka;
-    if (r.kichik65) {
-      // katta + kichik: ikkinchi (ruchkasiz) tabaqa 65 sm, "Ikkinchisi 65" tugmasidek
-      const g = geometriya(tahrir), o = g.barglar.find((x) => x.b.tur === "eshik"), e = o && eshikTabaqalari(tahrir, g, o);
+    // katta + kichik: ruchkasiz tabaqa 65 sm, "Ikkinchisi 65" tugmasidek
+    const g = geometriya(tahrir);
+    for (const o of g.barglar.filter((x) => x.b._k65)) {
+      delete o.b._k65;
+      const e = eshikTabaqalari(tahrir, g, o);
       if (e && e.jami - 65 > 65) o.b.L1 = Math.round((e.jami - 65) * 100) / 100;
     }
     tanlangan = geometriya(tahrir).barglar[0].p;

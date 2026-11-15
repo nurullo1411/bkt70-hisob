@@ -782,3 +782,5 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .fason-savol { margin-bottom: 12px; padding: 10px; border-radius: 12px; background: rgba(230,81,0,.1); }
 .fason-savol-t { display: flex; gap: 8px; margin-top: 8px; }
 .fason-savol-t .tugma { flex: 1; }
+.fason-rasm .fr-yoy { fill: none; stroke: #c9d1d9; }
+.fason-tor { max-height: 62vh; overflow-y: auto; }

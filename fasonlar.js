@@ -1,100 +1,258 @@
-// Tayyor fasonlar (foydalanuvchi, 2026-11-15). Roʻyxatni shu yerda oʻzgartiring: qoʻshish — bitta qator,
-// olib tashlash — qatorni oʻchirish. Har fason: tab ("oyna" | "eshik" | "arka"), nom, yasa(L, H, o) → {bolak, arka?, ...}.
-// o.ochilish — joriy eshik ochilishi ("ichkariga" | "tashqariga"). Oʻlcham berilmagan boʻlaklar (null) teng boʻlinadi.
-// Boʻlak oʻlchami — rama tashqi chetidan impost oʻqigacha (konstruktordagidek), sm.
+// Tayyor fasonlar (foydalanuvchi, 2026-11-15; Romchidagi roʻyxat boʻyicha). Roʻyxatni shu yerda oʻzgartiring:
+// qoʻshish — bitta qator, olib tashlash — qatorni oʻchirish.
+// Har fason: tab ("oyna" | "eshik" | "arka"), nom, yasa(L, H, o) → {bolak, arka?}; rasm: [L, H] — faqat kichik rasm uchun.
+// o.ochilish — joriy eshik ochilishi ("ichkariga" | "tashqariga"), o.aldoks — Aldoks seriyasi.
+// Boʻlak ulushlari (0…1) joriy oʻlchamga koʻra sm ga aylanadi (fasonTayyorla); null — qolgani teng boʻlinadi.
+// Boʻlak oʻlchami — tashqi chetdan (yoki impost oʻqidan) impost oʻqigacha, konstruktordagidek.
 
 const FASON_TABLAR = [["oyna", "Oyna"], ["eshik", "Eshik"], ["arka", "Arka"]];
 
 // --- kichik yasovchilar ---
 const fG = () => ({ tur: "gluxoy" });
+const fLam = () => ({ tur: "gluxoy", oyna_turi: "Lambri" });               // sendvich (PVX lambri)
 const fT = (petlya = "chap") => ({ tur: "tabaqa", petlya_tomoni: petlya });
 const fF = () => ({ tur: "tabaqa", fortochka: true });
-const fTik = (...b) => ({ tur: "bolinish", yonalish: "vertikal", olchamlar: b.map(() => null), bolaklar: b });
-const fYotiq = (tepa, ...b) => ({ tur: "bolinish", yonalish: "gorizontal", olchamlar: [tepa, ...b.slice(1).map(() => null)], bolaklar: b });
-const fEshik = (o, qosh = {}) => ({ tur: "eshik", tabaqa_soni: 1, ochilish: o.ochilish, petlya_tomoni: "chap", ...qosh });
-const fChorak = (H) => Math.round(H / 4 * 2) / 2;  // fortochka: umumiy boʻyning ~1/4, 0,5 sm ga
+// ulush: null — hammasi teng; [0.25, null] — birinchisi 25 %, qolgani teng
+const fBol = (yon, ulush, b) => ({ tur: "bolinish", yonalish: yon, olchamlar: b.map(() => null), _u: ulush, bolaklar: b });
+const fTik = (...b) => fBol("vertikal", null, b);
+const fTikU = (ulush, ...b) => fBol("vertikal", ulush, b);
+const fYot = (ulush, ...b) => fBol("gorizontal", ulush, b);
+const TEPA = 0.25, PAST = 0.2;                                              // tepa / past kichik boʻlak ulushi
+const fTepa = (...b) => fYot([TEPA], ...b);                                 // tepada kichik boʻlak (framuga)
+const fUch = () => fYot([TEPA, 1 - TEPA - PAST], fG(), fG(), fG());         // tepa kichik, oʻrta, past kichik
+// lapsha: alohida ramalar (H702); kalta ramaga _k — boʻy ulushi (tepaga tekislanadi)
+const fLapsha = (yon, ulush, ...b) => ({ ...fBol(yon, ulush, b), lapsha: true });
+const fKalta = (b, k = 0.62) => ({ ...b, _k: k });
+// eshik
+const SENDVICH = () => ({ yonalish: "gorizontal", olchamlar: [null, null], bolaklar: [null, { oyna_turi: "Lambri" }] });
+const SENDVICH_2 = () => ({ yonalish: "gorizontal", olchamlar: [null, null],
+  bolaklar: [{ yonalish: "vertikal", olchamlar: [null, null], bolaklar: [null, null] }, { oyna_turi: "Lambri" }] });
+const fE1 = (o, ii) => ({ tur: "eshik", tabaqa_soni: 1, ochilish: o.ochilish, petlya_tomoni: "chap", ...(ii ? { tabaqa_impost: ii } : {}) });
+// kichik: "chap" | "ong" — shu tabaqa 65 sm, ruchkalisi (aktiv) kattasi; null — teng
+const fE2 = (o, kichik, ii) => ({ tur: "eshik", tabaqa_soni: 2, ochilish: o.ochilish, aktiv: kichik === "chap" ? "ong" : "chap",
+  ...(kichik ? { _k65: true } : {}), ...(ii ? { tabaqa_impost: ii } : {}) });
+// vitrajda eshik ustuni ulushi: 2 tabaqa — 140 sm atrofida, 1 tabaqa — 90; yon oyna kamida 30
+const fEshikUlush = (L, ikki) => Math.min(L - 60, Math.max(L * (ikki ? 0.5 : 0.34), ikki ? 140 : 90)) / L;
+// tashqariga ochilsa yon oyna alohida ramada (H702 lapsha; Termo / Engelberg qoidasi), Aldoksda lapsha yoʻq
+const fVitraj = (o, ulush, ...b) => (o.ochilish === "tashqariga" && !o.aldoks ? fLapsha("vertikal", ulush, ...b) : fTikU(ulush, ...b));
+// framuga + vitraj: vitraj lapshali boʻlsa framuga ham alohida rama (rama ichida lapsha boʻlmaydi)
+const fTepaV = (tepa, past) => (past.lapsha ? fLapsha("gorizontal", [TEPA], tepa, past) : fTepa(tepa, past));
 const fYarim = (L) => Math.round(L / 2 * 10) / 10;
 const fYassi = (L) => Math.round(L * 0.2 * 10) / 10;
+const fArka = (a, bolak) => ({ arka: { balandlik: a }, bolak });
+const fArkaOsti = (a, tepa, past) => fArka(a, { tur: "bolinish", yonalish: "gorizontal", olchamlar: [a, null], bolaklar: [tepa, past] });
 
 const FASONLAR = [
-  // OYNA
+  // ---------- OYNA ----------
   { tab: "oyna", nom: "Bitta butun oyna", yasa: () => ({ bolak: fG() }) },
   { tab: "oyna", nom: "2 boʻlak", yasa: () => ({ bolak: fTik(fT("chap"), fG()) }) },
   { tab: "oyna", nom: "3 boʻlak", yasa: () => ({ bolak: fTik(fG(), fT("chap"), fG()) }) },
-  { tab: "oyna", nom: "Tepada fortochka + 2 boʻlak", yasa: (L, H) => ({ bolak: fYotiq(fChorak(H), fF(), fTik(fT("chap"), fG())) }) },
-  { tab: "oyna", nom: "Tepada fortochka + 3 boʻlak", yasa: (L, H) => ({ bolak: fYotiq(fChorak(H), fF(), fTik(fG(), fT("chap"), fG())) }) },
+  { tab: "oyna", nom: "Tepada fortochka + 2 boʻlak", yasa: () => ({ bolak: fTepa(fF(), fTik(fT("chap"), fG())) }) },
+  { tab: "oyna", nom: "Tepada fortochka + 3 boʻlak", yasa: () => ({ bolak: fTepa(fF(), fTik(fG(), fT("chap"), fG())) }) },
   { tab: "oyna", nom: "4 boʻlak", yasa: () => ({ bolak: fTik(fG(), fT("chap"), fT("ong"), fG()) }) },
-  // ESHIK
-  { tab: "eshik", nom: "Eshik, butun oyna", yasa: (L, H, o) => ({ bolak: fEshik(o) }) },
-  { tab: "eshik", nom: "Eshik, pasti sendvich", yasa: (L, H, o) => ({ bolak: fEshik(o, {
-      tabaqa_impost: { yonalish: "gorizontal", olchamlar: [null, null], bolaklar: [null, { oyna_turi: "Lambri" }] } }) }) },
-  { tab: "eshik", nom: "Eshik + tepada fortochka", yasa: (L, H, o) => ({ bolak: fYotiq(fChorak(H), fF(), fEshik(o)) }) },
-  { tab: "eshik", nom: "2 tabaqa (katta + kichik)", yasa: (L, H, o) => ({ bolak: { tur: "eshik", tabaqa_soni: 2, ochilish: o.ochilish, aktiv: "chap" }, kichik65: true }) },
-  // tashqariga ochilsa yon oyna alohida ramada, H702 lapsha bilan (Termo / Engelberg qoidasi); Aldoksda lapsha yoʻq
-  { tab: "eshik", nom: "Balkon blok: eshik + oyna", yasa: (L, H, o) => ({ bolak: o.ochilish === "tashqariga" && !o.aldoks
-      ? { ...fTik(fEshik(o), fG()), lapsha: true } : fTik(fEshik(o), fG()) }) },
-  // ARKA
-  { tab: "arka", nom: "Yarim doira arka", yasa: (L) => ({ bolak: fG(), arka: { balandlik: fYarim(L) } }) },
-  { tab: "arka", nom: "Arka + pastda 2 boʻlak", yasa: (L) => ({ bolak: fYotiq(fYarim(L), fG(), fTik(fT("chap"), fG())), arka: { balandlik: fYarim(L) } }) },
-  { tab: "arka", nom: "Arka + pastda 3 boʻlak", yasa: (L) => ({ bolak: fYotiq(fYarim(L), fG(), fTik(fG(), fT("chap"), fG())), arka: { balandlik: fYarim(L) } }) },
-  { tab: "arka", nom: "Yassi arka + pastda 3 boʻlak", yasa: (L) => ({ bolak: fYotiq(fYassi(L), fG(), fTik(fG(), fT("chap"), fG())), arka: { balandlik: fYassi(L) } }) },
+  { tab: "oyna", nom: "5 boʻlak", rasm: [250, 150], yasa: () => ({ bolak: fTik(fG(), fG(), fG(), fG(), fG()) }) },
+  { tab: "oyna", nom: "Tepa + past", rasm: [70, 150], yasa: () => ({ bolak: fTepa(fG(), fG()) }) },
+  { tab: "oyna", nom: "Tepa + 2 boʻlak", yasa: () => ({ bolak: fTepa(fG(), fTik(fG(), fG())) }) },
+  { tab: "oyna", nom: "Tepa + 3 boʻlak", yasa: () => ({ bolak: fTepa(fG(), fTik(fG(), fG(), fG())) }) },
+  { tab: "oyna", nom: "Tepa 2 + past 2", yasa: () => ({ bolak: fTepa(fTik(fG(), fG()), fTik(fG(), fG())) }) },
+  { tab: "oyna", nom: "Tepa 2 + past 3", yasa: () => ({ bolak: fTepa(fTik(fG(), fG()), fTik(fG(), fG(), fG())) }) },
+  { tab: "oyna", nom: "Tepa 3 + past 4", rasm: [200, 150], yasa: () => ({ bolak: fTepa(fTik(fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG())) }) },
+  { tab: "oyna", nom: "Tepa 2 + past 4", rasm: [200, 150], yasa: () => ({ bolak: fTepa(fTik(fG(), fG()), fTik(fG(), fG(), fG(), fG())) }) },
+  { tab: "oyna", nom: "Tepa 3 + past 5", rasm: [250, 150], yasa: () => ({ bolak: fTepa(fTik(fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG(), fG())) }) },
+  { tab: "oyna", nom: "Chapi boʻlingan", yasa: () => ({ bolak: fTik(fTepa(fG(), fG()), fG()) }) },
+  { tab: "oyna", nom: "Oʻngi boʻlingan", yasa: () => ({ bolak: fTik(fG(), fTepa(fG(), fG())) }) },
+  { tab: "oyna", nom: "Tepa + chapi boʻlingan", yasa: () => ({ bolak: fTepa(fG(), fTik(fTepa(fG(), fG()), fG())) }) },
+  { tab: "oyna", nom: "3 boʻlak, oʻrtasi boʻlingan", yasa: () => ({ bolak: fTik(fG(), fTepa(fG(), fG()), fG()) }) },
+  { tab: "oyna", nom: "3 boʻlak, chetlari boʻlingan", yasa: () => ({ bolak: fTik(fTepa(fG(), fG()), fG(), fTepa(fG(), fG())) }) },
+  { tab: "oyna", nom: "Tepa + 3, oʻrtasi boʻlingan", yasa: () => ({ bolak: fTepa(fG(), fTik(fG(), fTepa(fG(), fG()), fG())) }) },
+  { tab: "oyna", nom: "3 ustun, hammasi boʻlingan", yasa: () => ({ bolak: fTepa(fTikU([0.25, 0.5], fG(), fG(), fG()), fTikU([0.25, 0.5], fG(), fG(), fG())) }) },
+  { tab: "oyna", nom: "Oʻrtasi katta, chetlari 3 qavat", yasa: () => ({ bolak: fTikU([0.25, 0.5], fUch(), fG(), fUch()) }) },
+  { tab: "oyna", nom: "Tepa 4 + oʻrta 5 + past 5", rasm: [250, 170], yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+      fTikU([0.15, 0.35, 0.35], fG(), fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG(), fG())) }) },
+  { tab: "oyna", nom: "4 ustun, 3 qavat", rasm: [200, 170], yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+      fTik(fG(), fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG())) }) },
+  { tab: "oyna", nom: "Tepa 2 + 3 + sendvich", yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+      fTik(fG(), fG()), fTik(fG(), fG(), fG()), fTik(fLam(), fLam(), fLam())) }) },
+  { tab: "oyna", nom: "Tepa 3 + 4 + sendvich", rasm: [200, 170], yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+      fTik(fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG()), fTik(fLam(), fLam(), fLam(), fLam())) }) },
+  { tab: "oyna", nom: "Tepa 3 + 5 + sendvich", rasm: [250, 170], yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+      fTik(fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG(), fG()), fTik(fLam(), fLam(), fLam(), fLam(), fLam())) }) },
+
+  // ---------- ESHIK ----------
+  { tab: "eshik", nom: "Eshik, butun oyna", yasa: (L, H, o) => ({ bolak: fE1(o) }) },
+  { tab: "eshik", nom: "Eshik, pasti sendvich", yasa: (L, H, o) => ({ bolak: fE1(o, SENDVICH()) }) },
+  { tab: "eshik", nom: "Eshik, 2 oyna + sendvich", yasa: (L, H, o) => ({ bolak: fE1(o, SENDVICH_2()) }) },
+  { tab: "eshik", nom: "Eshik + tepada fortochka", yasa: (L, H, o) => ({ bolak: fTepa(fF(), fE1(o)) }) },
+  { tab: "eshik", nom: "Framuga + eshik", yasa: (L, H, o) => ({ bolak: fTepa(fG(), fE1(o)) }) },
+  { tab: "eshik", nom: "Framuga + eshik, sendvich", yasa: (L, H, o) => ({ bolak: fTepa(fG(), fE1(o, SENDVICH())) }) },
+  { tab: "eshik", nom: "Framuga + eshik, 2 oyna + sendvich", yasa: (L, H, o) => ({ bolak: fTepa(fG(), fE1(o, SENDVICH_2())) }) },
+  { tab: "eshik", nom: "2 tabaqa (katta + kichik)", rasm: [150, 220], yasa: (L, H, o) => ({ bolak: fE2(o, "ong") }) },
+  { tab: "eshik", nom: "2 tabaqa, kichigi chapda", rasm: [150, 220], yasa: (L, H, o) => ({ bolak: fE2(o, "chap") }) },
+  { tab: "eshik", nom: "2 tabaqa, sendvich (kichigi chapda)", rasm: [150, 220], yasa: (L, H, o) => ({ bolak: fE2(o, "chap", SENDVICH()) }) },
+  { tab: "eshik", nom: "2 tabaqa, sendvich (kichigi oʻngda)", rasm: [150, 220], yasa: (L, H, o) => ({ bolak: fE2(o, "ong", SENDVICH()) }) },
+  { tab: "eshik", nom: "Framuga + 2 tabaqa (kichigi chapda)", rasm: [150, 220], yasa: (L, H, o) => ({ bolak: fTepa(fG(), fE2(o, "chap")) }) },
+  { tab: "eshik", nom: "Framuga + 2 tabaqa (kichigi oʻngda)", rasm: [150, 220], yasa: (L, H, o) => ({ bolak: fTepa(fG(), fE2(o, "ong")) }) },
+  { tab: "eshik", nom: "Framuga + 2 tabaqa, sendvich (chap)", rasm: [150, 220], yasa: (L, H, o) => ({ bolak: fTepa(fG(), fE2(o, "chap", SENDVICH())) }) },
+  { tab: "eshik", nom: "Framuga + 2 tabaqa, sendvich (oʻng)", rasm: [150, 220], yasa: (L, H, o) => ({ bolak: fTepa(fG(), fE2(o, "ong", SENDVICH())) }) },
+  { tab: "eshik", nom: "Balkon blok: eshik + oyna", rasm: [180, 220], yasa: (L, H, o) => ({ bolak: fVitraj(o, null, fE1(o), fG()) }) },
+  // balkon: oyna eshikdan kalta, tepasi tekis (alohida ramalar, lapsha) — Aldoksda xato
+  { tab: "eshik", nom: "Balkon: oyna + eshik + oyna", rasm: [250, 220], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, false); return { bolak: fLapsha("vertikal", [(1 - d) / 2, d], fKalta(fG()), fE1(o), fKalta(fG())) }; } },
+  { tab: "eshik", nom: "Balkon: oyna + eshik", rasm: [180, 220], yasa: (L, H, o) => ({ bolak: fLapsha("vertikal", null, fKalta(fG()), fE1(o)) }) },
+  { tab: "eshik", nom: "Balkon: eshik + oyna", rasm: [180, 220], yasa: (L, H, o) => ({ bolak: fLapsha("vertikal", null, fE1(o), fKalta(fG())) }) },
+  { tab: "eshik", nom: "Balkon: framuga + oyna + eshik + oyna", rasm: [250, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, false);
+      return { bolak: fLapsha("gorizontal", [0.2], fG(), fLapsha("vertikal", [(1 - d) / 2, d], fKalta(fG(), 0.55), fE1(o), fKalta(fG(), 0.55))) }; } },
+  { tab: "eshik", nom: "Balkon: framuga + oyna + eshik", rasm: [180, 240], yasa: (L, H, o) => ({
+      bolak: fLapsha("gorizontal", [0.2], fG(), fLapsha("vertikal", null, fKalta(fG(), 0.55), fE1(o))) }) },
+  { tab: "eshik", nom: "Balkon: framuga + eshik + oyna", rasm: [180, 240], yasa: (L, H, o) => ({
+      bolak: fLapsha("gorizontal", [0.2], fG(), fLapsha("vertikal", null, fE1(o), fKalta(fG(), 0.55))) }) },
+  { tab: "eshik", nom: "Oyna + 2 tabaqa", rasm: [220, 220], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fVitraj(o, [1 - d], fG(), fE2(o, "chap")) }; } },
+  { tab: "eshik", nom: "2 tabaqa + oyna", rasm: [220, 220], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fVitraj(o, [d], fE2(o, "ong"), fG()) }; } },
+  { tab: "eshik", nom: "Oyna + 2 tabaqa + oyna", rasm: [280, 220], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fVitraj(o, [(1 - d) / 2, d], fG(), fE2(o, "chap"), fG()) }; } },
+  { tab: "eshik", nom: "Oyna + 2 tabaqa sendvich + oyna", rasm: [280, 220], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true);
+      return { bolak: fVitraj(o, [(1 - d) / 2, d], fYot([0.55], fG(), fG()), fE2(o, "chap", SENDVICH()), fYot([0.55], fG(), fG())) }; } },
+  { tab: "eshik", nom: "Oyna + framuga, 2 tabaqa + oyna", rasm: [280, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fVitraj(o, [(1 - d) / 2, d], fG(), fTepa(fG(), fE2(o, "chap")), fG()) }; } },
+  { tab: "eshik", nom: "Oyna + framuga, 2 tabaqa sendvich + oyna", rasm: [280, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fVitraj(o, [(1 - d) / 2, d], fG(), fTepa(fG(), fE2(o, "chap", SENDVICH())), fG()) }; } },
+  { tab: "eshik", nom: "Framuga + oyna, 2 tabaqa, oyna", rasm: [280, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fTepaV(fG(), fVitraj(o, [(1 - d) / 2, d], fG(), fE2(o, "chap"), fG())) }; } },
+  { tab: "eshik", nom: "Framuga + oyna, 2 tabaqa sendvich, oyna", rasm: [280, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fTepaV(fG(), fVitraj(o, [(1 - d) / 2, d], fG(), fE2(o, "chap", SENDVICH()), fG())) }; } },
+  { tab: "eshik", nom: "Framuga 2 + oyna, 2 tabaqa sendvich, oyna", rasm: [280, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fTepaV(fTik(fG(), fG()), fVitraj(o, [(1 - d) / 2, d], fG(), fE2(o, "chap", SENDVICH()), fG())) }; } },
+  { tab: "eshik", nom: "Boʻlingan oyna + framuga, 2 tabaqa", rasm: [280, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fVitraj(o, [(1 - d) / 2, d], fTepa(fG(), fG()), fTepa(fG(), fE2(o, "chap")), fTepa(fG(), fG())) }; } },
+  { tab: "eshik", nom: "Boʻlingan oyna + framuga, 2 tabaqa sendvich", rasm: [280, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true);
+      return { bolak: fVitraj(o, [(1 - d) / 2, d], fTepa(fG(), fG()), fTepa(fG(), fE2(o, "chap", SENDVICH())), fTepa(fG(), fG())) }; } },
+  { tab: "eshik", nom: "3 qavat oyna + framuga, 2 tabaqa", rasm: [280, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fVitraj(o, [(1 - d) / 2, d], fUch(), fTepa(fG(), fE2(o, "chap")), fUch()) }; } },
+  { tab: "eshik", nom: "3 qavat oyna + framuga, 2 tabaqa sendvich", rasm: [280, 240], yasa: (L, H, o) => {
+      const d = fEshikUlush(L, true); return { bolak: fVitraj(o, [(1 - d) / 2, d], fUch(), fTepa(fG(), fE2(o, "chap", SENDVICH())), fUch()) }; } },
+
+  // ---------- ARKA ----------
+  { tab: "arka", nom: "Yarim doira arka", yasa: (L) => fArka(fYarim(L), fG()) },
+  { tab: "arka", nom: "Arka + pastda 1 boʻlak", yasa: (L) => fArkaOsti(fYarim(L), fG(), fG()) },
+  { tab: "arka", nom: "Arka + pastda 2 boʻlak", yasa: (L) => fArkaOsti(fYarim(L), fG(), fTik(fT("chap"), fG())) },
+  { tab: "arka", nom: "Arka + pastda 3 boʻlak", yasa: (L) => fArkaOsti(fYarim(L), fG(), fTik(fG(), fT("chap"), fG())) },
+  { tab: "arka", nom: "Arka 2 + pastda 3", yasa: (L) => fArkaOsti(fYarim(L), fTik(fG(), fG()), fTik(fG(), fG(), fG())) },
+  { tab: "arka", nom: "Arka + chapi boʻlingan", yasa: (L) => fArkaOsti(fYarim(L), fG(), fTik(fTepa(fG(), fG()), fG())) },
+  { tab: "arka", nom: "Yassi arka + pastda 2 boʻlak", yasa: (L) => fArkaOsti(fYassi(L), fG(), fTik(fG(), fG())) },
+  { tab: "arka", nom: "Yassi arka + pastda 3 boʻlak", yasa: (L) => fArkaOsti(fYassi(L), fG(), fTik(fG(), fT("chap"), fG())) },
+  { tab: "arka", nom: "Yassi arka + 3, oʻrtasi boʻlingan", yasa: (L) => fArkaOsti(fYassi(L), fG(), fTik(fG(), fTepa(fG(), fG()), fG())) },
+  { tab: "arka", nom: "Yassi arka + 3, chetlari boʻlingan", yasa: (L) => fArkaOsti(fYassi(L), fG(), fTik(fTepa(fG(), fG()), fG(), fTepa(fG(), fG()))) },
+  { tab: "arka", nom: "Yassi arka 2 + pastda 3", yasa: (L) => fArkaOsti(fYassi(L), fTik(fG(), fG()), fTik(fG(), fG(), fG())) },
+  { tab: "arka", nom: "Yassi arka 2 + 3, oʻrtasi boʻlingan", yasa: (L) => fArkaOsti(fYassi(L), fTik(fG(), fG()), fTik(fG(), fTepa(fG(), fG()), fG())) },
+  { tab: "arka", nom: "Yassi arka 2 + 3, chetlari boʻlingan", yasa: (L) => fArkaOsti(fYassi(L), fTik(fG(), fG()), fTik(fTepa(fG(), fG()), fG(), fTepa(fG(), fG()))) },
+  { tab: "arka", nom: "Yassi arka, 3 ustun (oʻrtasi boʻlingan)", rasm: [150, 220], yasa: (L) => fArka(fYassi(L), fTik(fG(), fTepa(fG(), fG()), fG())) },
 ];
+
+// Ulushlarni (_u, _k) joriy oʻlchamga koʻra sm ga aylantiradi; eshik _k65 qoladi (konstruktor hisoblaydi)
+function fasonTayyorla(b, w, h) {
+  if (!b || b.tur !== "bolinish") return b;
+  const v = b.yonalish === "vertikal", jami = (v ? w : h) - (b.lapsha ? 0.5 * (b.bolaklar.length - 1) : 0);
+  const yx = (x) => Math.round(x * 2) / 2;
+  if (b._u) b.olchamlar = b.bolaklar.map((_, i) => (i < b._u.length && b._u[i] != null && i < b.bolaklar.length - 1 ? yx(b._u[i] * jami) : null));
+  delete b._u;
+  const ber = b.olchamlar.reduce((m, q) => m + (q || 0), 0), bosh = b.olchamlar.filter((q) => q == null).length;
+  b.bolaklar.forEach((c, i) => {
+    const d = b.olchamlar[i] != null ? b.olchamlar[i] : (jami - ber) / bosh;
+    if (c._k != null) { if (b.lapsha && v) c.boy = yx(h * c._k); delete c._k; }
+    fasonTayyorla(c, v ? d : w, v ? (c.boy || h) : d);
+  });
+  return b;
+}
+function fasonYasa(f, L, H, o) {
+  const r = f.yasa(L, H, o);
+  fasonTayyorla(r.bolak, L, H);
+  return r;
+}
 
 // Kichik rasm (preview): fasonning oʻzidan chiziladi — roʻyxat oʻzgarsa rasm ham oʻzgaradi
 function fasonRasm(f) {
-  const L = f.tab === "eshik" ? 100 : f.tab === "arka" ? 150 : 150, H = f.tab === "eshik" ? 220 : f.tab === "arka" ? 200 : 150;
-  const r = f.yasa(L, H, { ochilish: "ichkariga" });
-  const s = 64 / Math.max(L, H), W = L * s, Hh = H * s, ox = (72 - W) / 2, oy = (72 - Hh) / 2, t = 2.6;
+  const [L, H] = f.rasm || (f.tab === "eshik" ? [100, 220] : f.tab === "arka" ? [150, 200] : [150, 150]);
+  const r = fasonYasa(f, L, H, { ochilish: "ichkariga" });
+  const s = 64 / Math.max(L, H), t = 2.4;
   let ich = "";
-  const a = r.arka ? Number(r.arka.balandlik) * s : 0;
-  const oyna = (x, y, w, h, lam) => `<rect x="${x}" y="${y}" width="${Math.max(w, 0)}" height="${Math.max(h, 0)}" class="${lam ? "fr-lam" : "fr-oy"}"/>`;
+  const oyna = (x, y, w, h, lam) => `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${Math.max(w, 0).toFixed(2)}" height="${Math.max(h, 0).toFixed(2)}" class="${lam ? "fr-lam" : "fr-oy"}"/>`;
+  const pr = (x, y, w, h) => `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${Math.max(w, 0).toFixed(2)}" height="${Math.max(h, 0).toFixed(2)}" class="fr-pr"/>`;
   const belgi = (x, y, w, h, b) => {
     if (b.tur === "tabaqa" && b.fortochka) return `<path d="M${x} ${y + h}L${x + w / 2} ${y}L${x + w} ${y + h}" class="fr-ch"/>`;
     if (b.tur === "tabaqa") return b.petlya_tomoni === "ong" ? `<path d="M${x + w} ${y}L${x} ${y + h / 2}L${x + w} ${y + h}" class="fr-ch"/>`
       : `<path d="M${x} ${y}L${x + w} ${y + h / 2}L${x} ${y + h}" class="fr-ch"/>`;
     return "";
   };
-  const chiz = (b, x, y, w, h) => {
+  // boʻlinish oʻlchamlari (sm) → boʻlak oʻlchamlari (px)
+  const qism = (ol, jami, n) => {
+    const ber = ol.reduce((m, q) => m + (q == null ? 0 : q * s), 0), bosh = ol.filter((q) => q == null).length;
+    return ol.map((q) => (q == null ? (jami - ber) / Math.max(bosh, 1) : q * s));
+  };
+  // tabaqa ichi (sendvich, ichki impost)
+  const ichki = (ii, x, y, w, h) => {
+    if (!ii) { ich += oyna(x, y, w, h); return; }
+    if (ii.oyna_turi === "Lambri") { ich += oyna(x, y, w, h, true); return; }
+    const v = ii.yonalish === "vertikal", d = qism(ii.olchamlar, v ? w : h);
+    let p = 0;
+    d.forEach((q, i) => {
+      const c = (ii.bolaklar || [])[i];
+      if (v) ichki(c, x + p + (i ? 0.8 : 0), y, q - (i ? 0.8 : 0), h); else ichki(c, x, y + p + (i ? 0.8 : 0), w, q - (i ? 0.8 : 0));
+      p += q;
+    });
+  };
+  const chiz = (b, x, y, w, h, rama) => {
+    if (rama) { ich += pr(x, y, w, h); x += t; y += t; w -= 2 * t; h -= 2 * t; }
     if (b.tur === "bolinish") {
-      const v = b.yonalish === "vertikal", jami = v ? w : h, n = b.bolaklar.length;
-      const ber = b.olchamlar.map((q) => (q == null ? null : q * s)), bor = ber.reduce((m, q) => m + (q || 0), 0), bosh = ber.filter((q) => q == null).length;
-      let p = 0;
+      const v = b.yonalish === "vertikal", lap = b.lapsha ? 0.5 * s : 0;
+      const d = qism(b.olchamlar, (v ? w : h) - lap * (b.bolaklar.length - 1) + (b.lapsha ? 2 * t : 0));
+      let p = b.lapsha ? -t : 0;
       b.bolaklar.forEach((c, i) => {
-        const d = ber[i] != null ? ber[i] - (i === 0 ? 0 : 0) : (jami - bor) / bosh;
-        if (v) chiz(c, x + p, y, d, h); else chiz(c, x, y + p, w, d);
-        p += d;
-        if (i < n - 1) ich += v ? `<rect x="${x + p - t / 2}" y="${y}" width="${t}" height="${h}" class="fr-pr"/>` : `<rect x="${x}" y="${y + p - t / 2}" width="${w}" height="${t}" class="fr-pr"/>`;
+        const q = d[i];
+        if (b.lapsha) {
+          // har bola alohida rama, kaltasi tepaga tekislanadi
+          const hb = v && c.boy ? c.boy * s : (v ? h + 2 * t : q), wb = !v && c.en ? c.en * s : (v ? q : w + 2 * t);
+          if (v) chiz(c, x + p, y - t, wb, hb, true); else chiz(c, x - t, y + p, wb, hb, true);
+          p += q + lap;
+          return;
+        }
+        if (v) chiz(c, x + p, y, q, h); else chiz(c, x, y + p, w, q);
+        p += q;
+        if (i < b.bolaklar.length - 1) ich += v ? pr(x + p - t / 2, y, t, h) : pr(x, y + p - t / 2, w, t);
       });
       return;
     }
     if (b.tur === "eshik") {
-      const n = b.tabaqa_soni === 2 ? 2 : 1, w1 = n === 2 ? w * 0.62 : w;
+      const n = b.tabaqa_soni === 2 ? 2 : 1, kichik = b._k65 ? (b.aktiv === "ong" ? 0 : 1) : -1;
+      const w1 = n === 2 ? (kichik === 0 ? w * 0.38 : kichik === 1 ? w * 0.62 : w / 2) : w;
       for (let i = 0; i < n; i++) {
         const xx = i === 0 ? x : x + w1, ww = i === 0 ? w1 : w - w1;
-        ich += `<rect x="${xx + 1}" y="${y + 1}" width="${ww - 2}" height="${h - 2}" class="fr-pr"/>`;
-        const ii = b.tabaqa_impost;
-        if (ii) {
-          const ym = y + h / 2;
-          ich += oyna(xx + 3, y + 3, ww - 6, ym - y - 4) + oyna(xx + 3, ym + 1, ww - 6, y + h - ym - 4, true);
-        } else ich += oyna(xx + 3, y + 3, ww - 6, h - 6);
-        ich += `<rect x="${i === 0 && n === 1 ? xx + ww - 6 : i === 0 ? xx + ww - 5 : xx + 3}" y="${y + h * 0.5 - 3}" width="2" height="6" rx="1" class="fr-rk"/>`;
+        ich += pr(xx + 0.5, y + 0.5, ww - 1, h - 1);
+        ichki(b.tabaqa_impost, xx + 3, y + 3, ww - 6, h - 6);
+        const ruchka = n === 1 ? (b.petlya_tomoni === "ong" ? xx + 3.5 : xx + ww - 5.5) : (i === 0) === (b.aktiv !== "ong") ? (i === 0 ? xx + ww - 5 : xx + 3) : null;
+        if (ruchka != null) ich += `<rect x="${ruchka}" y="${y + h * 0.5 - 3}" width="2" height="6" rx="1" class="fr-rk"/>`;
       }
       return;
     }
     ich += oyna(x + t / 2, y + t / 2, w - t, h - t, b.oyna_turi === "Lambri") + belgi(x + t, y + t, w - 2 * t, h - 2 * t, b);
   };
-  chiz(r.bolak, ox + t, oy + t, W - 2 * t, Hh - 2 * t);
-  let tashqi = `<rect x="${ox}" y="${oy}" width="${W}" height="${Hh}" rx="1" class="fr-pr"/>`, klip = "";
+  const W = L * s, Hh = H * s, ox = (72 - W) / 2, oy = (72 - Hh) / 2;
+  if (r.bolak.lapsha) chiz(r.bolak, ox + t, oy + t, W - 2 * t, Hh - 2 * t);
+  else chiz(r.bolak, ox, oy, W, Hh, true);
+  const a = r.arka ? Number(r.arka.balandlik) * s : 0;
   if (a) {
-    // arka: tepasi aylana yoyi (yarim doira yoki yassi)
+    // arka: tepasi aylana yoyi (yarim doira yoki yassi) — ichi yoy boʻyicha qirqiladi, ustidan rama yoyi
     const R = (W * W / 4 + a * a) / (2 * a), yon = oy + a;
-    const yol = `M${ox} ${oy + Hh}V${yon}A${R} ${R} 0 0 1 ${ox + W} ${yon}V${oy + Hh}Z`;
+    const yol = (k) => `M${ox + k} ${oy + Hh}V${yon}A${R - k} ${R - k} 0 0 1 ${ox + W - k} ${yon}V${oy + Hh}Z`;
     const id = "fk" + Math.random().toString(36).slice(2, 8);
-    tashqi = `<path d="${yol}" class="fr-pr"/>`;
-    klip = `<clipPath id="${id}"><path d="${yol}" transform="translate(${ox + W / 2} ${oy + Hh}) scale(${(W - 2 * t) / W} ${(Hh - t) / Hh}) translate(${-ox - W / 2} ${-oy - Hh})"/></clipPath>`;
-    return `<svg viewBox="0 0 72 72" class="fason-rasm"><defs>${klip}</defs>${tashqi}<g clip-path="url(#${id})">${ich}</g></svg>`;
+    return `<svg viewBox="0 0 72 72" class="fason-rasm"><defs><clipPath id="${id}"><path d="${yol(0)}"/></clipPath></defs>` +
+      `<g clip-path="url(#${id})">${ich}</g><path d="${yol(t / 2)}" class="fr-yoy" style="stroke-width:${t}"/></svg>`;
   }
-  return `<svg viewBox="0 0 72 72" class="fason-rasm">${tashqi}${ich}</svg>`;
+  return `<svg viewBox="0 0 72 72" class="fason-rasm">${ich}</svg>`;
 }
 
-if (typeof module !== "undefined") module.exports = { FASONLAR, FASON_TABLAR, fasonRasm };
+if (typeof module !== "undefined") module.exports = { FASONLAR, FASON_TABLAR, fasonRasm, fasonYasa };
