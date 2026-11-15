@@ -1530,8 +1530,16 @@ function konstruktorniYop(saqlansin, tarixdan) {
 // Chala chizma har oʻzgarishda saqlanadi: sahifa yangilansa yoki ilova yopilsa, joyidan davom etadi
 function qoralamaniTikla() {
   let q = null;
+  // Oldingi tiklash tugamagan boʻlsa (ilova qotib qolgan) — chizma tiklanmaydi, alohida saqlanadi
+  // (foydalanuvchi, 2026-11-15: qotgan chizma har ochilishda qayta tiklanib, ilovadan chiqib boʻlmadi)
+  if (ol("qoralama_tiklash") === "1") {
+    try { localStorage.setItem("qoralama_buzuq", ol("qoralama") || ""); localStorage.removeItem("qoralama"); localStorage.removeItem("qoralama_tiklash"); } catch (e) {}
+    return false;
+  }
   try { q = JSON.parse(ol("qoralama")); } catch (e) { q = null; }
   if (!q || !q.tahrir || !zakaz) return false;
+  try { localStorage.setItem("qoralama_tiklash", "1"); } catch (e) {}
+  setTimeout(() => { try { localStorage.removeItem("qoralama_tiklash"); } catch (e) {} }, 6000);
   tahrirIndeks = q.indeks < zakaz.konstruksiyalar.length ? q.indeks : -1;
   tahrir = q.tahrir;
   orqaga = q.orqaga || []; oldinga = [];

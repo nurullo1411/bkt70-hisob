@@ -23,6 +23,11 @@ function holat(matn) { $("holat").textContent = matn; }
 function xato(matn) { const e = $("xato"); e.textContent = matn || ""; e.hidden = !matn; }
 
 async function yukla() {
+  // zaxira chiqish: manzil oxirida #tozala — chala chizma tiklanmaydi
+  if (location.hash === "#tozala") {
+    try { localStorage.setItem("qoralama_buzuq", localStorage.getItem("qoralama") || ""); localStorage.removeItem("qoralama"); } catch (e) {}
+    history.replaceState(null, "", location.pathname);
+  }
   try {
     holat("Python yuklanmoqda…");
     py = await loadPyodide();
@@ -40,7 +45,7 @@ async function yukla() {
     const oxirgi = ol("oxirgi_zakaz");
     if (oxirgi) zakazniOch(oxirgi, true);
     zakazlarniOl();
-    if (zakaz) qoralamaniTikla();
+    if (zakaz && !qoralamaniTikla() && ol("qoralama_buzuq")) holat("Oldingi chala chizma ochilmadi (ilova qotgan edi) — u tiklanmadi");
   } catch (e) {
     holat("Xato");
     xato("Dastur yuklanmadi: " + e.message + ". Birinchi marta ochishda internet kerak.");
