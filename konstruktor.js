@@ -1787,7 +1787,23 @@ function fasonChiz() {
   // Aldoksda lapsha yoʻq — alohida ramali (lapshali) fasonlar koʻrinmaydi
   const ald = aldmi(seriyaRama()), mos = (f) => !ald || !JSON.stringify(fasonYasa(f, 250, 220, { ochilish: "ichkariga", aldoks: true }).bolak).includes('"lapsha":true');
   d.querySelector(".fason-tor").innerHTML = FASONLAR.map((f, i) => [f, i]).filter(([f]) => f.tab === fasonTab && mos(f))
-    .map(([f, i]) => `<button class="fason" data-fi="${i}">${fasonRasm(f)}<span>${esc(f.nom)}</span></button>`).join("");
+    .map(([f, i]) => `<button class="fason" data-fi="${i}">${fasonChizma(f)}<span>${esc(f.nom)}</span></button>`).join("");
+}
+// Fason rasmi — konstruktor chizmasining oʻzi (kichik rejim): rom rangi, ochilish uchburchagi, petlya, ruchka
+// (foydalanuvchi, 2026-11-15: Romchiga oʻxshamasin, ilovaning oʻz uslubida)
+function fasonChizma(f) {
+  const [L, H] = f.rasm || (f.tab === "eshik" ? [100, 220] : f.tab === "arka" ? [150, 200] : [150, 150]);
+  try {
+    const r = fasonYasa(f, L, H, { ochilish: joriyOchilish(tahrir), aldoks: aldmi(seriyaRama()) });
+    const k = { L, H, bolak: r.bolak, ...(r.arka ? { arka: r.arka } : {}), ...(tahrir.tanlov ? { tanlov: tahrir.tanlov } : {}), ...(tahrir.rama ? { rama: tahrir.rama } : {}) };
+    const g = geometriya(k);
+    for (const o of g.barglar.filter((x) => x.b._k65)) {
+      delete o.b._k65;
+      const e = eshikTabaqalari(k, g, o);
+      if (e && e.jami - 65 > 65) o.b.L1 = Math.round((e.jami - 65) * 100) / 100;
+    }
+    return chizmaSVG(k, { kichik: true }).replace('class="chizma kichik"', 'class="chizma kichik fason-rasm"');
+  } catch (e) { return fasonRasm(f); }
 }
 function fasonQolla(i) {
   const f = FASONLAR[i], L = Number(tahrir.L), H = Number(tahrir.H);

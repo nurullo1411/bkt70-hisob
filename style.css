@@ -784,3 +784,4 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .fason-savol-t .tugma { flex: 1; }
 .fason-rasm .fr-yoy { fill: none; stroke: #c9d1d9; }
 .fason-tor { max-height: 62vh; overflow-y: auto; }
+.fason .chizma.fason-rasm { width: 100%; max-width: 92px; height: 92px; aspect-ratio: auto; }
