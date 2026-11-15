@@ -65,10 +65,12 @@ def _k(x):
 # Shtapik raskroydan oldin +0,4 sm uzun kesiladi: yasashda 1–2 mm xato boʻlsa kalta qolmasin,
 # joyida aniq oʻlchab kaltalanadi (foydalanuvchi, 2026-11-07)
 SHTAPIK_ZAPAS = 0.4
+# Aldoks 105 shtapigi ham +0,4 (foydalanuvchi, 2026-11-16). Engelberg 7056/7057 — zapassiz.
+_shtapikmi = lambda p: str(p).startswith("G") or str(p) == "105"  # noqa: E731
 
 
 def _zapas(d):
-    if str(d["profil"]).startswith("G"):
+    if _shtapikmi(d["profil"]):
         return {**d, "uzunlik": round(d["uzunlik"] + SHTAPIK_ZAPAS, 2)}
     k = kesish_profili(d)
     return {**d, "profil": k} if k != d["profil"] else d
@@ -625,7 +627,7 @@ def _kesim_matni(profil, konstruksiyalar=()):
 
 
 def _kesim_asosi(profil):
-    if str(profil).startswith("G"):
+    if _shtapikmi(profil):
         return (f"□ Toʻgʻri (90°) · Arra {_k(_b(ARRA))} sm · DIQQAT: har shtapik +{_k(_b(SHTAPIK_ZAPAS))} sm uzun "
                 "kesilgan, joyida aniq oʻlchab kaltalang")
     if _aylantirish(profil):
