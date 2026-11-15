@@ -46,7 +46,16 @@ async function zakazlarniYubor() {
       const r = await baza("zakaz_yoz", { zakaz: { uid: z.id, versiya: z.versiya || 0, summa: sh.summa, valyuta: sh.valyuta,
         holat: holatOl(z), kurs: Number(ol("kurs")) || "", m2: Math.round(zakazM2(z) * 100) / 100, montaj: montajBor(z),
         ...ishMaydonlari(z), zakaz: z } });
-      if (r.ziddiyat) bazadanQoy(r.server, true);
+      if (r.ziddiyat) {
+        // Sex belgilari ikki telefonda: kesildi birlashtiriladi va qayta yuboriladi (foydalanuvchi, 2026-11-16)
+        const birga = r.server && r.server.zakaz && (z.kesildi || r.server.zakaz.kesildi) ? kesildiBirlashtir(r.server.zakaz.kesildi, z.kesildi) : null;
+        const qayta = birga && JSON.stringify(birga) !== JSON.stringify(r.server.zakaz.kesildi || {});
+        if (birga) r.server.zakaz.kesildi = birga;
+        bazadanQoy(r.server, true);
+        zNavbatYoz(zNavbat().filter((x) => x !== id));
+        if (qayta) { zakazgaYoz(id, { kesildi: birga }); zakazNavbatga(id); }
+        continue;
+      }
       else zakazgaYoz(id, { versiya: r.versiya, baza_id: r.id, holat: r.holat });
       zNavbatYoz(zNavbat().filter((x) => x !== id));
     }
@@ -75,9 +84,19 @@ function bazadanQoy(r, ziddiyat) {
   arxivYoz(a);
   if (zakaz && zakaz.id === r.uid) {
     if (yangi.ochirilgan) return;
+    const eskiHisob = JSON.stringify([zakaz.umumiy, zakaz.konstruksiyalar]);
     zakaz = yangi;
     try { localStorage.setItem("oxirgi_zakaz", JSON.stringify(zakaz)); } catch (e) {}
-    if (ziddiyat) { holat("Boshqa qurilmada oʻzgargan — baza nusxasi olindi"); hisobla(); }
+    const hisobUchun = (x) => JSON.stringify([x.umumiy, x.konstruksiyalar]);
+    if (ziddiyat) holat("Boshqa qurilmada oʻzgargan — baza nusxasi olindi");
+    // hisob maʼlumoti oʻzgarmagan (masalan faqat Sex belgilari) — qayta hisob (Pyodide) kerak emas, varoqlar yangilanadi
+    if (eskiHisob === hisobUchun(zakaz)) {
+      // yengil yangilash: zakaz nomi/roʻyxat va Sex varoqlari (tanlangan manba saqlanadi)
+      if (typeof varoqZakaz !== "undefined") varoqZakaz = zakaz;
+      if (typeof royxatniChiz === "function") royxatniChiz();
+      if (typeof varoqlarniChiz === "function") varoqlarniChiz(true);
+    }
+    else if (ziddiyat) hisobla();
   }
 }
 

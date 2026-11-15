@@ -165,6 +165,7 @@ function ekran(nom, push = true) {
   else if (nom === "katalog") katalogChiz();
   else if (nom !== "zakaz") { arxivniChiz(); zakazlarniOl(); }
   window.scrollTo(0, 0);
+  if (typeof ekranYoniq === "function") ekranYoniq();
 }
 let ichkiOrqaga = false, chiqishTasdiq = false;
 window.addEventListener("popstate", (e) => {
@@ -223,7 +224,7 @@ function arxivga(matn) {
   const a = arxivOl().filter((x) => x.id !== z.id);
   if (z.konstruksiyalar && z.konstruksiyalar.length) { a.unshift(z); zakazNavbatga(z.id); }
   arxivYoz(a);
-  arxivniChiz();
+  if (joriyEkran !== "zakaz") arxivniChiz();  // zakaz ekranida (Sex kataklari) arxiv DOM i keraksiz; chiqilganda chiziladi
 }
 let arxivTab = "yangi";
 // Roʻyxatdan keyingi boʻlimga oʻtkazish (foydalanuvchi, 2026-11-07)
@@ -374,7 +375,7 @@ function hisobla() {
   royxatniChiz();
   kesishEskirgan = true;
   // sklad rejasi va manba shu zakazniki boʻlsin (boshqa zakaz ochilsa / konstruksiya oʻzgarsa — eski reja qolmasin)
-  skladReja = null;
+  skladReja = null; burchakX = null;
   if (varoqZakaz !== zakaz) { varoqManba = null; varoqZakaz = zakaz; }
   if (!natija) { kesishNatija = null; varoqlarniTozala(); return; }
   if ($("kesish-quti").open) { kesishniChiz(); skladRanglariniChiz(); skladRejaniHisobla(); }
@@ -634,8 +635,8 @@ const kesimMatn = (t) => { const i = String(t).indexOf("DIQQAT"); return i < 0 ?
 let varoqlar = [], varoqI = 0, varoqManba = null, skladRangYoq = false, varoqZakaz = null;
 function varoqlarniTozala() {
   varoqlar = [];
-  for (const id of ["kesish-tablar", "kesish-nav", "kesish-ogoh"]) $(id).innerHTML = "";
-  for (const id of ["kesish-nav", "kesish-pdf", "kesish-manba", "kesish-ogoh", "kesish-tayyor"]) $(id).hidden = true;
+  for (const id of ["kesish-tablar", "kesish-ogoh"]) $(id).innerHTML = "";
+  for (const id of ["kesish-pdf", "kesish-manba", "kesish-ogoh", "kesish-tayyor"]) $(id).hidden = true;
 }
 const kesishRaqamlari = () => { const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) !== 0); return (i) => faol[i] || { rang_id: i + 1 }; };
 // Skladsiz: boʻlak "k" — faol (soni ≠ 0) konstruksiyalar ichidagi indeks (raskroy.kesish_chizmasi bilan bir xil shart)
@@ -645,7 +646,7 @@ function skladsizVaroqlar(r) {
       `<div style="flex:${b.uzunlik} 0 0;background:${kRang(kk(b.k))[0]};color:${kRang(kk(b.k))[1]}"><i>${kRaqam(kk(b.k))}</i>${kkSon(b.uzunlik)}</div>`).join("")}${h.qoldiq > 0 ?
       `<div class="kb-q${p.otxod_chegara && h.qoldiq < p.otxod_chegara ? " otx" : ""}" style="flex:${h.qoldiq} 0 0">${qoldiqSon(h.qoldiq)}</div>` : ""}</div></div>`).join("");
   return r.profillar.map((p) => ({ manba: "skladsiz", profil: p.profil, nom: p.nom, hivich_sm: p.hivich_sm, kesim: p.kesim, chegara: p.otxod_chegara,
-    togri: /90°/.test(p.kesim), samaradorlik: p.samaradorlik, kartalar: hivichKartalar(p.hivichlar, p.hivich_sm, (i) => kRaqam(kk(i))), chizma: chizma(p) }));
+    togri: profilBurchagi(p.kesim) === 90, samaradorlik: p.samaradorlik, kartalar: hivichKartalar(p.hivichlar, p.hivich_sm, (i) => kRaqam(kk(i))), chizma: chizma(p) }));
 }
 // Sklad: konstruksiya raqami nom boʻyicha — faqat bitta mos kelsa (nomsiz/takror nomda raqam yozilmaydi)
 const skladK = (n) => { const m = zakaz.konstruksiyalar.filter((z) => z.nom === n && (z.soni ?? 1) !== 0); return m.length === 1 ? m[0] : null; };
@@ -654,38 +655,71 @@ function skladVaroqlar(r) {
     chegara: otxodChegarasi(p.profil), togri: p.togri, sklad: true, rang: r.rang, konstruksiyalar: p.konstruksiyalar,
     kartalar: skladKartalar(p.kartalar, p.konstruksiyalar.map((k) => ({ raqam: skladK(k.nom) ? kRaqam(skladK(k.nom)) : null, detallar: k.detallar }))) }));
 }
-// Kalit: skladsiz:profil yoki sklad:rang:profil (sklad rejasi bitta rang guruhiga). Qiymat {imzo, sana};
-// reja oʻzgarsa (imzo boshqa) — "eski": belgi yashirilmaydi, kulrang "eski reja bilan kesilgan (sana)".
+// Kalit: skladsiz:profil yoki sklad:rang:profil (sklad rejasi bitta rang guruhiga). Qiymat {imzo, k: [har karta kesilgan hivich], sana}
+// (foydalanuvchi, 2026-11-16: belgi har hivich kartasida). Reja oʻzgarsa (imzo boshqa) — sanoqlar 0, kulrang "eski reja" yozuvi.
 const kesildiKalit = (v) => v.manba === "sklad" ? `sklad:${v.rang}:${v.profil}` : "skladsiz:" + v.profil;
-function kesildiHolat(v) {
-  const b = zakaz.kesildi && zakaz.kesildi[kesildiKalit(v)];
-  return !b ? null : b.imzo === imzo(v.kartalar) ? "ha" : "eski";
+const kesildiSaq = (v) => zakaz.kesildi && zakaz.kesildi[kesildiKalit(v)];
+const kesSanoq = (v) => kesildiOqi(kesildiSaq(v), v.kartalar, imzo(v.kartalar));
+function kesJami(v) { const s = kesSanoq(v); return { bor: s.k.reduce((a, x) => a + x, 0), jami: v.kartalar.reduce((a, k) => a + k.soni, 0), eski: s.eski }; }
+const kesildimi = (v) => { const j = kesJami(v); return j.jami > 0 && j.bor === j.jami; };
+const ochiqKartalar = new Set();  // toʻla, lekin qoʻlda ochilgan kartalar (sessiya)
+// Qiya uchlar xaritasi (hisob detallaridan, raskroy.detallarni_yig — faqat oʻqiladi): {profil: {sm100: {jami, qiya: {matn: soni}}}}
+// Kalit — mm (kartadagi kabi). Sklad varogʻida faqat shu rang guruhi konstruksiyalari (nomlar), skladsizda — butun zakaz.
+// Kesh guruh boʻyicha (hisobla da tozalanadi).
+let burchakX = null;
+function burchakXaritasi(nomlar) {
+  burchakX = burchakX || {};
+  const kalit = nomlar ? JSON.stringify(nomlar) : "*";
+  if (burchakX[kalit]) return burchakX[kalit];
+  burchakX[kalit] = {};
+  try {
+    const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) !== 0 && (!nomlar || nomlar.includes(k.nom)));
+    py.globals.set("_zakaz", JSON.stringify({ ...zakaz, konstruksiyalar: faol }));
+    burchakX[kalit] = JSON.parse(py.runPython(`
+import raskroy, json
+_bx = {}
+try:
+    _br, _bj = raskroy.detallarni_yig(json.loads(_zakaz))
+    for _bk in _br:
+        for _bd in _bk["detallar"]:
+            _be = _bx.setdefault(_bd["profil"], {}).setdefault(str(int(round(float(_bd["uzunlik"]) * 10 + 1e-7))), {"jami": 0, "qiya": {}})
+            _bn = _bd["soni"] * _bk["soni"]
+            _be["jami"] += _bn
+            if _bd.get("burchak"):
+                _be["qiya"][_bd["burchak"]] = _be["qiya"].get(_bd["burchak"], 0) + _bn
+except Exception:
+    _bx = {}
+json.dumps(_bx, ensure_ascii=False)`));
+  } catch (e) { burchakX[kalit] = {}; }
+  return burchakX[kalit];
 }
-const kesildimi = (v) => kesildiHolat(v) === "ha";
 function varoqHtml(v, pdf) {
-  const j = kartaJami(v.kartalar, v.chegara), H = v.hivich_sm, belgi = v.togri ? "□ " : "";
+  const j = kartaJami(v.kartalar, v.chegara), H = v.hivich_sm;
   // Aylantirib kesishda qoldiq uchi qiya — raskroy qoldigʻi uzun tomoni (foydalanuvchi, 2026-11-15: sex uzun tomonidan oʻlchaydi)
   const uzun = /aylantirib/.test(String(v.kesim));
   const hiv = v.sklad ? (j.yangi ? `${kkSon(H)} sm × ${j.yangi}${j.skladSoni ? " + skladdan " + j.skladSoni : ""}` : `faqat skladdan, ${j.skladSoni} boʻlak`) : `${kkSon(H)} sm × ${j.yangi} dona`;
   const diqqat = String(v.kesim).indexOf("DIQQAT");
-  const karta = (k) => {
-    const b = butunmi(k.qoldiq, v.chegara);
-    return `<div class="kk${k.manba === "SKLAD" ? " sklad" : ""}">
-      <div class="kk-sar">${k.manba === "SKLAD" ? `SKLAD QOLDIQ ${kkSon(k.L)} sm` : `YANGI ${kkSon(k.L)} sm`} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
-      ${k.bolaklar.map(([d, n, rq]) => `<div class="kk-b"><span>${belgi}${kkSon(d)} × ${n}</span>${rq.length ? `<span class="kk-r">· ${raqamMatn(rq, n * k.soni)}</span>` : ""}</div>`).join("")}
-      <div class="kk-q${b ? " butun" : ""}">qoldiq: ${qoldiqSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}${b ? " — butun boʻlak, saqlab qoʻying" : ""}</div></div>`;
+  const kb = kesimBelgilari(v.kesim, burchakXaritasi(v.konstruksiyalar ? v.konstruksiyalar.map((k) => k.nom) : null)[v.profil]), sanoq = kesSanoq(v), saq = kesildiSaq(v);
+  const karta = (k, i) => {
+    const n = pdf ? 0 : sanoq.k[i], toliq = !pdf && n === k.soni, kal = kesildiKalit(v) + "#" + i;
+    const sar = `#${i + 1} · ${k.manba === "SKLAD" ? `SKLAD QOLDIQ ${kkSon(k.L)} sm` : `YANGI ${kkSon(k.L)} sm`}`;
+    if (toliq && !ochiqKartalar.has(kal)) return `<button class="kk toliq yigiq" data-ochkarta="${i}">#${i + 1} ✓ kesildi <small>${sar.slice(String(i + 1).length + 4)} × ${k.soni}</small></button>`;
+    return `<div class="kk${k.manba === "SKLAD" ? " sklad" : ""}${toliq ? " toliq" : ""}" data-karta="${i}">
+      <div class="kk-sar"${toliq ? ` data-ochkarta="${i}"` : ""}>${sar} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
+      ${k.bolaklar.map(([d, c, rq]) => { const b = kb(d); return `<div class="kk-b"><span><i class="kk-belgi">${b.belgi}</i> ${kkSon(d)} × ${c}</span>${rq.length ? `<span class="kk-r">· ${raqamMatn(rq, c * k.soni)}</span>` : ""}${b.qiya ? `<span class="kk-qiya">${esc(b.qiya)}</span>` : ""}</div>`; }).join("")}
+      <div class="kk-q">qoldiq: ${qoldiqSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}</div>
+      <div class="kk-katak">${Array.from({ length: k.soni }, (_, x) => pdf ? "<span>▢</span>" : `<button data-katak="${i}:${x}" aria-pressed="${x < n}" aria-label="${x + 1}-hivich kesildi">${x < n ? "■" : "▢"}</button>`).join("")}${pdf ? "" : `<span class="kk-katak-s">Kesildi ${n} / ${k.soni}</span>`}</div></div>`;
   };
   const rq = [...new Set(v.kartalar.flatMap((k) => k.bolaklar.flatMap((b) => b[2].map((x) => x[0]))))].sort((a, b) => a - b);
   const leg = rq.map((r) => { const k = zakaz.konstruksiyalar.find((z) => kRaqam(z) === r); return k ? `<span>${doiraRaqam(r)} ${esc(k.nom || "")}</span>` : ""; }).join("");
-  const kes = kesildimi(v), eskiK = kesildiHolat(v) === "eski" && zakaz.kesildi[kesildiKalit(v)];
-  return `<div class="kv${kes ? " kesildi" : ""}">
+  return `<div class="kv">
     <div class="kv-bosh">
       <div class="kv-q1"><b>${esc(v.nom)}</b>${v.rang ? " · " + esc(v.rang) : ""} · ${hiv}</div>
       <div class="kv-q2">${kesimQisqa(v.kesim)} · arra 0,4 · samaradorlik <b>${son(j.samaradorlik, 1)} %</b></div>
-      ${pdf ? "" : `<div class="kv-tug"><button class="kv-kesildi${kes ? " on" : ""}" data-kesildi aria-pressed="${kes}">${kes ? "✓ Kesildi" : "Kesildi deb belgilash"}</button>
-        ${v.chizma ? '<button data-chizma aria-expanded="false">Chizma</button>' : ""}<button data-varoq-pdf>PDF</button></div>`}
+      <div class="kv-q3">${KESIM_IZOH}</div>
+      ${pdf ? "" : `<div class="kv-tug">${v.chizma ? '<button data-chizma aria-expanded="false">Chizma</button>' : ""}<button data-varoq-pdf>PDF</button></div>`}
     </div>
-    ${eskiK && !pdf ? `<div class="kv-eski">✓ eski reja bilan kesilgan (${esc(eskiK.sana || "")}) — reja oʻzgargan, tekshiring</div>` : ""}
+    ${sanoq.eski && !pdf ? `<div class="kv-eski">Reja oʻzgargan (${esc((saq && saq.sana) || "")} dagi belgilar) — mos kartalardagi belgilar saqlandi, tekshiring</div>` : ""}
     ${diqqat >= 0 ? `<div class="kv-diqqat">${esc(String(v.kesim).slice(diqqat))}</div>` : ""}
     ${v.chizma && !pdf ? `<div class="kk-chizma" hidden>${v.chizma}</div>` : ""}
     <div class="kk-kartalar">${v.kartalar.map(karta).join("")}</div>
@@ -693,14 +727,20 @@ function varoqHtml(v, pdf) {
     ${leg ? `<div class="kv-leg">${leg}</div>` : ""}
     ${pdf && v.konstruksiyalar ? `<div class="sp-sar">Qaysi konstruksiyaga</div>
       ${v.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${skladK(k.nom) ? doiraRaqam(kRaqam(skladK(k.nom))) + " " : ""}${esc(k.nom)}: ${kkSon(k.L)} × ${kkSon(k.H)} sm, ${k.soni} dona</b>
-        ${k.detallar.map((x) => `<div>${belgi}${esc(x.nomi)}: ${kkSon(x.uzunlik)} × ${x.soni}</div>`).join("")}</div>`).join("")}` : ""}
+        ${k.detallar.map((x) => `<div>${kb(x.uzunlik).belgi} ${esc(x.nomi)}: ${kkSon(x.uzunlik)} × ${x.soni}</div>`).join("")}</div>`).join("")}` : ""}
   </div>`;
+}
+// Birinchi toʻlmagan kartaga surish (varoq ochilganda); dan — karta toʻlganda: undan keyingi toʻlmagan kartaga (yuqoriga emas)
+function varoqSur(dan) {
+  const kk = [...$("kesish").querySelectorAll(".kk")];
+  const k = kk.find((e, j) => !e.classList.contains("toliq") && (dan == null || j > dan));
+  if (k && k !== kk[0]) k.scrollIntoView({ block: "start" });
 }
 function eslanganVaroq() { try { return (JSON.parse(localStorage.getItem("kesish_varoq") || "{}") || {})[zakaz.id]; } catch (e) { return null; } }
 function varoqniEsla() {
   try { const m = JSON.parse(localStorage.getItem("kesish_varoq") || "{}") || {}; m[zakaz.id] = varoqlar[varoqI].profil; localStorage.setItem("kesish_varoq", JSON.stringify(m)); } catch (e) {}
 }
-function varoqlarniChiz(saqlaI) {
+function varoqlarniChiz(saqlaI, sur) {
   if (!zakaz) return;
   const bor = { sklad: !!skladReja, skladsiz: !!kesishNatija };
   // boshlangʻich manba — narx qaysi usulda hisoblangan boʻlsa (otxod usuli "sklad…" — sklad bilan)
@@ -726,21 +766,20 @@ function varoqlarniChiz(saqlaI) {
   const hammasi = varoqlar.length && varoqlar.every(kesildimi);
   $("kesish-tayyor").hidden = !hammasi;
   const qn = varoqlar.map((v) => qisqaNom(v.nom)), tabNom = (v, i) => (qn.indexOf(qn[i]) !== qn.lastIndexOf(qn[i]) ? v.nom : qn[i]);
-  $("kesish-tablar").innerHTML = varoqlar.map((v, i) => `<button role="tab" data-varoq="${i}" aria-selected="${i === varoqI}" class="${i === varoqI ? "on" : ""}${kesildimi(v) ? " kesildi" : ""}">${kesildimi(v) ? "✓ " : kesildiHolat(v) === "eski" ? "✓? " : ""}${esc(tabNom(v, i))} · ${kartaJami(v.kartalar).hivich}</button>`).join("");
-  $("kesish-nav").hidden = !varoqlar.length;
+  $("kesish-tablar").innerHTML = varoqlar.map((v, i) => { const kj = kesJami(v);
+    return `<button role="tab" data-varoq="${i}" aria-selected="${i === varoqI}" class="${i === varoqI ? "on" : ""}${kesildimi(v) ? " kesildi" : ""}">${kesildimi(v) ? "✓ " : ""}${esc(tabNom(v, i))} · ${kj.bor}/${kj.jami}${kj.eski ? " ?" : ""}</button>`; }).join("");
   $("kesish-pdf").hidden = !varoqlar.length;
   if (!varoqlar.length) { varoqlarniTozala(); if (!$("kesish").querySelector(".ogoh")) $("kesish").innerHTML = ""; return; }
   $("kesish").innerHTML = varoqHtml(varoqlar[varoqI]);
-  $("kesish-nav").innerHTML = `<button data-nav="-1"${varoqI ? "" : " disabled"}>◀ Oldingi</button><span>${varoqI + 1} / ${varoqlar.length}</span><button data-nav="1"${varoqI < varoqlar.length - 1 ? "" : " disabled"}>Keyingi ▶</button>`;
+  if (sur) varoqSur();
   const t = $("kesish-tablar").children[varoqI];
   if (t) t.scrollIntoView({ block: "nearest", inline: "center" });
 }
 function varoqOch(i) {
   if (i < 0 || i >= varoqlar.length) return;
-  varoqI = i; varoqniEsla(); varoqlarniChiz(true);
+  varoqI = i; varoqniEsla(); varoqlarniChiz(true, true);
 }
 $("kesish-tablar").addEventListener("click", (e) => { const b = e.target.closest("[data-varoq]"); if (b) varoqOch(Number(b.dataset.varoq)); });
-$("kesish-nav").addEventListener("click", (e) => { const b = e.target.closest("[data-nav]"); if (b) varoqOch(varoqI + Number(b.dataset.nav)); });
 $("kesish-manba").addEventListener("click", (e) => { const b = e.target.closest("[data-manba]"); if (b) { varoqManba = b.dataset.manba; varoqlarniChiz(true); } });
 $("kesish-ogoh").addEventListener("click", (e) => {
   const v = e.target.closest("[data-ogoh-varoq]");
@@ -767,10 +806,23 @@ function varoqPdfSarlavha(v) {
 $("kesish").addEventListener("click", (e) => {
   const v = varoqlar[varoqI];
   if (!v) return;
-  if (e.target.closest("[data-kesildi]")) {
+  const kt = e.target.closest("[data-katak]");
+  if (kt) {
+    const [i, x] = kt.dataset.katak.split(":").map(Number), s = kesSanoq(v);
+    s.k[i] = katakBos(s.k[i], x, v.kartalar[i].soni);
     zakaz.kesildi = zakaz.kesildi || {};
-    if (kesildimi(v)) delete zakaz.kesildi[kesildiKalit(v)]; else zakaz.kesildi[kesildiKalit(v)] = { imzo: imzo(v.kartalar), sana: new Date().toISOString().slice(0, 10) };
+    zakaz.kesildi[kesildiKalit(v)] = kesildiYoz(v.kartalar, s.k, imzo(v.kartalar), new Date().toISOString().slice(0, 10), kesildiSaq(v), i, Date.now());
+    if (s.k[i] < v.kartalar[i].soni) ochiqKartalar.delete(kesildiKalit(v) + "#" + i);
     saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+    varoqlarniChiz(true);
+    // karta toʻlib yigʻilsa — keyingi toʻlmagan karta barmoq ostiga emas, koʻrinishga olinadi
+    if (s.k[i] === v.kartalar[i].soni) varoqSur(i);
+    return;
+  }
+  const oc = e.target.closest("[data-ochkarta]");
+  if (oc) {
+    const kal = kesildiKalit(v) + "#" + oc.dataset.ochkarta;
+    if (ochiqKartalar.has(kal)) ochiqKartalar.delete(kal); else ochiqKartalar.add(kal);
     varoqlarniChiz(true);
     return;
   }
@@ -1313,6 +1365,7 @@ $("kesish-quti").addEventListener("toggle", () => {
   if (!$("kesish-quti").open) return;
   skladRanglariniChiz();
   skladRejaniHisobla();
+  setTimeout(varoqSur, 0);
 });
 // Hammasi bitta PDF: har profil alohida sahifa (joriy manba boʻyicha)
 $("kesish-pdf").addEventListener("click", () => {
@@ -1389,8 +1442,18 @@ function tabOch(t) {
   for (const b of $("z-tablar").querySelectorAll("button")) b.classList.toggle("faol", b.dataset.tab === t);
   saqla("z_tab", t);
   window.scrollTo(0, 0);
-  if (t === "s" && zakaz && natija) $("kesish-quti").open = true;
+  if (t === "s" && zakaz && natija) { if ($("kesish-quti").open) setTimeout(varoqSur, 0); $("kesish-quti").open = true; }
+  ekranYoniq();
 }
+// Sex tabi ochiq turganda ekran oʻchmasin (foydalanuvchi, 2026-11-16): Wake Lock; qoʻllamasa yoki rad etsa — jim
+var ekranQulfi = null;
+function ekranYoniq() {
+  const kerak = document.body.dataset.ekran === "zakaz" && document.body.dataset.tab === "s" && document.visibilityState === "visible";
+  if (kerak && !ekranQulfi && navigator.wakeLock) {
+    navigator.wakeLock.request("screen").then((q) => { ekranQulfi = q; q.addEventListener("release", () => { if (ekranQulfi === q) ekranQulfi = null; }); }).catch(() => {});
+  } else if (!kerak && ekranQulfi) { const q = ekranQulfi; ekranQulfi = null; q.release().catch(() => {}); }
+}
+document.addEventListener("visibilitychange", ekranYoniq);
 $("z-tablar").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) tabOch(b.dataset.tab); });
 $("d-kesish").addEventListener("click", () => {
   if (mijozRejim()) return; $("kesish-quti").open = true; tabOch("s"); });

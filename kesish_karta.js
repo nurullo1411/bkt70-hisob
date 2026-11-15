@@ -106,12 +106,100 @@ function jamiMatn(j, hivich) {
 }
 // Kesish turi qisqa (varoq sarlavhasi): "45°", "45°, aylantirib", "90°"
 function kesimQisqa(kesim) {
-  const t = String(kesim || "");
+  const t = String(kesim || "").split("DIQQAT")[0];
   if (/90°/.test(t)) return "90°";
   return /aylantirib/.test(t) ? "45°, aylantirib" : "45°";
 }
 // Kesildi belgisi imzosi: reja oʻzgarsa (boʻlaklar, qoldiq, soni) belgi eskiradi
 const imzo = (kartalar) => kartalar.map((k) => `${k.manba}${sm100(k.L)}x${k.soni}q${sm100(k.qoldiq)}:${k.bolaklar.map(([d, n, rq]) => sm100(d) + "*" + n + (rq || []).map((x) => "r" + x.join("x")).join("")).join(",")}`).join(";");
 
+// Kesim belgisi (foydalanuvchi, 2026-11-16): □ ikki uchi 90°, ◿ bir uchi 45°, ⏢ ikki uchi 45°; qiya (45/90 dan boshqa) — qizil.
+// Profil burchagi (kesim matnining DIQQAT dan oldingi qismi): "Toʻgʻri (90°)" — 90°, aks holda 45°.
+// Qiya uchlar — hisob detallaridan (hisob.burchak matni, raskroy.detallarni_yig orqali), uzunlik boʻyicha soni bilan:
+// xarita {mm(uzunlik): {jami, qiya: {"tepa uchi 74,05°": soni}}} — kartadagi kabi mm (160,76 → 1608). Shu uzunlikdagi hamma detal qiya boʻlmasa — "2 tasi (3 tadan)".
+const profilBurchagi = (kesim) => (/Toʻgʻri \(90°\)|□/.test(String(kesim || "").split("DIQQAT")[0]) ? 90 : 45);
+// hisob.burchak matni → ikki uch burchagi (son); tanilmasa null
+function uchlar(m, asos) {
+  const s = (x) => Number(String(x).replace(",", "."));
+  let r = m.match(/^ikki uchi ([\d,]+)°$/);
+  if (r) return [s(r[1]), s(r[1])];
+  r = m.match(/^(?:bir|tepa) uchi ([\d,]+)°, (?:ikkinchisi|past uchi) ([\d,]+)°$/);
+  if (r) return [s(r[1]), s(r[2])];
+  r = m.match(/^(?:bir|tepa|past) uchi ([\d,]+)°$/);
+  if (r) return [s(r[1]), asos];
+  return null;
+}
+function uchBelgi(u, asos) {
+  if (!u) return asos === 90 ? "□" : "⏢";
+  const n45 = u.filter((x) => x === 45).length;
+  if (n45 === 2) return "⏢";
+  if (n45 === 1) return "◿";
+  return u.some((x) => x === 90) ? "□" : "⏢";
+}
+function kesimBelgilari(kesim, xarita) {
+  const asos = profilBurchagi(kesim), oddiy = asos === 90 ? "□" : "⏢";
+  return (d) => {
+    const e = xarita && xarita[mm(d)];
+    const q = e ? Object.entries(e.qiya || {}) : [];
+    if (!q.length) return { belgi: oddiy, qiya: null };
+    const matn = q.map(([m]) => m).join("; "), n = q.reduce((a, [, x]) => a + x, 0);
+    const belgi = uchBelgi(uchlar(q[0][0].split(" | ")[0], asos), asos);
+    return { belgi, qiya: n < e.jami ? `${n} tasi (${e.jami} tadan): ${matn}` : matn };
+  };
+}
+const KESIM_IZOH = "□ 90° · ◿ bir uchi 45° · ⏢ 45°";
+
+// Karta kaliti (Kesildi sanogʻi uchun): manba, L, qoldiq, boʻlaklar — raqam va hivich sonisiz (reja oʻzgarsa ham mos karta topiladi)
+const kartaKalit = (k) => `${k.manba}|${sm100(k.L)}|${qoldiqMm(k.qoldiq)}|${k.bolaklar.map(([d, n]) => mm(d) + "*" + n).join(",")}`;
+// Kesildi sanoqlari: saqlangan {imzo, k: {kartaKalit: n}, t: {kartaKalit: vaqt ms}, sana} → {k: [har karta kesilgan hivich], eski}
+// eski — reja oʻzgargan va saqlangan belgining biri hozirgi kartalarga sigʻmaydi (karta yoʻq yoki soni kamaygan); mos kartalarning
+// sanogʻi saqlanadi. Eski shakllar: k massiv (karta tartibi) yoki k yoʻq (butun profil kesildi) — faqat imzo mos boʻlsa.
+function kesildiOqi(saqlangan, kartalar, imzoHozir) {
+  const nol = kartalar.map(() => 0);
+  if (!saqlangan) return { k: nol, eski: false };
+  const mos = saqlangan.imzo === imzoHozir;
+  const k = saqlangan.k;
+  if (k && !Array.isArray(k) && typeof k === "object") {
+    const soni = new Map(kartalar.map((c) => [kartaKalit(c), c.soni]));
+    const sigmaydi = Object.entries(k).some(([kal, n]) => n > 0 && !(soni.get(kal) >= n));
+    return { k: kartalar.map((c) => Math.max(0, Math.min(c.soni, Number(k[kartaKalit(c)]) || 0))), eski: !mos && sigmaydi };
+  }
+  if (!mos) return { k: nol, eski: true };
+  return { k: Array.isArray(k) ? kartalar.map((c, i) => Math.max(0, Math.min(c.soni, Number(k[i]) || 0))) : kartalar.map((c) => c.soni), eski: false };
+}
+// Saqlash: hozirgi kartalar sanogʻi (0 ham — bekor qilish ikki telefonda ham yoʻqolmasin), oʻzgargan karta (i) ga vaqt.
+function kesildiYoz(kartalar, sanoq, imzoHozir, sana, oldingi, i, vaqt) {
+  const k = {}, t = {};
+  const ot = (oldingi && oldingi.t) || {};
+  kartalar.forEach((c, j) => {
+    const kal = kartaKalit(c);
+    if (sanoq[j] > 0 || ot[kal] || j === i) { k[kal] = sanoq[j]; if (ot[kal]) t[kal] = ot[kal]; }
+  });
+  if (i != null) t[kartaKalit(kartalar[i])] = vaqt;
+  return { imzo: imzoHozir, k, t, sana, vaqt };
+}
+// Ikki telefon (baza ziddiyati): kesildi birlashtiriladi — profil kaliti boʻyicha; imzo bir xil boʻlsa har karta uchun
+// keyin bosilgani (vaqt; vaqt yoʻq — katta sanoq), imzo boshqa boʻlsa — keyingi yozilgani.
+function kesildiBirlashtir(a, b) {
+  const r = { ...(a || {}) };
+  const keyin = (x, y) => (Number(y.vaqt) || 0) > (Number(x.vaqt) || 0) || (!x.vaqt && !y.vaqt && String(y.sana || "") > String(x.sana || ""));
+  for (const [kal, y] of Object.entries(b || {})) {
+    const x = r[kal];
+    if (!x) { r[kal] = y; continue; }
+    if (x.imzo === y.imzo && x.k && y.k && !Array.isArray(x.k) && !Array.isArray(y.k)) {
+      const k = { ...x.k }, t = { ...(x.t || {}) };
+      for (const [kk, n] of Object.entries(y.k)) {
+        const tx = (x.t || {})[kk], ty = (y.t || {})[kk];
+        if (!(kk in k) || (tx != null || ty != null ? (ty || 0) > (tx || 0) : n > k[kk])) { k[kk] = n; if (ty != null) t[kk] = ty; }
+      }
+      const so = keyin(x, y) ? y : x;
+      r[kal] = { imzo: x.imzo, k, t, sana: so.sana, vaqt: Math.max(Number(x.vaqt) || 0, Number(y.vaqt) || 0) || undefined };
+    } else if (keyin(x, y)) r[kal] = y;
+  }
+  return r;
+}
+// Katak bosildi: j < n — bitta kamayadi (bekor), aks holda bitta oshadi
+const katakBos = (n, j, soni) => Math.max(0, Math.min(soni, j < n ? n - 1 : n + 1));
+
 if (typeof module !== "undefined") module.exports = { mm, sexSon, kkSon, qoldiqSon, sm100, butunmi, doiraRaqam, raqamMatn, qisqaNom, yigKartalar,
-  qoldiqMm, hivichKartalar, skladKartalar, kartaJami, jamiMatn, kesimQisqa, imzo };
+  qoldiqMm, profilBurchagi, uchlar, uchBelgi, kesimBelgilari, KESIM_IZOH, kartaKalit, kesildiOqi, kesildiYoz, kesildiBirlashtir, katakBos, hivichKartalar, skladKartalar, kartaJami, jamiMatn, kesimQisqa, imzo };
