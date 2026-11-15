@@ -1106,7 +1106,7 @@ function asboblarniChiz() {
   $("k-asboblar").innerHTML = html;
   const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
   $("k-chizma").classList.toggle("qalam", qalam);
-  $("qalam-tugat").hidden = !qalam || $("konstruktor").hidden;
+  qalamTugma().hidden = !qalam || $("konstruktor").hidden;
   if (qalam) { $("k-maslahat").textContent = QALAM_MASLAHAT; return; }
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
   $("k-maslahat").textContent = asbob === "ochir" ? "Impostni olib tashlash: impost yonidagi boʻlakka bosing — shu boʻlak va uning chap/tepa impost(i) olinadi, joyi qoʻshnisiga oʻtadi"
@@ -1521,7 +1521,7 @@ function konstruktorniYop(saqlansin, tarixdan) {
   try { localStorage.removeItem("qoralama"); } catch (e) {}
   sozlamaYop();
   $("konstruktor").hidden = true;
-  qalam = false; $("qalam-tugat").hidden = true;
+  qalam = false; qalamTugma().hidden = true;
   $("asosiy").hidden = false;
   if (zakaz) ekran("zakaz", joriyEkran !== "zakaz");
   hisoblaKeyin();
@@ -1657,7 +1657,23 @@ $("k-chizma").addEventListener("pointerdown", (e) => {
   qalamIz = { bekor };
   document.addEventListener("pointermove", sur, { passive: false }); document.addEventListener("pointerup", tugat); document.addEventListener("pointercancel", bekor);
 }, true);
-$("qalam-tugat").addEventListener("click", () => { qalam = false; yangila(); });
+// Tugma va qalam.js sahifada boʻlmasa (telefonda eski index.html keshdan kelsa) oʻzi yaratiladi —
+// aks holda xato butun konstruktorni toʻxtatadi (foydalanuvchi, 2026-11-15: "qotib qoldi")
+function qalamTugma() {
+  let b = document.getElementById("qalam-tugat");
+  if (!b) {
+    b = document.createElement("button");
+    b.id = "qalam-tugat"; b.className = "qalam-tugat"; b.hidden = true; b.textContent = "✓ Chizib boʻldim";
+    document.body.appendChild(b);
+  }
+  if (!b.dataset.ulandi) { b.dataset.ulandi = "1"; b.addEventListener("click", () => { qalam = false; yangila(); }); }
+  return b;
+}
+if (typeof qalamTani === "undefined") {
+  const sc = document.createElement("script");
+  sc.src = "qalam.js";
+  document.head.appendChild(sc);
+}
 $("k-chizma").addEventListener("click", (e) => { if (qalam || qalamYutish) { e.stopPropagation(); e.preventDefault(); } }, true);
 
 function qalamQolla(r) {
@@ -2249,7 +2265,7 @@ $("k-sozlama").addEventListener("click", () => {
 });
 $("sozlama-yop").addEventListener("click", sozlamaYop);
 $("sozlama-oyna").addEventListener("click", (e) => { if (e.target === e.currentTarget && szFokus != null) sozlamaYop(); });
-$("k-jadval").addEventListener("click", (e) => {
+($("k-jadval") || document.createElement("div")).addEventListener("click", (e) => {
   const ol_ = e.target.closest("[data-jol]");
   if (ol_) { olchamniOzgartir(ol_.dataset.jol); return; }
   const tm = e.target.closest("[data-jtom]");
@@ -2273,7 +2289,10 @@ $("k-jadval").addEventListener("click", (e) => {
 $("k-bolimlar").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
-  if (b.dataset.qalam != null) { qalam = !qalam; asbob = null; yangila(); return; }
+  if (b.dataset.qalam != null) {
+    if (typeof qalamTani === "undefined") { xabar("✏️ Qoʻlda chizish yuklanmadi — ilovani yopib qayta oching"); return; }
+    qalam = !qalam; asbob = null; yangila(); return;
+  }
   if (b.dataset.bolim) { bolim = b.dataset.bolim; asbob = null; }
   else if (b.dataset.tarix === "orqaga" && orqaga.length) { oldinga.push(nusxa(tahrir)); tahrir = orqaga.pop(); }
   else if (b.dataset.tarix === "oldinga" && oldinga.length) { orqaga.push(nusxa(tahrir)); tahrir = oldinga.pop(); }
