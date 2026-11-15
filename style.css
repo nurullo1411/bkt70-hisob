@@ -745,12 +745,12 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .jadval .jq-yoq { cursor: default; }
 .jadval .jq-olcham { cursor: default; }
 .jadval .jq-olcham .tugma { flex: 1; min-height: 36px; padding: 4px 8px; }
-/* planshet / yotiq ekran: jadval chapda, chizma oʻngda */
+/* planshet / yotiq ekran: chizma chapda, jadval oʻngda (foydalanuvchi, 2026-11-15) */
 @media (min-width: 900px) and (orientation: landscape) {
-  #konstruktor:not([hidden]) { display: grid; grid-template-columns: 340px 1fr; column-gap: 16px; align-items: start; }
-  #konstruktor > * { grid-column: 2; }
+  #konstruktor:not([hidden]) { display: grid; grid-template-columns: 1fr 340px; column-gap: 16px; align-items: start; }
+  #konstruktor > * { grid-column: 1; }
   #konstruktor > .k-tepa { grid-column: 1 / -1; }
-  #konstruktor > #k-jadval { grid-column: 1; grid-row: 2 / span 6; }
+  #konstruktor > #k-jadval { grid-column: 2; grid-row: 2 / span 6; }
 }
 .parda.markaz .oyna-quti { border-radius: 16px; max-height: 80vh; }
 .jadval .jq-juft { cursor: default; }
