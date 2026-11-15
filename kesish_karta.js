@@ -148,6 +148,13 @@ function kesimBelgilari(kesim, xarita) {
   };
 }
 const KESIM_IZOH = "□ 90° · ◿ bir uchi 45° · ⏢ 45°";
+// Qiya kesim belgilari — kichik inline SVG (matn balandligida, hamma telefonda bir xil; foydalanuvchi, 2026-11-16).
+// □ (90°) — matn. ◿ bir uchi 45° — toʻgʻri trapetsiya (chap yoni tik, oʻng yoni 45°); ⏢ ikki uchi 45° — teng yonli trapetsiya (past uzun).
+const _svg = (n, nuqta) => `<svg class="kb-svg" viewBox="0 0 22 10" width="1.45em" height="0.7em" role="img" aria-label="${n}">` +
+  `<polygon points="${nuqta}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"/></svg>`;
+const BELGI_SVG = { "◿": _svg("bir uchi 45°", "1,9 21,9 13,1 1,1"), "⏢": _svg("ikki uchi 45°", "1,9 21,9 13,1 9,1") };
+const belgiHtml = (b) => BELGI_SVG[b] || b;
+const KESIM_IZOH_HTML = `□ 90° · ${BELGI_SVG["◿"]} bir uchi 45° · ${BELGI_SVG["⏢"]} 45°`;
 
 // Karta kaliti (Kesildi sanogʻi uchun): manba, L, qoldiq, boʻlaklar — raqam va hivich sonisiz (reja oʻzgarsa ham mos karta topiladi)
 const kartaKalit = (k) => `${k.manba}|${sm100(k.L)}|${qoldiqMm(k.qoldiq)}|${k.bolaklar.map(([d, n]) => mm(d) + "*" + n).join(",")}`;
@@ -221,4 +228,4 @@ const tugmaHolat = (n, soni) => (n >= soni && soni > 0 ? "toliq" : n > 0 ? "qism
 const katakBos = (n, j, soni) => Math.max(0, Math.min(soni, j < n ? n - 1 : n + 1));
 
 if (typeof module !== "undefined") module.exports = { mm, sexSon, kkSon, qoldiqSon, sm100, butunmi, doiraRaqam, raqamMatn, qisqaNom, yigKartalar,
-  qoldiqMm, profilBurchagi, uchlar, uchBelgi, kesimBelgilari, KESIM_IZOH, kartaKalit, kesildiOqi, kesildiYoz, kesildiBirlashtir, katakBos, konstruksiyaBolaklar, bolaklarMatn, tugmaHolat, hivichKartalar, skladKartalar, kartaJami, jamiMatn, kesimQisqa, imzo };
+  qoldiqMm, profilBurchagi, uchlar, uchBelgi, kesimBelgilari, KESIM_IZOH, KESIM_IZOH_HTML, BELGI_SVG, belgiHtml, kartaKalit, kesildiOqi, kesildiYoz, kesildiBirlashtir, katakBos, konstruksiyaBolaklar, bolaklarMatn, tugmaHolat, hivichKartalar, skladKartalar, kartaJami, jamiMatn, kesimQisqa, imzo };

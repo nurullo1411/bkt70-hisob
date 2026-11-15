@@ -1048,3 +1048,7 @@ header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: 
 .kk-katak button[aria-pressed="true"] { background: var(--kesildi-fon); border-color: var(--kesildi); color: var(--kesildi); font-weight: 800; }
 .kv-tablar button.kesildi:not(.on) { color: var(--kesildi); border-color: var(--kesildi); background: var(--kesildi-fon); }
 .kv-bosh-royxat, .kv-tayyor { background: var(--kesildi-fon); color: var(--kesildi); }
+
+/* Qiya kesim belgilari — inline SVG (2026-11-16, docs/dizayn.md "Kesish varoqlari") */
+.kb-svg { display: inline-block; vertical-align: 0; margin-right: 0.15em; color: var(--matn); overflow: visible; }
+@media print { .kb-svg { color: #000 !important; } }

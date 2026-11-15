@@ -706,8 +706,8 @@ function varoqHtml(v, pdf) {
     if (toliq && !ochiqKartalar.has(kal)) return "";
     return `<div class="kk${k.manba === "SKLAD" ? " sklad" : ""}${toliq ? " toliq" : ""}" data-karta="${i}">
       <div class="kk-sar"${toliq ? ` data-ochkarta="${i}"` : ""}>${sar} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
-      ${k.bolaklar.map(([d, c, rq]) => { const b = kb(d); return `<div class="kk-b"><span><i class="kk-belgi">${b.belgi}</i> ${kkSon(d)} × ${c}</span>${b.qiya ? `<span class="kk-qiya">${esc(b.qiya)}</span>` : ""}</div>`; }).join("")}
-      <div class="kk-q">qoldiq: ${qoldiqSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}</div>
+      ${k.bolaklar.map(([d, c, rq]) => { const b = kb(d); return `<div class="kk-b"><span><i class="kk-belgi" data-belgi="${b.belgi}">${belgiHtml(b.belgi)}</i> ${kkSon(d)} × ${c}</span>${b.qiya ? `<span class="kk-qiya">${esc(b.qiya)}</span>` : ""}</div>`; }).join("")}
+      ${qoldiqMm(k.qoldiq) > 0 ? `<div class="kk-q">qoldiq: ${qoldiqSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}</div>` : ""}
       <div class="kk-katak">${Array.from({ length: k.soni }, (_, x) => pdf ? "<span>▢</span>" : `<button data-katak="${i}:${x}" aria-pressed="${x < n}" aria-label="${x + 1}-hivich kesildi">${x < n ? "✓" : "▢"}</button>`).join("")}${pdf ? "" : `<span class="kk-katak-s">Kesildi ${n} / ${k.soni}</span>`}</div></div>`;
   };
   // "Konstruksiyalar boʻyicha" (foydalanuvchi, 2026-11-16): № (rang doirachasi) | nom | boʻlaklar kattadan kichikka
@@ -723,7 +723,7 @@ function varoqHtml(v, pdf) {
     <div class="kv-bosh">
       <div class="kv-q1"><b>${esc(v.nom)}</b>${v.rang ? " · " + esc(v.rang) : ""} · ${hiv}</div>
       <div class="kv-q2">${kesimQisqa(v.kesim)} · arra 0,4 · samaradorlik <b>${son(j.samaradorlik, 1)} %</b></div>
-      <div class="kv-q3">${KESIM_IZOH}</div>
+      <div class="kv-q3">${KESIM_IZOH_HTML}</div>
       ${pdf ? "" : `<div class="kv-tug">${v.chizma ? '<button data-chizma aria-expanded="false">Chizma</button>' : ""}<button data-varoq-pdf>PDF</button></div>`}
     </div>
     ${tug}
@@ -737,7 +737,7 @@ function varoqHtml(v, pdf) {
       <table class="kv-kon"><thead><tr><th>№</th><th>Konstruksiya</th><th>Boʻlaklar</th></tr></thead><tbody>${kon}</tbody></table>` : ""}
     ${pdf && v.konstruksiyalar ? `<div class="sp-sar">Qaysi konstruksiyaga</div>
       ${v.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${skladK(k.nom) ? doiraRaqam(kRaqam(skladK(k.nom))) + " " : ""}${esc(k.nom)}: ${kkSon(k.L)} × ${kkSon(k.H)} sm, ${k.soni} dona</b>
-        ${k.detallar.map((x) => `<div>${kb(x.uzunlik).belgi} ${esc(x.nomi)}: ${kkSon(x.uzunlik)} × ${x.soni}</div>`).join("")}</div>`).join("")}` : ""}
+        ${k.detallar.map((x) => `<div>${belgiHtml(kb(x.uzunlik).belgi)} ${esc(x.nomi)}: ${kkSon(x.uzunlik)} × ${x.soni}</div>`).join("")}</div>`).join("")}` : ""}
   </div>`;
 }
 // Birinchi toʻlmagan kartaga surish (varoq ochilganda); dan — karta toʻlganda: undan keyingi toʻlmagan kartaga (yuqoriga emas)

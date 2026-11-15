@@ -40,7 +40,10 @@ QIYA_AYIRMA = {"182": 5.95}
 # A701 ning 190 sm dan kichigi baribir ishlatilmaydi (foydalanuvchi, 2026-11-03).
 CHEGARASIZ = {"A701", "7058"}  # Engelberg shtulpi ham (200 sm dan kichigi otxod)
 TOGRI_KESIM = {"LII", "M702", "A701", "H702", "7053", "7058", "0701", "0703", "0701-2", "0703-2", "0702-2",
-               "182", "109", "181□", "185□", "198□"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
+               "182", "109", "181□", "185□", "198□",
+               "G24", "G32", "G24-R", "G32-R", "105"}  # 90° (Engelberg impost payvandlanmaydi, armatura)
+# Shtapik: Termo (G24, G32, -R) va Aldoks (105) — ikki uchi 90° (vertikal = ichki boʻyi − 2 × qalinlik;
+# foydalanuvchi, 2026-11-16; oldin yozuvda 45° edi — faqat matn, raskroy joylashi oʻzgarmaydi). Engelberg 7056/7057 — 45°.
 SKLAD_NOMI = {
     "F702": "Kosa F702", "F703": "Kosa F703", "M702": "O'rta M702", "V702": "Qanot V702",
     "V707": "Balkon o'rta V707", "V708": "Balkon qanot V708", "A701": "Shtulp A701", "LII": "Lambri II PVX", "H702": "Lapsha lam",
@@ -623,7 +626,7 @@ def _kesim_matni(profil, konstruksiyalar=()):
 
 def _kesim_asosi(profil):
     if str(profil).startswith("G"):
-        return (f"45°, aylantirilmaydi · Arra {_k(_b(ARRA))} sm · DIQQAT: har shtapik +{_k(_b(SHTAPIK_ZAPAS))} sm uzun "
+        return (f"□ Toʻgʻri (90°) · Arra {_k(_b(ARRA))} sm · DIQQAT: har shtapik +{_k(_b(SHTAPIK_ZAPAS))} sm uzun "
                 "kesilgan, joyida aniq oʻlchab kaltalang")
     if _aylantirish(profil):
         return (f"45°, aylantirib: birinchidan keyin har detal {_k(_b(AYLANTIRISH[profil]))} sm kam oladi · "
