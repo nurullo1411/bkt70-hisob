@@ -798,3 +798,127 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 #j-tuz.tejam { color: var(--yaxshi); }
 #j-tuz.zarar { color: var(--xato); }
 #tuz-ogoh { color: var(--urgu); background: color-mix(in srgb, var(--urgu) 12%, transparent); border-left: 3px solid var(--urgu); padding: 6px 8px; border-radius: 4px; font-size: .9em; }
+
+/* ===== Konstruksiyalar paneli, rang palitrasi, mijoz rejimi, boʻlim aksenti (2026-11-15, docs/dizayn.md) ===== */
+:root { --aks-k: #0D3C8C; --aks-h: #14532D; --aks-s: #7A3300; --aks-d: #4A1A7A; --aks-kassa: #0F4C4C;
+  --aks-k-t: #0D3C8C; --aks-h-t: #14532D; --aks-s-t: #7A3300; --aks-d-t: #4A1A7A; --aks-kassa-t: #0F4C4C;
+  --aks-k-fon: #e7edf7; --aks-h-fon: #e6f0ea; --aks-s-fon: #f6ece4; --aks-d-fon: #efe8f5;
+  --mijoz: #8a5a00; --mijoz-fon: #fff4d6; }
+@media (prefers-color-scheme: dark) {
+  :root { --aks-k-t: #9cc0ff; --aks-h-t: #8fd6a5; --aks-s-t: #ffb877; --aks-d-t: #d0b0ff; --aks-kassa-t: #7fd6d6;
+    --aks-k-fon: #1a2740; --aks-h-fon: #18301f; --aks-s-fon: #33241a; --aks-d-fon: #2a2038; --mijoz: #ffcf66; --mijoz-fon: #3a2e12; }
+}
+/* boʻlim aksenti: faqat tepa sarlavha va faol tab */
+body[data-ekran="zakaz"][data-tab="k"] header { background: var(--aks-k); }
+body[data-ekran="zakaz"][data-tab="h"] header { background: var(--aks-h); }
+body[data-ekran="zakaz"][data-tab="s"] header { background: var(--aks-s); }
+body[data-ekran="zakaz"][data-tab="d"] header { background: var(--aks-d); }
+body[data-ekran="kassa"] header { background: var(--aks-kassa); }
+body[data-ekran="katalog"] header { background: var(--aks-d); }
+.tablar button[data-tab="k"] { --aks-t: var(--aks-k-t); }
+.tablar button[data-tab="h"] { --aks-t: var(--aks-h-t); }
+.tablar button[data-tab="s"] { --aks-t: var(--aks-s-t); }
+.tablar button[data-tab="d"] { --aks-t: var(--aks-d-t); }
+#e-zakaz .tablar button.faol { color: var(--aks-t); background: color-mix(in srgb, var(--aks-t) 13%, transparent); box-shadow: inset 0 3px 0 var(--aks-t); font-weight: 700; }
+.davom { border-left: 4px solid var(--aks-k-t) !important; }
+#kassa-och { border-left-color: var(--aks-kassa-t) !important; }
+#katalog-och { border-left-color: var(--aks-d-t) !important; }
+#kassa-och b { color: var(--aks-kassa-t); }
+#katalog-och b { color: var(--aks-d-t); }
+
+/* xulosa: yopishmaydi (sarlavha ostida qolib "KONSTRUKSIYALAR" kesilardi), ixcham */
+#e-zakaz[data-tab="k"] .xulosa[data-t="k"] { position: static; padding: 10px 6px 8px; border-radius: 16px; margin-bottom: 10px;
+  background: var(--aks-k); box-shadow: none; }
+#e-zakaz .xulosa b { font-size: 17px; }
+#e-zakaz .xulosa span { font-size: 12px; }
+#e-zakaz .xulosa > div.x-amal { margin-top: 8px; }
+.x-tugma { min-height: 40px; }
+.x-tugma.asosiy { color: var(--aks-k); }
+.konstr-bolim .bosh-sarlavha { margin-top: 0; }
+
+/* zakaz tepasi: nom + mijoz rejimi */
+.zakaz-tepa { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 2px 8px; }
+.zakaz-tepa #zakaz-nomi { margin: 0; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mijoz-tugma { flex: 0 0 auto; min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--chiziq); background: var(--karta);
+  color: var(--matn); font: 600 14px/1 system-ui, sans-serif; cursor: pointer; }
+.mijoz-tugma[aria-pressed="true"] { background: var(--mijoz-fon); color: var(--mijoz); border: 2px solid var(--mijoz); }
+.mijoz-belgi { display: none; align-items: center; padding: 4px 10px; border-radius: 999px; background: var(--mijoz-fon); color: var(--mijoz);
+  font: 800 13px/1.2 system-ui, sans-serif; white-space: nowrap; }
+body.mijoz-rejim[data-ekran="zakaz"] .mijoz-belgi { display: inline-flex; }
+body.mijoz-rejim #z-tablar [data-tab="h"], body.mijoz-rejim #z-tablar [data-tab="s"], body.mijoz-rejim .ichki { display: none !important; }
+
+/* rang raqami (doiracha) */
+.k-raqam { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;
+  font: 800 13px/1 system-ui, sans-serif; font-variant-numeric: tabular-nums; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.k-raqam.katta { width: 28px; height: 28px; font-size: 15px; }
+.kl .k-raqam { width: 20px; height: 20px; font-size: 12px; }
+.k-nom .k-raqam { margin-right: 6px; }
+
+/* panel: bitta oq panel, qatorlar orasida ingichka chiziq */
+.kpanel { background: var(--karta); border: 1px solid var(--chiziq); border-radius: 16px; overflow: hidden; }
+.kp-teglar { padding: 9px 14px; font-size: 14px; color: var(--xira); border-bottom: 1px solid var(--chiziq); }
+.kq { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; padding-left: 6px; border-top: 1px solid var(--chiziq); }
+.kpanel > .kq:first-child, .kp-teglar + .kq { border-top: 0; }
+.kq::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--kr); }
+.kq.nol { opacity: .5; }
+.kq-ich { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 4px 8px 8px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.kq-ich:active { background: color-mix(in srgb, var(--kr) 10%, transparent); }
+.kq-rasm { flex: 0 0 48px; width: 48px; height: 52px; display: flex; align-items: center; justify-content: center; }
+.kq-rasm svg, .kq-rasm .chizma { max-width: 48px; max-height: 52px; width: auto; height: auto; }
+.kq-matn { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+.kq-matn b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kq-olcham { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kq-teg { font-size: 13px; color: var(--xira); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kq-amal { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 4px; padding: 6px 8px 6px 0; }
+.kq-narx { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; line-height: 1.2; }
+.kq-narx b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.kq-narx small { font-size: 12px; color: var(--xira); }
+.kq-boshqar { display: flex; align-items: center; gap: 4px; }
+.kq .soni { gap: 2px; background: var(--fon); border-radius: 10px; padding: 2px; }
+.kq .soni button { width: 34px; height: 34px; border: 0; border-radius: 8px; background: var(--karta); color: var(--matn); font-size: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.kq .soni span { min-width: 22px; font-size: 15px; }
+.kq-menyu { width: 36px; height: 38px; border: 0; border-radius: 10px; background: none; color: var(--matn); font-size: 22px; line-height: 1; cursor: pointer; }
+.kq-menyu:active { background: var(--fon); }
+.kq-izoh { grid-column: 1 / -1; display: block; width: 100%; margin: -4px 0 0; padding: 0 12px 8px 46px; border: 0; background: none;
+  color: var(--xira); font: 14px/1.3 system-ui, sans-serif; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.kq > .eslatma { grid-column: 1 / -1; width: auto; margin: 0 10px 10px 14px; }
+.kq-ogoh { grid-column: 1 / -1; margin: 0 10px 8px 14px; font-size: 13px; }
+.kp-jami { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 14px; border-top: 2px solid var(--chiziq); font-size: 15px; }
+.kp-jami-narx { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+.kp-jami-narx span { font-size: 12px; color: var(--xira); }
+.kp-jami-narx b { font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kp-chegirma { display: flex; justify-content: space-between; gap: 8px; padding: 0 14px 10px; font-size: 13px; color: var(--xira); }
+
+/* ⋯ menyu */
+.k-menyu { position: fixed; z-index: 30; min-width: 220px; padding: 4px 0; border-radius: 14px; border: 1px solid var(--chiziq);
+  background: var(--karta); box-shadow: 0 10px 30px rgba(16,24,40,.22); }
+.k-menyu-bosh { display: flex; align-items: center; gap: 8px; padding: 8px 14px 10px; border-bottom: 1px solid var(--chiziq); font-size: 15px; }
+.k-menyu button { display: block; width: 100%; min-height: 48px; padding: 0 16px; border: 0; background: none; color: var(--matn);
+  font: 500 16px/1 system-ui, sans-serif; text-align: left; cursor: pointer; }
+.k-menyu button:active { background: var(--fon); }
+.k-menyu .xavfli { color: var(--xato); border-top: 1px solid var(--chiziq); }
+.k-menyu .xavfli.tasdiq { background: color-mix(in srgb, var(--xato) 12%, transparent); font-weight: 700; }
+.xarajat-sarlavha { display: flex; align-items: center; gap: 8px; font-size: 18px; }
+
+/* kesish chizmasi: boʻlak rangi = konstruksiya rangi, raqam bilan */
+.kb > div > i { font-style: normal; font-weight: 800; margin-right: 3px; }
+.kb > div { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@media print { .kq::before { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+.k-nom-q { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.k-nom .k-nom-q .k-raqam { margin-right: 0; }
+.kq-teg { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.kb > div > i { display: inline-block; min-width: 14px; padding: 0 3px; margin-right: 4px; border-radius: 7px; background: rgba(255,255,255,.92);
+  color: #111; font-size: 10px; line-height: 14px; text-align: center; }
+header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k-menyu { max-height: calc(100dvh - 16px); overflow-y: auto; }
+/* yotiq telefon: sarlavha va xulosa ixcham, qatorlar koʻrinsin */
+@media (orientation: landscape) and (max-height: 500px) {
+  header { padding-top: 6px; padding-bottom: 6px; }
+  .zakaz-tepa { margin-bottom: 6px; }
+  .mijoz-tugma { min-height: 36px; }
+  #e-zakaz[data-tab="k"] .xulosa[data-t="k"] { grid-template-columns: auto auto auto 1fr; align-items: center; padding: 6px 6px; }
+  #e-zakaz .xulosa > div.x-amal { grid-column: auto; margin: 0 0 0 8px; }
+  .konstr-bolim .bosh-sarlavha { display: none; }
+  #e-zakaz { padding-bottom: 56px; }
+  #e-zakaz .tablar button { flex-direction: row; justify-content: center; gap: 8px; min-height: 48px; padding-top: 4px; padding-bottom: 4px; }
+}

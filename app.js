@@ -157,6 +157,7 @@ function ekran(nom, push = true) {
   for (const e of ["bosh", "royxat", "zakaz", "kassa", "katalog"]) $("e-" + e).hidden = e !== nom;
   if (push && nom !== joriyEkran) history.pushState({ ekran: nom }, "");
   joriyEkran = nom;
+  document.body.dataset.ekran = nom;
   $("orqaga").hidden = nom === "bosh";
   const bolim = BOSH_BOLIMLAR.find((h) => h[0] === arxivTab) || HOLATLAR.find((h) => h[0] === arxivTab);
   $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : nom === "kassa" ? "Hisobot" : nom === "katalog" ? "Katalog" : "Buyurtma maʼlumotlari";
@@ -255,7 +256,8 @@ function pulHolati(z) {
 function arxivniChiz() {
   const a = arxivOl();
   const narxi = (z) => { const sh = shartnomaSumma(z); return sh.valyuta === "USD" ? sh.summa * (Number(ol("kurs")) || 0) : sh.summa; };
-  const BELGI = { yangi: ["🧮", "#e3f2fd", "#1e88e5"], jarayonda: ["🛠", "#fff8e1", "#f9a825"], qarzdor: ["⏰", "#ffebee", "#e53935"], tugatilgan: ["✔", "#e8f5e9", "#43a047"] };
+  // Boʻlim aksenti (docs/dizayn.md): Hisoblangan — koʻk, Boshlangan — toʻq sariq, Tugallangan — yashil
+  const BELGI = { yangi: ["🧮", "var(--aks-k-fon)", "var(--aks-k)"], jarayonda: ["🛠", "var(--aks-s-fon)", "var(--aks-s)"], qarzdor: ["⏰", "#ffebee", "var(--xato)"], tugatilgan: ["✔", "var(--aks-h-fon)", "var(--aks-h)"] };
   $("arxiv-tablar").innerHTML = BOSH_BOLIMLAR.map(([k, y, hl]) => {
     const t = a.filter((z) => bolimi(z) === k);
     const [b, fon, rang] = BELGI[k];
@@ -358,6 +360,8 @@ function hisobla() {
   xato("");
   zakaz.konstruksiyalar = zakaz.konstruksiyalar || [];
   zakaz.umumiy = zakaz.umumiy || { tanlov: {} };
+  // rang_id yoʻq (eski zakaz) — xotirada beriladi (tartib boʻyicha 1, 2, 3 …), keyingi oʻzgarishda saqlanadi
+  rangBer(zakaz.konstruksiyalar);
   $("zakaz-ish").hidden = false;
   sozlamaniChiz();
   natija = null;
@@ -375,40 +379,71 @@ function hisobla() {
 const yuza = (k) => (Number(k.L) || 0) * (Number(k.H) || 0) / 10000;
 const m2 = (x) => son(x, 2) + " m²";
 
+// ---------- konstruksiyalar roʻyxati (foydalanuvchi, 2026-11-15; docs/dizayn.md "Konstruksiyalar paneli") ----------
+// Bitta panel, qator: rang tasmasi · raqam · rasm · nom, oʻlcham, farqli teglar · narx · soni · ⋯
+const mijozRejim = () => ol("mijoz_rejimi") === "1";
+function kTeglar(k) {
+  const u = zakaz.umumiy, t = { ...(u.tanlov || {}), ...(k.tanlov || {}) };
+  return [k.rama || u.rama, t.rang_nomi || t.rang, (t.oyna_turi || "") + " " + (k.oyna_qalinligi || u.oyna_qalinligi || 24) + " mm",
+    t.podokonnik && !/"tur":"eshik"/.test(JSON.stringify(k.bolak || {})) ? "podokonnik " + t.podokonnik : null].filter(Boolean);
+}
+// Mijozga narx (soʻm): mijozga PDF dagi formula — qator = (tannarx + otxod tuzatma ulushi) × seriya ustamasi × kurs,
+// jami = kelishilgan narx (chegirmadan keyin, qulflangan boʻlsa eski narx)
+function mijozNarx(n = natija) {
+  const kurs = n.kurs, h = hk();
+  const chegirma = Number(h.chegirma_som) || 0;
+  const boshlang = Math.round((n.jami_usd + ustamalar(n).reduce((a, u) => a + u.ustama, 0)) * kurs);
+  const qulfSom = narxQulfi(boshlang / kurs);
+  return { boshlang, chegirma, qulf: qulfSom != null, kelish: qulfSom != null ? qulfSom : boshlang - chegirma,
+    qator: (x) => (x.jami_usd + tuzUlush(n, x)) * ustamaKoef(n, x.seriya) * kurs };
+}
+let izohOchiq = null;  // izohi tahrirlanayotgan konstruksiya indeksi
 function royxatniChiz() {
-  const n = natija;
-  const sonlar = zakaz.konstruksiyalar.map((k) => k.soni ?? 1);
-  $("x-soni").textContent = sonlar.reduce((a, b) => a + b, 0);
-  $("x-m2").textContent = m2(zakaz.konstruksiyalar.reduce((a, k, i) => a + yuza(k) * sonlar[i], 0));
+  const n = natija, mr = mijozRejim() && n, mn = mr ? mijozNarx(n) : null;
+  const kl = zakaz.konstruksiyalar;
+  const sonlar = kl.map((k) => k.soni ?? 1);
+  const jamiSoni = sonlar.reduce((a, b) => a + b, 0), jamiM2 = kl.reduce((a, k, i) => a + yuza(k) * sonlar[i], 0);
+  $("x-soni").textContent = jamiSoni;
+  $("x-m2").textContent = m2(jamiM2);
+  if (mn) $("x-narx").textContent = som(mn.kelish);
+  else if (mijozRejim()) $("x-narx").textContent = "—";
   mijozniChiz();
-  $("zakaz-nomi").textContent = (zakaz.nom ? zakaz.nom + " · " : "") + zakaz.konstruksiyalar.length + " ta konstruksiya";
-  // Konstruksiyalar: soni 0 boʻlganlari ham koʻrinadi, qaytarish uchun
+  $("zakaz-nomi").textContent = (zakaz.nom ? zakaz.nom + " · " : "") + kl.length + " ta konstruksiya";
   const hisoblangan = Object.fromEntries((n ? n.konstruksiyalar : []).map((k) => [k.nom, k]));
-  $("konstruksiyalar").innerHTML = zakaz.konstruksiyalar.map((k, i) => {
-    const nom = k.nom || "K" + (i + 1);
-    const h = hisoblangan[nom];
-    const soni = k.soni ?? 1;
-    const u = zakaz.umumiy, t = { ...(u.tanlov || {}), ...(k.tanlov || {}) };
-    const teglar = [k.rama || u.rama, t.rang_nomi || t.rang, (t.oyna_turi || "") + " " + (k.oyna_qalinligi || u.oyna_qalinligi || 24) + " mm", t.podokonnik && !/"tur":"eshik"/.test(JSON.stringify(k.bolak || {})) ? "podokonnik " + t.podokonnik : null];
-    return `<div class="konstr${soni === 0 ? " nol" : ""}">
-      <div class="konstr-ichi">
-        <button class="eskiz" data-tahrir="${i}" aria-label="Tahrirlash">${chizmaSVG(k, { kichik: true })}</button>
-        <div class="konstr-matn">
-          <div class="konstr-bosh"><b>${esc(nom)}</b><span>${esc(k.L)} × ${esc(k.H)}</span></div>
-          <div class="teglar">${teglar.filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}</div>
-          <div class="xira">Yuzasi: ${m2(yuza(k))}${soni > 1 ? ` · jami ${m2(yuza(k) * soni)}` : ""}</div>
-          <div class="konstr-past">
-            <div class="soni"><button data-i="${i}" data-d="-1" aria-label="Kamaytirish">−</button><span>${soni}</span><button data-i="${i}" data-d="1" aria-label="Koʻpaytirish">+</button></div>
-            <div style="text-align:right">${h ? `<div class="xira">1 dona ${usd(h.bir_dona_usd)}</div><b>${usd(h.jami_usd)}</b>` : `<span class="xira">${soni === 0 ? "hisobga kirmaydi" : "—"}</span>`}</div>
-          </div>
-        </div>
+  const teglar = kl.map(kTeglar);
+  const umumiy = teglar.length ? teglar[0].filter((t) => teglar.every((q) => q.includes(t))) : [];
+  const qatorlar = kl.map((k, i) => {
+    const nom = k.nom || "K" + (i + 1), h = hisoblangan[nom], soni = sonlar[i];
+    const [fon] = kRang(k);
+    const farq = teglar[i].filter((t) => !umumiy.includes(t));
+    let narx;
+    if (!h) narx = `<span class="xira">${soni === 0 ? "hisobga kirmaydi" : "—"}</span>`;
+    else if (mn) { const q = mn.qator(h); narx = `<b>${som(q)}</b>${soni > 1 ? `<small>1 dona ${som(q / soni)}</small>` : ""}`; }
+    else narx = `<b>${usd(h.jami_usd)}</b><small>${soni > 1 ? `1 dona ${usd(h.bir_dona_usd)}` : "tannarx"}</small>`;
+    const izoh = izohOchiq === i
+      ? `<input class="eslatma" data-eslatma="${i}" value="${esc(k.eslatma || "")}" placeholder="Izoh (masalan: 2-qavat, oshxona)" autocomplete="off">`
+      : k.eslatma ? `<button class="kq-izoh" data-izoh="${i}">📝 ${esc(k.eslatma)}</button>` : "";
+    return `<div class="kq${soni === 0 ? " nol" : ""}" style="--kr:${fon}">
+      <div class="kq-ich" data-tahrir="${i}" role="button" tabindex="0" aria-label="${esc(nom)} — tahrirlash">
+        ${kRaqamHtml(k)}
+        <div class="kq-rasm">${chizmaSVG(k, { kichik: true })}</div>
+        <div class="kq-matn"><b>${esc(nom)}</b><span class="kq-olcham">${esc(k.L)} × ${esc(k.H)}</span>
+          ${farq.length ? `<span class="kq-teg">${farq.map(esc).join(" · ")}</span>` : ""}</div>
       </div>
-      ${h && h.izoh ? `<div class="ogoh xira">${esc(h.izoh)}</div>` : ""}
-      <input class="eslatma" data-eslatma="${i}" value="${esc(k.eslatma || "")}" placeholder="Izoh qoʻshish (masalan: 2-qavat, oshxona)" autocomplete="off">
-      ${h && xarajatOchiq.has(nom) ? xarajatHtml(nom) : ""}
-      <div class="kichik-tugmalar">${h ? `<button data-xarajat="${esc(nom)}">${xarajatOchiq.has(nom) ? "Yopish" : "Xarajat"}</button>` : ""}<button data-tahrir="${i}">Tahrirlash</button><button data-nusxa="${i}">Nusxa</button><button data-ochir="${i}">Oʻchirish</button></div>
+      <div class="kq-amal"><div class="kq-narx">${narx}</div><div class="kq-boshqar"><div class="soni"><button data-i="${i}" data-d="-1" aria-label="Kamaytirish">−</button><span>${soni}</span><button data-i="${i}" data-d="1" aria-label="Koʻpaytirish">+</button></div>
+        <button class="kq-menyu" data-menyu="${i}" aria-label="Amallar">⋯</button></div></div>
+      ${h && h.izoh ? `<div class="ogoh kq-ogoh">${esc(h.izoh)}</div>` : ""}${izoh}
     </div>`;
-  }).join("") || '<p class="xira">Konstruksiya yoʻq. Pastdagi tugma bilan qoʻshing.</p>';
+  }).join("");
+  let jami = "";
+  if (kl.length) {
+    const narx = !n ? "—" : mn ? `<span>mijozga narx</span><b>${som(mn.kelish)}</b>` : `<span>tannarx</span><b>${usd(n.jami_usd)}</b>`;
+    jami = `<div class="kp-jami"><div><b>Jami</b> — ${jamiSoni} dona · ${m2(jamiM2)}</div><div class="kp-jami-narx">${narx}</div></div>` +
+      (mn && mn.chegirma && !mn.qulf ? `<div class="kp-chegirma"><span>chegirmagacha ${som(mn.boshlang)}</span><span>chegirma − ${som(mn.chegirma)}</span></div>` : "");
+  }
+  $("konstruksiyalar").innerHTML = kl.length ? `<div class="kpanel">${umumiy.length ? `<div class="kp-teglar">${umumiy.map(esc).join(" · ")}</div>` : ""}${qatorlar}${jami}</div>`
+    : '<p class="xira">Konstruksiya yoʻq. Pastdagi tugma bilan qoʻshing.</p>';
+  if (izohOchiq != null) { const inp = $("konstruksiyalar").querySelector("[data-eslatma]"); if (inp) inp.focus(); }
 }
 
 // ---------- hisob-kitob (Romchi kabi): tannarx, ustama, chegirma, avans, qoldiq ----------
@@ -443,6 +478,12 @@ function ustamalar(n = natija) {
   });
   if (yozildi) saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   return roy;
+}
+// Faqat oʻqiydi (konstruktor uchun): zakazga hech narsa yozmaydi
+function ustamaKoefOqi(seriya) {
+  const h = hk(), s = seriya || "Termo 70";
+  const f = (h.ustama_seriya && h.ustama_seriya[s]) ?? (h.ustama_foiz != null ? Number(h.ustama_foiz) : null) ?? ustamaStandart()[s];
+  return 1 + (Number(f) || 0) / 100;
 }
 function ustamaKoef(n, seriya) { const u = ustamalar(n).find((x) => x.seriya === (seriya || "Termo 70")); return 1 + (u ? u.foiz : 0) / 100; }
 
@@ -487,7 +528,7 @@ function hisobKitobniChiz() {
   }
   const chegirma = (Number(h.chegirma_som) || 0) / kurs, avans = (Number(h.avans_som) || 0) / kurs;
   $("j-mijoz").textContent = pul(mijozga);
-  $("x-narx").textContent = pul(mijozga);
+  $("x-narx").textContent = mijozRejim() ? som(mijozNarx(n).kelish) : pul(mijozga);
   const narxSom = Math.round((mijozga - chegirma) * kurs);
   // Shartnoma, avans, kassada toʻlov yoki ish boshlangan zakazda narx jimgina qayta yozilmaydi (foydalanuvchi, 2026-11-15).
   // Chegirma oʻzgarishi qulfga tushmaydi (qoʻlda kiritiladi) — taqqoslash chegirmagacha.
@@ -527,7 +568,6 @@ function mijozniChiz() {
 }
 
 // ---------- konstruksiya xarajati (Romchi "Xarajatni koʻrish"): 1 dona uchun ----------
-const xarajatOchiq = new Set();
 function xarajatHtml(nom) {
   const n = natija, j = n.konstruksiyalar.findIndex((k) => k.nom === nom);
   if (j < 0) return "";
@@ -549,7 +589,6 @@ function xarajatHtml(nom) {
 }
 
 // ---------- kesish chizmasi (Romchi "Kesishlar chizmasi"), skladsiz, narxdagi otxod bilan bir xil ----------
-const KRANG = ["#64b5f6", "#81c784", "#ffb74d", "#e57373", "#ba68c8", "#4db6ac", "#f06292", "#a1887f", "#90a4ae", "#dce775"];
 let kesishEskirgan = true, kesishNatija = null;
 function kesishOl() {
   py.globals.set("_zakaz", JSON.stringify(zakaz));
@@ -565,14 +604,17 @@ _kn`));
 }
 // "DIQQAT: …" qismi qizil (shtapik +0,4 sm zapas)
 const kesimMatn = (t) => { const i = String(t).indexOf("DIQQAT"); return i < 0 ? esc(t) : esc(t.slice(0, i)) + `<b class="kesim-ogoh">${esc(t.slice(i))}</b>`; };
+// Boʻlak "k" — faol (soni ≠ 0) konstruksiyalar ichidagi indeks (raskroy.kesish_chizmasi bilan bir xil shart)
 function kesishHtml(r) {
-  const leg = r.konstruksiyalar.map((k, i) => `<span class="kl"><i style="background:${KRANG[i % KRANG.length]}"></i>${i + 1}. ${esc(k.nom)} × ${k.soni}</span>`).join("");
+  const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) !== 0);
+  const kk = (i) => faol[i] || { rang_id: i + 1 };
+  const leg = r.konstruksiyalar.map((k, i) => `<span class="kl">${kRaqamHtml(kk(i))}${esc(k.nom)} × ${k.soni}</span>`).join("");
   return `<div class="k-leg">${leg}</div>` + r.profillar.map((p) => `<div class="kp">
     <div class="kp-bosh"><b>${esc(p.nom)}</b><span>${p.hivich_sm} sm × ${p.hivichlar.length} dona</span></div>
     <div class="kp-stat"><span>Samaradorlik <b>${son(p.samaradorlik, 1)}%</b></span><span>Kesimlar <b>${p.kesimlar}</b></span><span>Qoldiq <b>${son(p.qoldiq_sm, 1)} sm</b></span></div>
     <div class="xira kp-kesim">${kesimMatn(p.kesim)}${p.otxod_chegara ? ` · ${p.otxod_chegara} sm dan kichik qoldiq otxod` : ""}</div>
     ${p.hivichlar.map((h, i) => `<div class="kb-qator"><span class="kb-n">#${i + 1}</span><div class="kb">${h.bolaklar.map((b) =>
-      `<div style="flex:${b.uzunlik} 0 0;background:${KRANG[b.k % KRANG.length]}">${son(b.uzunlik, 1)}</div>`).join("")}${h.qoldiq > 0 ?
+      `<div style="flex:${b.uzunlik} 0 0;background:${kRang(kk(b.k))[0]};color:${kRang(kk(b.k))[1]}"><i>${kRaqam(kk(b.k))}</i>${son(b.uzunlik, 1)}</div>`).join("")}${h.qoldiq > 0 ?
       `<div class="kb-q${p.otxod_chegara && h.qoldiq < p.otxod_chegara ? " otx" : ""}" style="flex:${h.qoldiq} 0 0">${son(h.qoldiq, 1)}</div>` : ""}</div></div>`).join("")}
   </div>`).join("");
 }
@@ -697,33 +739,83 @@ $("matn-hisobla").addEventListener("click", () => zakazniOch($("matn").value));
 $("namuna").addEventListener("click", async () => zakazniOch(await (await fetch("namuna_z002.json")).text()));
 $("kurs").addEventListener("input", () => { if (Number($("kurs").value) > 0) saqla("kurs", $("kurs").value); });
 $("kurs").addEventListener("change", () => { if (Number($("kurs").value) > 0) saqla("kurs", $("kurs").value); else $("kurs").value = ol("kurs") || 12000; hisobla(); });
-$("konstruksiyalar").addEventListener("click", (e) => {
-  const b = e.target.closest("button");
-  if (!b) return;
-  const d = b.dataset;
-  if (d.tahrir != null) { konstruktorniOch(Number(d.tahrir)); return; }
-  if (d.xarajat != null) {
-    if (xarajatOchiq.has(d.xarajat)) xarajatOchiq.delete(d.xarajat); else xarajatOchiq.add(d.xarajat);
-    royxatniChiz();
-    return;
-  }
-  if (d.nusxa != null) {
-    const k = nusxa(zakaz.konstruksiyalar[Number(d.nusxa)]);
-    const nomlar = zakaz.konstruksiyalar.map((x) => x.nom);
-    let n = 2;
-    while (nomlar.includes(`${k.nom} (${n})`)) n++;
-    k.nom = `${k.nom} (${n})`;
-    zakaz.konstruksiyalar.splice(Number(d.nusxa) + 1, 0, k);
-  } else if (d.ochir != null) {
-    if (!b.classList.contains("tasdiq")) { b.classList.add("tasdiq"); b.textContent = "Rostdan oʻchirilsinmi?"; return; }
-    zakaz.konstruksiyalar.splice(Number(d.ochir), 1);
-  } else if (d.i != null) {
-    const k = zakaz.konstruksiyalar[Number(d.i)];
-    k.soni = Math.max(0, (k.soni ?? 1) + Number(d.d));
-  } else return;
+// Roʻyxatdagi oʻzgarish (soni, nusxa, oʻchirish): rang_id lar ham shu bilan saqlanadi
+function royxatOzgardi() {
+  rangBer(zakaz.konstruksiyalar);
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   hisobla();
+}
+$("konstruksiyalar").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (b && b.dataset.menyu != null) { menyuOch(Number(b.dataset.menyu), b); return; }
+  if (b && b.dataset.izoh != null) { izohOchiq = Number(b.dataset.izoh); royxatniChiz(); return; }
+  if (b && b.dataset.i != null) {
+    const k = zakaz.konstruksiyalar[Number(b.dataset.i)];
+    k.soni = Math.max(0, (k.soni ?? 1) + Number(b.dataset.d));
+    royxatOzgardi();
+    return;
+  }
+  if (b || e.target.closest("input")) return;
+  const q = e.target.closest("[data-tahrir]");
+  if (q) konstruktorniOch(Number(q.dataset.tahrir));
 });
+$("konstruksiyalar").addEventListener("keydown", (e) => {
+  const q = e.target.closest("[data-tahrir]");
+  if (q && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); konstruktorniOch(Number(q.dataset.tahrir)); }
+});
+// "⋯" menyu: Xarajat (oddiy rejimda), Nusxa, Izoh, Oʻchirish (tasdiq bilan)
+let menyuK = null;
+function menyuYop() { $("k-menyu").hidden = true; menyuK = null; }
+function menyuOch(i, tugma) {
+  const m = $("k-menyu");
+  if (menyuK === i && !m.hidden) { menyuYop(); return; }
+  menyuK = i;
+  const k = zakaz.konstruksiyalar[i], nom = k.nom || "K" + (i + 1);
+  const h = natija && natija.konstruksiyalar.find((x) => x.nom === nom);
+  m.innerHTML = `<div class="k-menyu-bosh">${kRaqamHtml(k)}<b>${esc(nom)}</b></div>` +
+    (h && !mijozRejim() ? `<button data-m="xarajat">💲 Xarajat</button>` : "") +
+    `<button data-m="nusxa">⧉ Nusxa</button><button data-m="izoh">📝 Izoh</button><button data-m="ochir" class="xavfli">🗑 Oʻchirish</button>`;
+  m.hidden = false;
+  const r = tugma.getBoundingClientRect(), mb = m.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(innerWidth - mb.width - 8, r.right - mb.width)) + "px";
+  // pastga sigʻmasa tepaga, u yerga ham sigʻmasa ekran ichida (yotiq holat)
+  const top = r.bottom + mb.height + 8 <= innerHeight ? r.bottom + 4 : r.top - mb.height - 4 >= 8 ? r.top - mb.height - 4 : innerHeight - mb.height - 8;
+  m.style.top = Math.max(8, top) + "px";
+}
+$("k-menyu").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-m]");
+  if (!b || menyuK == null) return;
+  const i = menyuK, k = zakaz.konstruksiyalar[i], amal = b.dataset.m;
+  if (amal === "ochir" && !b.classList.contains("tasdiq")) { b.classList.add("tasdiq"); b.textContent = "Rostdan oʻchirilsinmi?"; return; }
+  menyuYop();
+  if (amal === "xarajat") { xarajatOch(i); return; }
+  if (amal === "izoh") { izohOchiq = i; royxatniChiz(); return; }
+  if (amal === "nusxa") {
+    const y = nusxa(k);
+    delete y.rang_id;  // nusxa yangi rang oladi
+    const nomlar = zakaz.konstruksiyalar.map((x) => x.nom);
+    let n = 2;
+    while (nomlar.includes(`${y.nom} (${n})`)) n++;
+    y.nom = `${y.nom} (${n})`;
+    zakaz.konstruksiyalar.splice(i + 1, 0, y);
+  } else if (amal === "ochir") {
+    zakaz.konstruksiyalar.splice(i, 1);
+    izohOchiq = null;
+  }
+  royxatOzgardi();
+});
+document.addEventListener("click", (e) => {
+  if (!$("k-menyu").hidden && !e.target.closest("#k-menyu") && !e.target.closest("[data-menyu]")) menyuYop();
+});
+window.addEventListener("scroll", () => { if (!$("k-menyu").hidden) menyuYop(); }, { passive: true });
+function xarajatOch(i) {
+  const k = zakaz.konstruksiyalar[i], nom = k.nom || "K" + (i + 1);
+  $("xarajat-sarlavha").innerHTML = `${kRaqamHtml(k)} ${esc(nom)} <span class="xira">${esc(k.L)} × ${esc(k.H)}</span>`;
+  $("xarajat-ich").innerHTML = xarajatHtml(nom) || '<p class="xira">Hisob yoʻq</p>';
+  $("xarajat-oyna").hidden = false;
+}
+$("xarajat-yop").addEventListener("click", () => { $("xarajat-oyna").hidden = true; });
+$("xarajat-oyna").addEventListener("click", (e) => { if (e.target === $("xarajat-oyna")) $("xarajat-oyna").hidden = true; });
 $("k-qosh").addEventListener("click", () => konstruktorniOch(-1));
 $("k-qosh2").addEventListener("click", () => konstruktorniOch(-1));
 $("konstruksiyalar").addEventListener("change", (e) => {
@@ -731,8 +823,27 @@ $("konstruksiyalar").addEventListener("change", (e) => {
   if (!el) return;
   const k = zakaz.konstruksiyalar[Number(el.dataset.eslatma)];
   if (el.value.trim()) k.eslatma = el.value.trim(); else delete k.eslatma;
+  rangBer(zakaz.konstruksiyalar);
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
 });
+$("konstruksiyalar").addEventListener("focusout", (e) => {
+  if (!e.target.closest("[data-eslatma]")) return;
+  // butun roʻyxat qayta chizilmaydi (aks holda boshqa tugmaga birinchi bosish yoʻqoladi) — faqat maydon almashadi
+  const inp = e.target, i = Number(inp.dataset.eslatma), k = zakaz.konstruksiyalar[i];
+  izohOchiq = null;
+  if (k && k.eslatma) { const b = document.createElement("button"); b.className = "kq-izoh"; b.dataset.izoh = i; b.textContent = "📝 " + k.eslatma; inp.replaceWith(b); }
+  else inp.remove();
+});
+// Mijoz rejimi (foydalanuvchi, 2026-11-15): tannarx, xarajat, otxod, ustama, $ yashiriladi; faqat mijozga narx soʻmda
+function mijozRejimQoy(yoq) {
+  saqla("mijoz_rejimi", yoq ? "1" : "0");
+  document.body.classList.toggle("mijoz-rejim", yoq);
+  $("mijoz-rejim").setAttribute("aria-pressed", String(yoq));
+  $("mijoz-rejim").innerHTML = yoq ? "👁 Mijoz rejimi <b>YOQILGAN</b>" : "👁 Mijoz rejimi";
+  if (yoq && /^[hs]$/.test($("e-zakaz").dataset.tab)) tabOch("k");
+  if (zakaz && natija) { hisobKitobniChiz(); royxatniChiz(); }
+}
+$("mijoz-rejim").addEventListener("click", () => { menyuYop(); mijozRejimQoy(!mijozRejim()); });
 document.querySelectorAll("[data-valyuta]").forEach((b) => b.addEventListener("click", () => {
   saqla("valyuta", b.dataset.valyuta);
   if (natija) hisobKitobniChiz();
@@ -884,11 +995,9 @@ $("pdf-ber").addEventListener("click", () => {
 
 function pdfHtml(o) {
   // Oʻz uslubimiz (Romchidan farqli): hisob-faktura jadvali + 2 ustunli chizma kartalari
-  const n = natija, kurs = n.kurs, m = zakaz.mijoz || {}, h = hk();
-  const k1 = (x) => (x ? ustamaKoef(n, x.seriya) : 1);
-  const chegirma = Number(h.chegirma_som) || 0, avans = Number(h.avans_som) || 0;
-  const boshlang = Math.round((n.jami_usd + ustamalar(n).reduce((a, u) => a + u.ustama, 0)) * kurs);
-  const qulfSom = narxQulfi(boshlang / kurs), kelish = qulfSom != null ? qulfSom : boshlang - chegirma;  // qulf: kelishilgan eski narx
+  const n = natija, m = zakaz.mijoz || {}, h = hk();
+  const avans = Number(h.avans_som) || 0;
+  const { boshlang, chegirma, kelish, qator } = mijozNarx(n);  // qulf: kelishilgan eski narx
   const hisob = Object.fromEntries(n.konstruksiyalar.map((k) => [k.nom, k]));
   const u = zakaz.umumiy;
   const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) > 0);
@@ -901,7 +1010,7 @@ function pdfHtml(o) {
       ${ol("bajaruvchi") ? `<div class="p-baj"><b>${esc(ol("bajaruvchi"))}</b>${ol("bajaruvchi_tel") ? `<span>${esc(ol("bajaruvchi_tel"))}</span>` : ""}</div>` : ""}</div>
     <div class="p-mijoz">${malumot("Buyurtmachi", m.ism)}${malumot("Telefon", m.telefon)}${malumot("Manzil", m.manzil)}${malumot("Muddat", m.muddat)}</div>
     <table class="p-faktura"><thead><tr><th>№</th><th>Nomi</th><th>Oʻlchami, sm</th><th>Soni</th><th>Yuzasi</th>${o.narx ? "<th>Narxi</th>" : ""}</tr></thead><tbody>
-    ${faol.map((k, i) => { const x = kHisob(k); return `<tr><td>${i + 1}</td><td>${esc(k.nom)}</td><td>${esc(k.L)} × ${esc(k.H)}</td><td>${k.soni ?? 1}</td><td>${son(yuza(k) * (k.soni ?? 1), 2)} m²</td>${o.narx ? `<td>${x ? som((x.jami_usd + tuzUlush(n, x)) * k1(x) * kurs) : "—"}</td>` : ""}</tr>`; }).join("")}
+    ${faol.map((k) => { const x = kHisob(k); return `<tr><td>${kRaqamHtml(k)}</td><td>${esc(k.nom)}</td><td>${esc(k.L)} × ${esc(k.H)}</td><td>${k.soni ?? 1}</td><td>${son(yuza(k) * (k.soni ?? 1), 2)} m²</td>${o.narx ? `<td>${x ? som(qator(x)) : "—"}</td>` : ""}</tr>`; }).join("")}
     </tbody><tfoot><tr><td></td><td>Jami</td><td></td><td>${jamiSoni}</td><td>${son(jamiM2, 2)} m²</td>${o.narx ? `<td>${som(boshlang)}</td>` : ""}</tr></tfoot></table>`;
   if (o.narx) {
     s += `<div class="p-jami">${chegirma ? `<div><span>Chegirma</span><b>− ${som(chegirma)}</b></div>` : ""}
@@ -909,14 +1018,14 @@ function pdfHtml(o) {
       ${avans ? `<div><span>Avans</span><b>${som(avans)}</b></div><div class="p-qoldiq"><span>Qoldiq</span><b>${som(kelish - avans)}</b></div>` : ""}</div>`;
   }
   s += `<div class="p-kartalar">`;
-  faol.forEach((k, i) => {
+  faol.forEach((k) => {
     const t = { ...(u.tanlov || {}), ...(k.tanlov || {}) };
     const x = kHisob(k);
-    s += `<div class="p-k"><div class="p-k-bosh"><b class="p-raqam">${i + 1}</b><b>${esc(k.nom)}</b><span>${esc(k.L)} × ${esc(k.H)} sm · ${k.soni ?? 1} dona</span></div>
+    s += `<div class="p-k"><div class="p-k-bosh">${kRaqamHtml(k, true)}<b>${esc(k.nom)}</b><span>${esc(k.L)} × ${esc(k.H)} sm · ${k.soni ?? 1} dona</span></div>
       <div class="p-rasm">${chizmaSVG(k, { kichik: !o.olcham })}</div>
       <div class="p-xus">${malumot("Rama", k.rama || u.rama)}${malumot("Rang", t.rang_nomi ? `${t.rang} (${t.rang_nomi})` : t.rang)}
         ${malumot("Oyna", `${t.oyna_turi || ""} ${k.oyna_qalinligi || u.oyna_qalinligi || 24} mm`)}${malumot("Yuzasi", son(yuza(k), 2) + " m²")}
-        ${malumot("Izoh", k.eslatma)}${o.narx && x ? malumot("Narxi", som((x.jami_usd + tuzUlush(n, x)) * k1(x) * kurs)) : ""}</div></div>`;
+        ${malumot("Izoh", k.eslatma)}${o.narx && x ? malumot("Narxi", som(qator(x))) : ""}</div></div>`;
   });
   s += `</div>`;
   if (o.mat) {
@@ -1022,7 +1131,7 @@ function skladPdfHtml(r, p) {
     <div class="sp-kartalar">${p.kartalar.map(karta).join("")}</div>
     <div class="sp-jami"><b>Jami yangi ${son((p.hivich_sm || r.hivich_sm) / 100, 1)} m hivich: ${p.yangi_soni} dona</b><br>Skladdan: ${p.sklad_soni} boʻlak · Jami detal: ${p.jami_detal} dona</div>
     <div class="sp-sar">Qaysi konstruksiyaga</div>
-    ${p.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${esc(k.nom)}: ${son(k.L, 1)} × ${son(k.H, 1)} sm, ${k.soni} dona</b>
+    ${p.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${(({ x }) => (x ? kRaqamHtml(x) + " " : ""))({ x: zakaz.konstruksiyalar.find((z) => z.nom === k.nom) })}${esc(k.nom)}: ${son(k.L, 1)} × ${son(k.H, 1)} sm, ${k.soni} dona</b>
       ${k.detallar.map((x) => `<div>${belgi}${esc(x.nomi)}: ${son(x.uzunlik, 2)} × ${x.soni}</div>`).join("")}</div>`).join("")}
   </div>`;
 }
@@ -1130,14 +1239,18 @@ $("orqaga").addEventListener("click", () => history.back());
 
 // ---------- zakaz sahifasi tablari: Konstruksiya · Hisob · Sex · Hujjatlar ----------
 function tabOch(t) {
+  if (mijozRejim() && /^[hs]$/.test(t)) t = "k";  // mijoz rejimida Hisob va Sex yoʻq
   $("e-zakaz").dataset.tab = t;
+  document.body.dataset.tab = t;
   for (const b of $("z-tablar").querySelectorAll("button")) b.classList.toggle("faol", b.dataset.tab === t);
   saqla("z_tab", t);
   window.scrollTo(0, 0);
   if (t === "s" && zakaz && natija) $("kesish-quti").open = true;
 }
 $("z-tablar").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) tabOch(b.dataset.tab); });
-$("d-kesish").addEventListener("click", () => { $("kesish-quti").open = true; tabOch("s"); });
+$("d-kesish").addEventListener("click", () => {
+  if (mijozRejim()) return; $("kesish-quti").open = true; tabOch("s"); });
+mijozRejimQoy(mijozRejim());
 tabOch(ol("z_tab") || "k");
 $("yakunla").addEventListener("click", () => { saqla("oxirgi_zakaz", JSON.stringify(zakaz)); ekran("bosh"); holat("Zakaz saqlandi"); });
 $("yangi2").addEventListener("click", () => { ekran("bosh"); $("yangi").click(); });

@@ -52,7 +52,8 @@ _KESH_CHEGARA = 500
 def _yolgiz_otxod(umumiy, k):
     """Konstruksiyaning 1 donasi yolgʻiz zakaz boʻlsa (chegara usuli, skladsiz):
     {"Profil otxod" kaliti: metr}. Manfiy boʻlishi mumkin (Aldoks 181 aylantirib kesish) — shundayligicha."""
-    k = {**{a: b for a, b in k.items() if a != "nom"}, "soni": 1}
+    # rang_id, eslatma — faqat koʻrinish (2026-11-15): kesh kalitiga kirmaydi
+    k = {**{a: b for a, b in k.items() if a not in ("nom", "rang_id", "eslatma")}, "soni": 1}
     kalit = json.dumps([umumiy, k], sort_keys=True, ensure_ascii=False)
     if kalit not in _YOLGIZ_KESH:
         if len(_YOLGIZ_KESH) >= _KESH_CHEGARA:

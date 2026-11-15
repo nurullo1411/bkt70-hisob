@@ -1527,8 +1527,11 @@ function konstruktorniYop(saqlansin, tarixdan) {
   if (saqlansin) {
     const nomlar = zakaz.konstruksiyalar.filter((_, j) => j !== tahrirIndeks).map((k) => k.nom);
     tahrir.nom = avtoNom(tahrir, nomlar);
+    // rang_id tahrir nusxasida (qoralamada ham) keladi; yoʻqolgan boʻlsa eski konstruksiyadan, yangisiga — birinchi boʻsh
+    if (tahrirIndeks >= 0 && tahrir.rang_id == null) tahrir.rang_id = zakaz.konstruksiyalar[tahrirIndeks].rang_id;
     if (tahrirIndeks >= 0) zakaz.konstruksiyalar[tahrirIndeks] = tahrir;
-    else zakaz.konstruksiyalar.push(tahrir);
+    else { delete tahrir.rang_id; zakaz.konstruksiyalar.push(tahrir); }
+    rangBer(zakaz.konstruksiyalar);
     saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   }
   tahrir = null;
@@ -1571,7 +1574,7 @@ function qoralamaniTikla() {
 
 function yangila() {
   saqla("qoralama", JSON.stringify({ tahrir, indeks: tahrirIndeks, orqaga: orqaga.slice(-20) }));
-  $("k-nom").innerHTML = `<b>${esc(tahrir.nom || "")}</b><span>${yx(Number(tahrir.L))} × ${yx(Number(tahrir.H))} sm${(tahrir.soni ?? 1) > 1 ? " · " + tahrir.soni + " dona" : ""}</span>`;
+  $("k-nom").innerHTML = `<span class="k-nom-q">${kRaqamHtml(tahrir.rang_id != null ? tahrir : { rang_id: keyingiRang(zakaz.konstruksiyalar) })}<b>${esc(tahrir.nom || "")}</b></span><span>${yx(Number(tahrir.L))} × ${yx(Number(tahrir.H))} sm${(tahrir.soni ?? 1) > 1 ? " · " + tahrir.soni + " dona" : ""}</span>`;
   asboblarniChiz();
   jadvalChiz();
   let kesYoz = null;
@@ -2016,7 +2019,9 @@ function oldindanHisobla() {
     }
     const k = d.ok.konstruksiyalar[0];
     const oy = d.ok.oynalar.map((o) => `${o.joy} ${son(o.en, 2)}×${son(o.boy, 2)}${o.soni > 1 ? " ×" + o.soni : ""}`).join("; ");
-    h.innerHTML = `<span class="k-narx">1 dona <b>${usd(k.bir_dona_usd)}</b></span>${k.izoh ? `<br><span class="ogoh">${esc(k.izoh)}</span>` : ""}${d.ok.narx_yoq.length ? `<br><span class="ogoh">Narxi yoʻq: ${esc(d.ok.narx_yoq.join(", "))}</span>` : ""}<br><span class="xira">Oynalar: ${esc(oy)}</span>`;
+    // Mijoz rejimida — mijozga narx soʻmda, taxminiy (otxod tuzatmasi butun zakazda hisoblanadi)
+    const narxM = mijozRejim() ? `mijozga 1 dona <b>≈ ${som(k.bir_dona_usd * ustamaKoefOqi(k.seriya) * d.ok.kurs)}</b>` : `1 dona <b>${usd(k.bir_dona_usd)}</b>`;
+    h.innerHTML = `<span class="k-narx">${narxM}</span>${k.izoh ? `<br><span class="ogoh">${esc(k.izoh)}</span>` : ""}${d.ok.narx_yoq.length ? `<br><span class="ogoh">Narxi yoʻq: ${esc(d.ok.narx_yoq.join(", "))}</span>` : ""}<br><span class="xira">Oynalar: ${esc(oy)}</span>`;
     h.className = "";
   }, OLDINDAN_KUTISH);
 }
