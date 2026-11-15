@@ -43,10 +43,53 @@ def _narx(kalit, narxlar, kurs):
     return narxlar["narx"].get(artikul)
 
 
-def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None):
+# Yolgʻiz otxod keshi (ilovada Pyodide xotirasida qoladi): konstruktor bir konstruksiyani hisoblaganda
+# yozadi, zakaz hisobi qayta ishlatadi — bitta konstruksiya ikki marta kesib koʻrilmaydi.
+_YOLGIZ_KESH = {}
+_KESH_CHEGARA = 500
+
+
+def _yolgiz_otxod(umumiy, k, otxod_usuli, sklad, sklad_kalit):
+    """Konstruksiya (oʻz soni bilan) yolgʻiz zakaz boʻlsa: {"Profil otxod" kaliti: metr, 1 dona uchun}."""
+    kalit = json.dumps([umumiy, {a: b for a, b in k.items() if a != "nom"}, otxod_usuli, sklad_kalit],
+                       sort_keys=True, ensure_ascii=False)
+    if kalit not in _YOLGIZ_KESH:
+        if len(_YOLGIZ_KESH) >= _KESH_CHEGARA:
+            _YOLGIZ_KESH.clear()
+        _, _, miq, _ = hisobla_zakaz({"umumiy": umumiy, "konstruksiyalar": [k]}, otxod_usuli, sklad)
+        _YOLGIZ_KESH[kalit] = {q: u[0] for q, u in miq.items() if q[0] == "Profil otxod"}
+    return _YOLGIZ_KESH[kalit]
+
+
+def _yolgiz_bolish(zakaz, faol, miqdorlar, narxlar, kurs, otxod_usuli, sklad):
+    """Otxod boʻlish C qoidasi (foydalanuvchi, 2026-11-15): zakazdagi jami otxod ($) konstruksiyalarga
+    ularning yolgʻiz hisobdagi otxodiga mutanosib — har konstruksiya otxodi = yolgʻiz otxodi × c,
+    c = zakaz otxodi / Σ yolgʻiz otxod (soni bilan). Jami oʻzgarmaydi; birga kesish otxodni
+    kamaytirsa (c ≤ 1) hech bir konstruksiya yolgʻizdagidan qimmat chiqmaydi.
+    "Profil otxod" qatorlari konstruksiyalarga yolgʻiz tuzilishi × c bilan qayta yoziladi
+    (profil qatori jami haqiqiy kesishdan biroz farq qilishi mumkin — qabul qilingan)."""
+    umumiy = zakaz.get("umumiy", {})
+    sklad_kalit = json.dumps(sklad, sort_keys=True, ensure_ascii=False) if sklad else None
+    yol = [_yolgiz_otxod(umumiy, k, otxod_usuli, sklad, sklad_kalit) for k in faol]
+    sonlar = [k.get("soni", 1) for k in faol]
+    narx = {}
+    for q in set(q for q in miqdorlar if q[0] == "Profil otxod").union(*[set(y) for y in yol]):
+        narx[q] = _narx(q, narxlar, kurs) or 0
+    zakazda = sum(narx[q] * sum(m * s for m, s in zip(miqdorlar.get(q, []), sonlar)) for q in narx)
+    yolgiz = sum(narx[q] * y.get(q, 0) * s for y, s in zip(yol, sonlar) for q in narx)
+    if yolgiz <= 0 or zakazda < 0:  # otxodsiz usul yoki sklad_tekin manfiy otxodi: metr boʻyicha qoladi
+        return
+    c = zakazda / yolgiz
+    for q in narx:
+        miqdorlar[q] = [round(y.get(q, 0) * c, 6) for y in yol]
+
+
+def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None, otxod_bolish="metr"):
     """Zakazni hisoblaydi. soni = 0 boʻlgan konstruksiya hisobga kirmaydi.
 
     otxod_usuli: raskroy.OTXOD_USULLARI kaliti (standart "chegara"); sklad: sklad varagʻi qatorlari (sklad usullari uchun).
+    otxod_bolish: "metr" — har profil otxodi ishlatilgan metrga mutanosib (Sheets zakaz varagʻi qoidasi);
+    "yolgiz" — C qoida, ilova (konstruktor va zakaz kartasi) ishlatadi, qarang `_yolgiz_bolish`.
     """
     from raskroy import OTXOD_USULLARI, STANDART_USUL, STRAXOVKA
 
@@ -65,6 +108,10 @@ def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None):
     if not faol:
         raise HisobXato("Hisoblanadigan konstruksiya yoʻq (hammasining soni 0)")
     konstruksiyalar, oynalar, miqdorlar, otxod = hisobla_zakaz({**zakaz, "konstruksiyalar": faol}, otxod_usuli, sklad)
+    if otxod_bolish == "yolgiz" and len(faol) > 1:
+        _yolgiz_bolish(zakaz, faol, miqdorlar, narxlar, kurs, otxod_usuli, sklad)
+    elif otxod_bolish not in ("metr", "yolgiz"):
+        raise HisobXato(f"Otxod boʻlish usuli notoʻgʻri: {otxod_bolish}")
     n = len(konstruksiyalar)
 
     materiallar, bir_dona, narx_yoq = [], [0.0] * n, []

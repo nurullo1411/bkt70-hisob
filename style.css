@@ -588,6 +588,7 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .k-narx { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 13px; color: var(--xira);
   background: var(--karta); border: 1px solid var(--chiziq); }
 .k-narx b { font-size: 17px; color: var(--asosiy); }
+.k-narx.eskirgan b { color: var(--xira); }  /* hisob kutilmoqda: eski narx ≈ bilan */
 #k-panel { border-radius: 18px; box-shadow: 0 2px 10px rgba(16,24,40,.05); }
 
 /* ---------- mijozga PDF (2026-11-07, oʻz uslubi) ---------- */

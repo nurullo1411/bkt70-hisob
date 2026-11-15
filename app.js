@@ -299,6 +299,7 @@ function otxodUsuliniSaqla(usul, seriya = SERIYA) {
 }
 
 // Python hisobi: {ok: natija} yoki {xato: matn}
+// Otxod konstruksiyalarga C qoidasida boʻlinadi (yolgʻiz otxodga mutanosib; foydalanuvchi, 2026-11-15)
 function pyTannarx(z) {
   const usul = otxodUsuli();
   const sk = usul.startsWith("sklad") ? skladSaqlangan() : null;
@@ -309,7 +310,7 @@ function pyTannarx(z) {
   try {
     return JSON.parse(py.runPython(`
 try:
-    _natija = json.dumps({"ok": tannarx.tannarx(json.loads(_zakaz), kurs=_kurs, otxod_usuli=_ou, sklad=json.loads(_osk))}, ensure_ascii=False)
+    _natija = json.dumps({"ok": tannarx.tannarx(json.loads(_zakaz), kurs=_kurs, otxod_usuli=_ou, sklad=json.loads(_osk), otxod_bolish="yolgiz")}, ensure_ascii=False)
 except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
     _natija = json.dumps({"xato": str(_e)}, ensure_ascii=False)
 _natija`));

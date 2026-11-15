@@ -1994,25 +1994,44 @@ function panelniChiz() {
   $("k-panel").innerHTML = p;
 }
 
+// Konstruktor narxi = zakaz kartasidagi narx (foydalanuvchi, 2026-11-15): butun zakaz shu konstruksiya
+// oʻz joyida turgan holda hisoblanadi (otxod C qoidasida boʻlinadi, yolgʻiz otxod Python keshida).
+// Har bosishda emas — 0,5 s toʻxtagandan keyin; kutish va hisob paytida eski narx kulrang "≈" bilan turadi.
+const OLDINDAN_KUTISH = 500;
+function oldindanZakaz() {
+  const t = { ...tahrir, nom: tahrir.nom || "K" };
+  const ks = (zakaz.konstruksiyalar || []).slice();
+  let i = tahrirIndeks;
+  if (i >= 0 && i < ks.length) ks[i] = t; else { ks.push(t); i = ks.length - 1; }
+  if ((t.soni ?? 1) === 0) return { z: { umumiy: zakaz.umumiy, konstruksiyalar: [{ ...t, soni: 1 }] }, j: 0, yolgiz: true };
+  const j = ks.slice(0, i).filter((k) => (k.soni ?? 1) !== 0).length;  // tannarx soni 0 larni chiqaradi
+  return { z: { umumiy: zakaz.umumiy, konstruksiyalar: ks }, j, yolgiz: false };
+}
 function oldindanHisobla() {
   clearTimeout(oldindanTaymer);
-  $("k-holat").textContent = "Hisoblanmoqda…";
-  $("k-holat").className = "xira";
+  const h = $("k-holat"), narx = h.querySelector(".k-narx");
+  if (narx) { narx.classList.add("eskirgan"); const b = narx.querySelector("b"); if (b && !/^≈/.test(b.textContent)) b.textContent = "≈ " + b.textContent; }
+  else { h.textContent = "Hisoblanmoqda…"; h.className = "xira"; }
   oldindanTaymer = setTimeout(() => {
     if (!tahrir) return;
-    const d = pyTannarx({ umumiy: zakaz.umumiy, konstruksiyalar: [{ ...tahrir, nom: tahrir.nom || "K", soni: 1 }] });
+    let { z, j, yolgiz } = oldindanZakaz();
+    let d = pyTannarx(z);
+    if (d.xato && !yolgiz) {  // boshqa konstruksiyadagi xato shu konstruksiya narxini yashirmasin
+      const y = pyTannarx({ umumiy: zakaz.umumiy, konstruksiyalar: [{ ...z.konstruksiyalar.filter((k) => (k.soni ?? 1) !== 0)[j], soni: 1 }] });
+      if (!y.xato) { d = y; j = 0; yolgiz = true; }
+    }
     if (d.xato) {
       const m = d.xato.replace(/^[^:]*: /, "");
-      $("k-holat").innerHTML = `<span class="ogoh">${esc(m)}</span>` +
+      h.innerHTML = `<span class="ogoh">${esc(m)}</span>` +
         (/lapshali/.test(m) ? '<br><span class="xira">Impost qatoridagi Lapsha asbobi bilan yon oynani alohida ramaga ajrating.</span>' : "");
-      $("k-holat").className = "";
+      h.className = "";
       return;
     }
-    const k = d.ok.konstruksiyalar[0];
-    const oy = d.ok.oynalar.map((o) => `${o.joy} ${son(o.en, 2)}×${son(o.boy, 2)}${o.soni > 1 ? " ×" + o.soni : ""}`).join("; ");
-    $("k-holat").innerHTML = `<span class="k-narx">1 dona <b>${usd(k.bir_dona_usd)}</b></span>${k.izoh ? `<br><span class="ogoh">${esc(k.izoh)}</span>` : ""}${d.ok.narx_yoq.length ? `<br><span class="ogoh">Narxi yoʻq: ${esc(d.ok.narx_yoq.join(", "))}</span>` : ""}<br><span class="xira">Oynalar: ${esc(oy)}</span>`;
-    $("k-holat").className = "";
-  }, 250);
+    const k = d.ok.konstruksiyalar[j];
+    const oy = d.ok.oynalar.filter((o) => o.i === j).map((o) => `${o.joy} ${son(o.en, 2)}×${son(o.boy, 2)}${o.soni > 1 ? " ×" + o.soni : ""}`).join("; ");
+    h.innerHTML = `<span class="k-narx">1 dona <b>${usd(k.bir_dona_usd)}</b></span>${yolgiz ? ' <span class="xira">yolgʻiz hisob</span>' : ""}${k.izoh ? `<br><span class="ogoh">${esc(k.izoh)}</span>` : ""}${d.ok.narx_yoq.length ? `<br><span class="ogoh">Narxi yoʻq: ${esc(d.ok.narx_yoq.join(", "))}</span>` : ""}<br><span class="xira">Oynalar: ${esc(oy)}</span>`;
+    h.className = "";
+  }, OLDINDAN_KUTISH);
 }
 
 function sonOl(v) { const x = parseFloat(String(v).replace(",", ".")); return Number.isFinite(x) ? x : null; }
