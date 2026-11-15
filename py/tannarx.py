@@ -49,39 +49,17 @@ _YOLGIZ_KESH = {}
 _KESH_CHEGARA = 500
 
 
-def _yolgiz_otxod(umumiy, k, otxod_usuli, sklad, sklad_kalit):
-    """Konstruksiya (oʻz soni bilan) yolgʻiz zakaz boʻlsa: {"Profil otxod" kaliti: metr, 1 dona uchun}."""
-    kalit = json.dumps([umumiy, {a: b for a, b in k.items() if a != "nom"}, otxod_usuli, sklad_kalit],
-                       sort_keys=True, ensure_ascii=False)
+def _yolgiz_otxod(umumiy, k):
+    """Konstruksiyaning 1 donasi yolgʻiz zakaz boʻlsa (chegara usuli, skladsiz):
+    {"Profil otxod" kaliti: metr}. Manfiy boʻlishi mumkin (Aldoks 181 aylantirib kesish) — shundayligicha."""
+    k = {**{a: b for a, b in k.items() if a != "nom"}, "soni": 1}
+    kalit = json.dumps([umumiy, k], sort_keys=True, ensure_ascii=False)
     if kalit not in _YOLGIZ_KESH:
         if len(_YOLGIZ_KESH) >= _KESH_CHEGARA:
             _YOLGIZ_KESH.clear()
-        _, _, miq, _ = hisobla_zakaz({"umumiy": umumiy, "konstruksiyalar": [k]}, otxod_usuli, sklad)
+        _, _, miq, _ = hisobla_zakaz({"umumiy": umumiy, "konstruksiyalar": [k]}, "chegara", None)
         _YOLGIZ_KESH[kalit] = {q: u[0] for q, u in miq.items() if q[0] == "Profil otxod"}
     return _YOLGIZ_KESH[kalit]
-
-
-def _yolgiz_bolish(zakaz, faol, miqdorlar, narxlar, kurs, otxod_usuli, sklad):
-    """Otxod boʻlish C qoidasi (foydalanuvchi, 2026-11-15): zakazdagi jami otxod ($) konstruksiyalarga
-    ularning yolgʻiz hisobdagi otxodiga mutanosib — har konstruksiya otxodi = yolgʻiz otxodi × c,
-    c = zakaz otxodi / Σ yolgʻiz otxod (soni bilan). Jami oʻzgarmaydi; birga kesish otxodni
-    kamaytirsa (c ≤ 1) hech bir konstruksiya yolgʻizdagidan qimmat chiqmaydi.
-    "Profil otxod" qatorlari konstruksiyalarga yolgʻiz tuzilishi × c bilan qayta yoziladi
-    (profil qatori jami haqiqiy kesishdan biroz farq qilishi mumkin — qabul qilingan)."""
-    umumiy = zakaz.get("umumiy", {})
-    sklad_kalit = json.dumps(sklad, sort_keys=True, ensure_ascii=False) if sklad else None
-    yol = [_yolgiz_otxod(umumiy, k, otxod_usuli, sklad, sklad_kalit) for k in faol]
-    sonlar = [k.get("soni", 1) for k in faol]
-    narx = {}
-    for q in set(q for q in miqdorlar if q[0] == "Profil otxod").union(*[set(y) for y in yol]):
-        narx[q] = _narx(q, narxlar, kurs) or 0
-    zakazda = sum(narx[q] * sum(m * s for m, s in zip(miqdorlar.get(q, []), sonlar)) for q in narx)
-    yolgiz = sum(narx[q] * y.get(q, 0) * s for y, s in zip(yol, sonlar) for q in narx)
-    if yolgiz <= 0 or zakazda < 0:  # otxodsiz usul yoki sklad_tekin manfiy otxodi: metr boʻyicha qoladi
-        return
-    c = zakazda / yolgiz
-    for q in narx:
-        miqdorlar[q] = [round(y.get(q, 0) * c, 6) for y in yol]
 
 
 def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None, otxod_bolish="metr"):
@@ -89,7 +67,10 @@ def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None, otxod_
 
     otxod_usuli: raskroy.OTXOD_USULLARI kaliti (standart "chegara"); sklad: sklad varagʻi qatorlari (sklad usullari uchun).
     otxod_bolish: "metr" — har profil otxodi ishlatilgan metrga mutanosib (Sheets zakaz varagʻi qoidasi);
-    "yolgiz" — C qoida, ilova (konstruktor va zakaz kartasi) ishlatadi, qarang `_yolgiz_bolish`.
+    "yolgiz" — yolgʻiz narx (foydalanuvchi, 2026-11-15, ilova): konstruksiya 1 donasi oʻz yolgʻiz narxida
+    (chegara usuli, skladsiz, soni 1 — boshqa konstruksiyaga va tanlangan usulga bogʻliq emas);
+    materiallar va jami — haqiqiy kesish (tanlangan usul bilan); farqi `otxod_tuzatma_usd`
+    (jami = Σ konstruksiya jami_usd + otxod_tuzatma_usd).
     """
     from raskroy import OTXOD_USULLARI, STANDART_USUL, STRAXOVKA
 
@@ -108,10 +89,9 @@ def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None, otxod_
     if not faol:
         raise HisobXato("Hisoblanadigan konstruksiya yoʻq (hammasining soni 0)")
     konstruksiyalar, oynalar, miqdorlar, otxod = hisobla_zakaz({**zakaz, "konstruksiyalar": faol}, otxod_usuli, sklad)
-    if otxod_bolish == "yolgiz" and len(faol) > 1:
-        _yolgiz_bolish(zakaz, faol, miqdorlar, narxlar, kurs, otxod_usuli, sklad)
-    elif otxod_bolish not in ("metr", "yolgiz"):
+    if otxod_bolish not in ("metr", "yolgiz"):
         raise HisobXato(f"Otxod boʻlish usuli notoʻgʻri: {otxod_bolish}")
+    yol = [_yolgiz_otxod(zakaz.get("umumiy", {}), k) for k in faol] if otxod_bolish == "yolgiz" else None
     n = len(konstruksiyalar)
 
     materiallar, bir_dona, narx_yoq = [], [0.0] * n, []
@@ -120,18 +100,34 @@ def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None, otxod_
         jami = sum(m * k["soni"] for m, k in zip(ustun, konstruksiyalar))
         if narx is None:
             narx_yoq.append(f"{kalit[1]} {kalit[2]}".strip())
-        else:
+        elif not (yol and kalit[0] == "Profil otxod"):
             for i, m in enumerate(ustun):
                 bir_dona[i] += m * narx
+        if yol and kalit[0] == "Profil otxod":
+            ustun = [y.get(kalit, 0.0) for y in yol]  # konstruksiya xarajati (1 dona) — yolgʻiz otxod
+            if narx is not None:
+                for i, m in enumerate(ustun):
+                    bir_dona[i] += m * narx
         materiallar.append({
             "bolim": kalit[0], "artikul": kalit[1], "izoh": kalit[2], "birlik": kalit[3],
             "jami": round(jami, 6), "narx": narx,
             "summa": None if narx is None else round(jami * narx, 6),
             "bir_dona": ustun,
         })
+    if yol:  # yolgʻizda bor, birga kesishda yoʻq otxod qatori (kam uchraydi): narxga kiradi, jami 0
+        for kalit in sorted(set().union(*yol) - set(miqdorlar)):
+            narx = _narx(kalit, narxlar, kurs)
+            ustun = [y.get(kalit, 0.0) for y in yol]
+            if narx is not None:
+                for i, m in enumerate(ustun):
+                    bir_dona[i] += m * narx
+            materiallar.append({"bolim": kalit[0], "artikul": kalit[1], "izoh": kalit[2], "birlik": kalit[3],
+                                "jami": 0.0, "narx": narx, "summa": None if narx is None else 0.0, "bir_dona": ustun})
     royxat = []
     for k, b in zip(konstruksiyalar, bir_dona):
         dona = b * (1 + STRAXOVKA)
+        if yol:  # yolgʻiz narx: jami = yaxlitlangan 1 dona × soni (2 karta = 1 karta soni 2), sent farqi tuzatmada
+            dona = round(dona, 2)
         royxat.append({**k, "bir_dona_usd": round(dona, 2), "jami_usd": round(dona * k["soni"], 2)})
     mat = sum(m["summa"] for m in materiallar if m["summa"] is not None)
     jami_usd = round(mat * (1 + STRAXOVKA), 2)
@@ -146,6 +142,8 @@ def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None, otxod_
         "materiallar_usd": round(mat, 2),
         "straxovka_usd": round(mat * STRAXOVKA, 2),
         "jami_usd": jami_usd,
+        # yolgiz: haqiqiy kesish (tanlangan usul, birga) − konstruksiyalar yolgʻiz narxi; manfiy — tejam
+        "otxod_tuzatma_usd": round(jami_usd - sum(k["jami_usd"] for k in royxat), 2) if yol else 0.0,
         "kurs": kurs,
         "jami_som": round(mat * (1 + STRAXOVKA) * kurs),
         "narx_yoq": narx_yoq,

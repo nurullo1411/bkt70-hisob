@@ -299,9 +299,10 @@ function otxodUsuliniSaqla(usul, seriya = SERIYA) {
 }
 
 // Python hisobi: {ok: natija} yoki {xato: matn}
-// Otxod konstruksiyalarga C qoidasida boʻlinadi (yolgʻiz otxodga mutanosib; foydalanuvchi, 2026-11-15)
-function pyTannarx(z) {
-  const usul = otxodUsuli();
+// Konstruksiya narxi — yolgʻiz narx (chegara, skladsiz, 1 dona); jami — haqiqiy kesish, farqi otxod_tuzatma_usd (foydalanuvchi, 2026-11-15)
+function pyTannarx(z, faqatNarx) {
+  // faqatNarx (konstruktor): konstruksiya narxi usulga bogʻliq emas — chegara, skladsiz, tezroq
+  const usul = faqatNarx ? "chegara" : otxodUsuli();
   const sk = usul.startsWith("sklad") ? skladSaqlangan() : null;
   py.globals.set("_zakaz", JSON.stringify(z));
   py.globals.set("_kurs", Number($("kurs").value) || 12000);
@@ -420,11 +421,17 @@ function pul(usdQiymat) { return valyuta() === "usd" ? usd(usdQiymat) : som(usdQ
 // Zakazda hisob_kitob.ustama_seriya {seriya: foiz}; berilmagan seriyaga oxirgi kiritilgan foiz (localStorage
 // "ustama_seriya") yoziladi va zakazda muzlatiladi. Eski zakazdagi yagona ustama_foiz hamma seriyaga.
 function ustamaStandart() { try { return JSON.parse(ol("ustama_seriya")) || {}; } catch (e) { return {}; } }
+// Otxod tuzatmasi (haqiqiy kesish − konstruksiyalar yolgʻiz narxi) konstruksiyalarga narxiga mutanosib ulush:
+// ustama shu ulush bilan hisoblanadi, mijoz PDF ida qatorlar yigʻindisi = jami (2026-11-15)
+function tuzUlush(n, k) {
+  const t = n.otxod_tuzatma_usd || 0, s = n.konstruksiyalar.reduce((a, x) => a + x.jami_usd, 0);
+  return t && s ? t * k.jami_usd / s : 0;
+}
 function ustamalar(n = natija) {
   const h = hk(), st = ustamaStandart(), guruh = new Map();
   for (const k of n.konstruksiyalar) {
     const s = k.seriya || "Termo 70";
-    guruh.set(s, (guruh.get(s) || 0) + k.jami_usd);
+    guruh.set(s, (guruh.get(s) || 0) + k.jami_usd + tuzUlush(n, k));
   }
   let yozildi = false;
   const roy = [...guruh].map(([seriya, tannarx]) => {
@@ -439,6 +446,13 @@ function ustamalar(n = natija) {
 }
 function ustamaKoef(n, seriya) { const u = ustamalar(n).find((x) => x.seriya === (seriya || "Termo 70")); return 1 + (u ? u.foiz : 0) / 100; }
 
+// Qulflangan zakazda yangi hisob eski narxdan farq qilsa — eski narx_som (soʻm), aks holda null
+function narxQulfi(mijozga) {
+  const h = hk(), kurs = natija.kurs, ch = h.narx_chegirma_som != null ? Number(h.narx_chegirma_som) : Number(h.chegirma_som) || 0;
+  const qulf = !!((zakaz.shartnoma && zakaz.shartnoma.summa) || Number(h.avans_som) > 0 || Number(zakaz.tolangan) > 0 ||
+    holatOl(zakaz) !== "hisoblangan");
+  return qulf && zakaz.narx_som && Math.abs(zakaz.narx_som + ch - Math.round(mijozga * kurs)) > 1 ? zakaz.narx_som : null;
+}
 function hisobKitobniChiz() {
   const n = natija, h = hk(), kurs = n.kurs, v = valyuta();
   const otxod = n.materiallar.filter((m) => m.bolim === "Profil otxod").reduce((a, m) => a + (m.summa || 0), 0);
@@ -449,6 +463,10 @@ function hisobKitobniChiz() {
   $("j-str").textContent = pul(n.straxovka_usd);
   $("j-tan").textContent = pul(n.jami_usd);
   $("j-tan2").textContent = v === "usd" ? som(n.jami_som) : usd(n.jami_usd);
+  const tuz = n.otxod_tuzatma_usd || 0;
+  $("j-tuz-q").hidden = Math.abs(tuz) < 0.005;
+  $("j-tuz").textContent = (tuz > 0 ? "+ " : "− ") + pul(Math.abs(tuz));
+  $("j-tuz").className = tuz > 0 ? "zarar" : "tejam";
   const ust = ustamalar(n);
   const ustama = ust.reduce((a, u) => a + u.ustama, 0);
   const mijozga = n.jami_usd + ustama;
@@ -465,10 +483,21 @@ function hisobKitobniChiz() {
   const chegirma = (Number(h.chegirma_som) || 0) / kurs, avans = (Number(h.avans_som) || 0) / kurs;
   $("j-mijoz").textContent = pul(mijozga);
   $("x-narx").textContent = pul(mijozga);
-  $("j-tolov").textContent = pul(mijozga - chegirma);
-  $("j-qoldiq").textContent = pul(mijozga - chegirma - avans);
   const narxSom = Math.round((mijozga - chegirma) * kurs);
-  if (zakaz.narx_som !== narxSom) { zakaz.narx_som = narxSom; saqla("oxirgi_zakaz", JSON.stringify(zakaz)); }
+  // Shartnoma, avans, kassada toʻlov yoki ish boshlangan zakazda narx jimgina qayta yozilmaydi (foydalanuvchi, 2026-11-15).
+  // Chegirma oʻzgarishi qulfga tushmaydi (qoʻlda kiritiladi) — taqqoslash chegirmagacha.
+  const qolganSom = narxQulfi(mijozga);
+  $("j-tolov").textContent = qolganSom != null ? pul(qolganSom / kurs) : pul(mijozga - chegirma);
+  $("j-qoldiq").textContent = qolganSom != null ? pul(qolganSom / kurs - avans) : pul(mijozga - chegirma - avans);
+  const oz = $("narx-ozgardi");
+  if (qolganSom != null) {
+    oz.hidden = false;
+    oz.innerHTML = `Narx oʻzgardi: ${som(zakaz.narx_som)} → ${som(narxSom)}. <button class="kichik-t" data-narx-yangila="${narxSom}">Yangilash</button>`;
+  } else {
+    oz.hidden = true;
+    const ch = Number(h.chegirma_som) || 0;  // narx_som qaysi chegirma bilan yozilgani — qulfda chegirma oʻzgarishi uchun
+    if (zakaz.narx_som !== narxSom || h.narx_chegirma_som !== ch) { zakaz.narx_som = narxSom; h.narx_chegirma_som = ch; saqla("oxirgi_zakaz", JSON.stringify(zakaz)); }
+  }
   const sh = shartnomaSumma(zakaz);
   if (document.activeElement !== $("sh-summa")) $("sh-summa").value = zakaz.shartnoma && zakaz.shartnoma.summa ? zakaz.shartnoma.summa : "";
   $("sh-summa").placeholder = zakaz.narx_som ? String(zakaz.narx_som) + " (mijozga narx)" : "";
@@ -625,6 +654,7 @@ function matnNatija() {
   const m = zakaz.mijoz || {};
   if (m.ism || m.telefon) q.push(`Mijoz: ${[m.ism, m.telefon, m.manzil].filter(Boolean).join(", ")}`, "");
   for (const k of n.konstruksiyalar) q.push(`${k.nom}: ${k.L} × ${k.H}, ${k.soni} dona — ${usd(k.jami_usd)}`);
+  if (Math.abs(n.otxod_tuzatma_usd || 0) >= 0.005) q.push(`Otxod tuzatmasi: ${n.otxod_tuzatma_usd > 0 ? "+" : "−"} ${usd(Math.abs(n.otxod_tuzatma_usd))}`);
   q.push("", `Materiallar: ${usd(n.materiallar_usd)}`, `Straxovka: ${usd(n.straxovka_usd)}`,
     `JAMI: ${usd(n.jami_usd)} / ${som(n.jami_som)} (kurs ${n.kurs})`);
   if (n.narx_yoq.length) q.push("Narxi yoʻq: " + n.narx_yoq.join(", "));
@@ -853,6 +883,7 @@ function pdfHtml(o) {
   const k1 = (x) => (x ? ustamaKoef(n, x.seriya) : 1);
   const chegirma = Number(h.chegirma_som) || 0, avans = Number(h.avans_som) || 0;
   const boshlang = Math.round((n.jami_usd + ustamalar(n).reduce((a, u) => a + u.ustama, 0)) * kurs);
+  const qulfSom = narxQulfi(boshlang / kurs), kelish = qulfSom != null ? qulfSom : boshlang - chegirma;  // qulf: kelishilgan eski narx
   const hisob = Object.fromEntries(n.konstruksiyalar.map((k) => [k.nom, k]));
   const u = zakaz.umumiy;
   const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) > 0);
@@ -865,12 +896,12 @@ function pdfHtml(o) {
       ${ol("bajaruvchi") ? `<div class="p-baj"><b>${esc(ol("bajaruvchi"))}</b>${ol("bajaruvchi_tel") ? `<span>${esc(ol("bajaruvchi_tel"))}</span>` : ""}</div>` : ""}</div>
     <div class="p-mijoz">${malumot("Buyurtmachi", m.ism)}${malumot("Telefon", m.telefon)}${malumot("Manzil", m.manzil)}${malumot("Muddat", m.muddat)}</div>
     <table class="p-faktura"><thead><tr><th>№</th><th>Nomi</th><th>Oʻlchami, sm</th><th>Soni</th><th>Yuzasi</th>${o.narx ? "<th>Narxi</th>" : ""}</tr></thead><tbody>
-    ${faol.map((k, i) => { const x = kHisob(k); return `<tr><td>${i + 1}</td><td>${esc(k.nom)}</td><td>${esc(k.L)} × ${esc(k.H)}</td><td>${k.soni ?? 1}</td><td>${son(yuza(k) * (k.soni ?? 1), 2)} m²</td>${o.narx ? `<td>${x ? som(x.jami_usd * k1(x) * kurs) : "—"}</td>` : ""}</tr>`; }).join("")}
+    ${faol.map((k, i) => { const x = kHisob(k); return `<tr><td>${i + 1}</td><td>${esc(k.nom)}</td><td>${esc(k.L)} × ${esc(k.H)}</td><td>${k.soni ?? 1}</td><td>${son(yuza(k) * (k.soni ?? 1), 2)} m²</td>${o.narx ? `<td>${x ? som((x.jami_usd + tuzUlush(n, x)) * k1(x) * kurs) : "—"}</td>` : ""}</tr>`; }).join("")}
     </tbody><tfoot><tr><td></td><td>Jami</td><td></td><td>${jamiSoni}</td><td>${son(jamiM2, 2)} m²</td>${o.narx ? `<td>${som(boshlang)}</td>` : ""}</tr></tfoot></table>`;
   if (o.narx) {
     s += `<div class="p-jami">${chegirma ? `<div><span>Chegirma</span><b>− ${som(chegirma)}</b></div>` : ""}
-      <div class="p-asosiy"><span>Kelishilgan narx</span><b>${som(boshlang - chegirma)}</b></div>
-      ${avans ? `<div><span>Avans</span><b>${som(avans)}</b></div><div class="p-qoldiq"><span>Qoldiq</span><b>${som(boshlang - chegirma - avans)}</b></div>` : ""}</div>`;
+      <div class="p-asosiy"><span>Kelishilgan narx</span><b>${som(kelish)}</b></div>
+      ${avans ? `<div><span>Avans</span><b>${som(avans)}</b></div><div class="p-qoldiq"><span>Qoldiq</span><b>${som(kelish - avans)}</b></div>` : ""}</div>`;
   }
   s += `<div class="p-kartalar">`;
   faol.forEach((k, i) => {
@@ -880,7 +911,7 @@ function pdfHtml(o) {
       <div class="p-rasm">${chizmaSVG(k, { kichik: !o.olcham })}</div>
       <div class="p-xus">${malumot("Rama", k.rama || u.rama)}${malumot("Rang", t.rang_nomi ? `${t.rang} (${t.rang_nomi})` : t.rang)}
         ${malumot("Oyna", `${t.oyna_turi || ""} ${k.oyna_qalinligi || u.oyna_qalinligi || 24} mm`)}${malumot("Yuzasi", son(yuza(k), 2) + " m²")}
-        ${malumot("Izoh", k.eslatma)}${o.narx && x ? malumot("Narxi", som(x.jami_usd * k1(x) * kurs)) : ""}</div></div>`;
+        ${malumot("Izoh", k.eslatma)}${o.narx && x ? malumot("Narxi", som((x.jami_usd + tuzUlush(n, x)) * k1(x) * kurs)) : ""}</div></div>`;
   });
   s += `</div>`;
   if (o.mat) {
@@ -1506,3 +1537,12 @@ versiyaTekshir();
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") versiyaTekshir(); });
 window.addEventListener("DOMContentLoaded", arxivniChiz);
 yukla();
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-narx-yangila]");
+  if (!b || !zakaz) return;
+  zakaz.narx_som = Number(b.dataset.narxYangila);
+  hk().narx_chegirma_som = Number(hk().chegirma_som) || 0;
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+  hisobKitobniChiz();
+});

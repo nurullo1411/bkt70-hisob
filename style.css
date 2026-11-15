@@ -794,3 +794,5 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .ai-savol p { margin: 4px 0; }
 .ai-var { flex-wrap: wrap; gap: 6px; }
 .ai-javob { width: 100%; margin-top: 6px; }
+#j-tuz.tejam { color: var(--yaxshi); }
+#j-tuz.zarar { color: var(--xato); }
