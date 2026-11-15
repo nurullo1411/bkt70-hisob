@@ -7,36 +7,40 @@ const butunmi = (q, ch) => ch != null && Number(q) >= Number(ch);
 // Konstruksiya raqami: ① … ⑳, keyin (21)
 const doiraRaqam = (r) => (r >= 1 && r <= 20 ? String.fromCharCode(0x245F + r) : `(${r})`);
 
-// Skladsiz: kesish_chizmasi hivichlari [{bolaklar: [{uzunlik, k}], qoldiq}] → kartalar.
-// Bir xil kesiladigan hivichlar (uzunliklar + qoldiq) bitta kartaga; raqam(k) — boʻlak egasining raqami (null — yoʻq).
-function hivichKartalar(hivichlar, L, raqam) {
-  const g = new Map();
-  for (const h of hivichlar || []) {
-    const uz = h.bolaklar.map((b) => sm100(b.uzunlik)).sort((a, b) => b - a);
-    const kalit = uz.join(",") + "|" + sm100(h.qoldiq);
-    let k = g.get(kalit);
-    if (!k) {
-      const n = new Map();
-      for (const d of uz) n.set(d, (n.get(d) || 0) + 1);
-      k = { manba: "YANGI", L, soni: 0, qoldiq: h.qoldiq, n, r: new Map() };
-      g.set(kalit, k);
-    }
-    k.soni++;
-    for (const b of h.bolaklar) {
-      const d = sm100(b.uzunlik), r = raqam ? raqam(b.k) : null;
-      if (!k.r.has(d)) k.r.set(d, new Set());
-      if (r != null && r !== "") k.r.get(d).add(r);
-    }
+// Bitta hivich boʻlaklari [[d100, raqam]] → karta guruhi kaliti va boʻlaklar [[d, n, [raqam]]].
+// Raqamlari har xil hivichlar alohida kartada (foydalanuvchi, 2026-11-15): boʻlak (uzunlik, raqam) juftligi boʻyicha.
+function hivichGuruh(juft) {
+  const n = new Map();
+  for (const [d, r] of juft) {
+    const k = d + "|" + (r == null || r === "" ? "" : r);
+    n.set(k, (n.get(k) || 0) + 1);
   }
-  return [...g.values()].sort((a, b) => sm100(a.qoldiq) - sm100(b.qoldiq)).map((k) => ({
-    manba: k.manba, L: k.L, soni: k.soni, qoldiq: k.qoldiq,
-    bolaklar: [...k.n].map(([d, n]) => [d / 100, n, [...k.r.get(d)].sort((a, b) => a - b)]),
-  }));
+  const bolaklar = [...n].map(([k, c]) => { const [d, r] = k.split("|"); return [Number(d) / 100, c, r === "" ? [] : [isNaN(r) ? r : Number(r)]]; })
+    .sort((x, y) => y[0] - x[0] || (x[2][0] ?? 0) - (y[2][0] ?? 0));
+  return { kalit: bolaklar.map((x) => `${sm100(x[0])}:${x[1]}:${x[2].join()}`).join(","), bolaklar };
+}
+// Kartalarga yigʻish: bir xil kalit + qoldiq — bitta karta (soni++). tartib: chaqiruvchi beradi.
+function yigKartalar(hivichlar) {
+  const g = new Map();
+  for (const h of hivichlar) {
+    const { kalit, bolaklar } = hivichGuruh(h.juft), k = h.manba + "|" + sm100(h.L) + "|" + kalit + "|" + sm100(h.qoldiq);
+    if (g.has(k)) g.get(k).soni++;
+    else g.set(k, { manba: h.manba, L: h.L, soni: 1, qoldiq: h.qoldiq, bolaklar });
+  }
+  return [...g.values()];
 }
 
-// Sklad rejasi: sklad_rejasi kartalari [{manba, L, soni, qoldiq, bolaklar: [[d, n]]}] ga raqamlar.
-// Har uzunlikka konstruksiyalar detallaridan navbat (kesish_chizmasi dagi egalari.pop kabi) — boʻlak aniq egasiga.
-// konstruksiyalar: [{raqam, detallar: [{uzunlik, soni}]}] (raqam null — topilmadi, yozilmaydi)
+// Skladsiz: kesish_chizmasi hivichlari [{bolaklar: [{uzunlik, k}], qoldiq}] → kartalar (qoldiq oʻsishi tartibida).
+// raqam(k) — boʻlak egasining raqami (null — yoʻq).
+function hivichKartalar(hivichlar, L, raqam) {
+  return yigKartalar((hivichlar || []).map((h) => ({ manba: "YANGI", L, qoldiq: h.qoldiq,
+    juft: h.bolaklar.map((b) => [sm100(b.uzunlik), raqam ? raqam(b.k) : null]) })))
+    .sort((a, b) => sm100(a.qoldiq) - sm100(b.qoldiq));
+}
+
+// Sklad rejasi: sklad_rejasi kartalari [{manba, L, soni, qoldiq, bolaklar: [[d, n]]}] → har hivichga raqam
+// (har uzunlikka konstruksiyalar detallaridan navbat, kesish_chizmasi dagi egalari.pop kabi), keyin qayta yigʻiladi.
+// Kartalar tartibi (SKLAD → YANGI) saqlanadi. konstruksiyalar: [{raqam, detallar: [{uzunlik, soni}]}]
 function skladKartalar(kartalar, konstruksiyalar) {
   const navbat = new Map();
   for (const c of konstruksiyalar || []) {
@@ -46,14 +50,17 @@ function skladKartalar(kartalar, konstruksiyalar) {
       navbat.set(sm100(d.uzunlik), q);
     }
   }
-  return (kartalar || []).map((k) => ({
-    ...k,
-    bolaklar: k.bolaklar.map(([d, n]) => {
-      const s = new Set(), q = navbat.get(sm100(d)) || [];
-      for (let i = 0; i < n * k.soni && q.length; i++) { const r = q.pop(); if (r != null && r !== "") s.add(r); }
-      return [d, n, [...s].sort((a, b) => a - b)];
-    }),
-  }));
+  const natija = [];
+  for (const k of kartalar || []) {
+    const hiv = [];
+    for (let i = 0; i < k.soni; i++) {
+      const juft = [];
+      for (const [d, n] of k.bolaklar) for (let j = 0; j < n; j++) { const q = navbat.get(sm100(d)); juft.push([sm100(d), q && q.length ? q.pop() : null]); }
+      hiv.push({ manba: k.manba, L: k.L, qoldiq: k.qoldiq, juft });
+    }
+    natija.push(...yigKartalar(hiv));
+  }
+  return natija;
 }
 
 // Profil boʻyicha yigʻindi: yangi hivich soni, skladdan ishlatilgan sm, butun qoldiqlar, jami qoldiq, samaradorlik
@@ -78,4 +85,4 @@ function jamiMatn(j, hivich) {
   return q.join(" · ");
 }
 
-if (typeof module !== "undefined") module.exports = { sm100, kkSon, butunmi, doiraRaqam, hivichKartalar, skladKartalar, kartaJami, jamiMatn };
+if (typeof module !== "undefined") module.exports = { hivichGuruh, sm100, kkSon, butunmi, doiraRaqam, hivichKartalar, skladKartalar, kartaJami, jamiMatn };

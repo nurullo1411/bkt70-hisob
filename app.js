@@ -628,6 +628,8 @@ const kesimMatn = (t) => { const i = String(t).indexOf("DIQQAT"); return i < 0 ?
 function profilKartaHtml(o) {
   const j = kartaJami(o.kartalar, o.chegara), H = o.hivich_sm;
   const belgi = o.togri ? "□ " : "";
+  // Aylantirib kesishda qoldiq uchi qiya — raskroy qoldigʻi uzun tomoni (foydalanuvchi, 2026-11-15: sex uzun tomonidan oʻlchaydi)
+  const uzun = /aylantirib/.test(String(o.kesim));
   const sar = o.sklad ? (j.yangi ? `${kkSon(H)} sm × ${j.yangi} dona + skladdan ${j.skladSoni} boʻlak` : `faqat skladdan, ${j.skladSoni} boʻlak`)
     : `${kkSon(H)} sm × ${j.yangi} dona`;
   const karta = (k) => {
@@ -635,7 +637,7 @@ function profilKartaHtml(o) {
     return `<div class="kk${k.manba === "SKLAD" ? " sklad" : ""}">
       <div class="kk-sar">${k.manba === "SKLAD" ? `SKLAD QOLDIQ ${kkSon(k.L)} sm` : `YANGI ${kkSon(k.L)} sm profil`} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
       ${k.bolaklar.map(([d, n, rq]) => `<div class="kk-b"><span>${belgi}${kkSon(d)} × ${n}</span>${rq.length ? `<span class="kk-r">· ${rq.map(doiraRaqam).join(" ")}</span>` : ""}</div>`).join("")}
-      <div class="kk-q${b ? " butun" : ""}">qoldiq: ${kkSon(k.qoldiq)} sm${b ? " — butun boʻlak, saqlab qoʻying" : ""}</div></div>`;
+      <div class="kk-q${b ? " butun" : ""}">qoldiq: ${kkSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}${b ? " — butun boʻlak, saqlab qoʻying" : ""}</div></div>`;
   };
   return `<div class="kk-profil">
     <div class="kk-bosh"><span><b>${esc(o.nom)}</b> — ${sar}</span>${o.chizma ? '<button class="kk-chizma-t" data-chizma aria-expanded="false">Chizma</button>' : ""}</div>
