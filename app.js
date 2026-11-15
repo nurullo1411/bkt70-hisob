@@ -623,19 +623,51 @@ _kn`));
 // "DIQQAT: …" qismi qizil (shtapik +0,4 sm zapas)
 const kesimMatn = (t) => { const i = String(t).indexOf("DIQQAT"); return i < 0 ? esc(t) : esc(t.slice(0, i)) + `<b class="kesim-ogoh">${esc(t.slice(i))}</b>`; };
 // Boʻlak "k" — faol (soni ≠ 0) konstruksiyalar ichidagi indeks (raskroy.kesish_chizmasi bilan bir xil shart)
+// Kesish kartalari (foydalanuvchi, 2026-11-15): profil → kartalar (SKLAD, keyin YANGI), boʻlak yonida konstruksiya raqami
+// (kulrang, rangsiz — qora-oq chop etishda ham). Rangli chiziqli chizma — "Chizma" tugmasi ostida. Logika: kesish_karta.js
+function profilKartaHtml(o) {
+  const j = kartaJami(o.kartalar, o.chegara), H = o.hivich_sm;
+  const belgi = o.togri ? "□ " : "";
+  const sar = o.sklad ? (j.yangi ? `${kkSon(H)} sm × ${j.yangi} dona + skladdan ${j.skladSoni} boʻlak` : `faqat skladdan, ${j.skladSoni} boʻlak`)
+    : `${kkSon(H)} sm × ${j.yangi} dona`;
+  const karta = (k) => {
+    const b = butunmi(k.qoldiq, o.chegara);
+    return `<div class="kk${k.manba === "SKLAD" ? " sklad" : ""}">
+      <div class="kk-sar">${k.manba === "SKLAD" ? `SKLAD QOLDIQ ${kkSon(k.L)} sm` : `YANGI ${kkSon(k.L)} sm profil`} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
+      ${k.bolaklar.map(([d, n, rq]) => `<div class="kk-b"><span>${belgi}${kkSon(d)} × ${n}</span>${rq.length ? `<span class="kk-r">· ${rq.map(doiraRaqam).join(" ")}</span>` : ""}</div>`).join("")}
+      <div class="kk-q${b ? " butun" : ""}">qoldiq: ${kkSon(k.qoldiq)} sm${b ? " — butun boʻlak, saqlab qoʻying" : ""}</div></div>`;
+  };
+  return `<div class="kk-profil">
+    <div class="kk-bosh"><span><b>${esc(o.nom)}</b> — ${sar}</span>${o.chizma ? '<button class="kk-chizma-t" data-chizma aria-expanded="false">Chizma</button>' : ""}</div>
+    <div class="kk-stat">Samaradorlik <b>${son(o.samaradorlik ?? j.samaradorlik, 1)} %</b> · Kesimlar <b>${o.kesimlar ?? j.kesim}</b> · Jami qoldiq <b>${kkSon(o.qoldiq_sm ?? j.qoldiq)} sm</b></div>
+    <div class="kk-kesim">${kesimMatn(o.kesim)}${o.chegara ? ` · ${o.chegara} sm dan kichik qoldiq otxod` : ""}${o.togri ? " · □ — 90°, gradusga kesilmaydi" : ""}</div>
+    ${o.chizma ? `<div class="kk-chizma" hidden>${o.chizma}</div>` : ""}
+    <div class="kk-kartalar">${o.kartalar.map(karta).join("")}</div>
+    <div class="kk-jami">${jamiMatn(j, H)}</div>
+  </div>`;
+}
+// Skladsiz: boʻlak "k" — faol (soni ≠ 0) konstruksiyalar ichidagi indeks (raskroy.kesish_chizmasi bilan bir xil shart)
 function kesishHtml(r) {
   const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) !== 0);
   const kk = (i) => faol[i] || { rang_id: i + 1 };
   const leg = r.konstruksiyalar.map((k, i) => `<span class="kl">${kRaqamHtml(kk(i))}${esc(k.nom)} × ${k.soni}</span>`).join("");
-  return `<div class="k-leg">${leg}</div>` + r.profillar.map((p) => `<div class="kp">
-    <div class="kp-bosh"><b>${esc(p.nom)}</b><span>${p.hivich_sm} sm × ${p.hivichlar.length} dona</span></div>
-    <div class="kp-stat"><span>Samaradorlik <b>${son(p.samaradorlik, 1)}%</b></span><span>Kesimlar <b>${p.kesimlar}</b></span><span>Qoldiq <b>${son(p.qoldiq_sm, 1)} sm</b></span></div>
-    <div class="xira kp-kesim">${kesimMatn(p.kesim)}${p.otxod_chegara ? ` · ${p.otxod_chegara} sm dan kichik qoldiq otxod` : ""}</div>
-    ${p.hivichlar.map((h, i) => `<div class="kb-qator"><span class="kb-n">#${i + 1}</span><div class="kb">${h.bolaklar.map((b) =>
+  const chizma = (p) => p.hivichlar.map((h, i) => `<div class="kb-qator"><span class="kb-n">#${i + 1}</span><div class="kb">${h.bolaklar.map((b) =>
       `<div style="flex:${b.uzunlik} 0 0;background:${kRang(kk(b.k))[0]};color:${kRang(kk(b.k))[1]}"><i>${kRaqam(kk(b.k))}</i>${son(b.uzunlik, 1)}</div>`).join("")}${h.qoldiq > 0 ?
-      `<div class="kb-q${p.otxod_chegara && h.qoldiq < p.otxod_chegara ? " otx" : ""}" style="flex:${h.qoldiq} 0 0">${son(h.qoldiq, 1)}</div>` : ""}</div></div>`).join("")}
-  </div>`).join("");
+      `<div class="kb-q${p.otxod_chegara && h.qoldiq < p.otxod_chegara ? " otx" : ""}" style="flex:${h.qoldiq} 0 0">${son(h.qoldiq, 1)}</div>` : ""}</div></div>`).join("");
+  return `<div class="k-leg">${leg}</div>` + r.profillar.map((p) => profilKartaHtml({
+    nom: p.nom, hivich_sm: p.hivich_sm, kesim: p.kesim, chegara: p.otxod_chegara,
+    samaradorlik: p.samaradorlik, kesimlar: p.kesimlar, qoldiq_sm: p.qoldiq_sm,
+    kartalar: hivichKartalar(p.hivichlar, p.hivich_sm, (i) => kRaqam(kk(i))), chizma: chizma(p),
+  })).join("");
 }
+$("kesish").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-chizma]");
+  if (!b) return;
+  const c = b.closest(".kk-profil").querySelector(".kk-chizma");
+  c.hidden = !c.hidden;
+  b.setAttribute("aria-expanded", String(!c.hidden));
+  b.textContent = c.hidden ? "Chizma" : "Yopish";
+});
 function kesishniChiz() {
   if (!py || !zakaz || !kesishEskirgan) return;
   const d = kesishOl();
@@ -1135,21 +1167,24 @@ _sk`));
       <button class="tugma" data-sr-pdf="${i}">PDF</button></div>`).join("") +
     (r.izohlar.length ? `<details class="xira"><summary>Skladdagi ${r.izohlar.length} ta qator olinmadi</summary>${r.izohlar.map(esc).join("<br>")}</details>` : "");
 }
+// Profil otxod chegarasi (raskroy.OTXOD_CHEGARA, faqat oʻqiladi) — "butun boʻlak" belgisi uchun
+let otxodChegaralari = null;
+function otxodChegarasi(profil) {
+  if (!otxodChegaralari) { try { otxodChegaralari = JSON.parse(py.runPython("import raskroy, json\njson.dumps(raskroy.OTXOD_CHEGARA)")); } catch (e) { return null; } }
+  return otxodChegaralari[profil] ?? null;
+}
 function skladPdfHtml(r, p) {
   const nom = zakaz.raqam ? "№" + zakaz.raqam + " " + ((zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "") : (zakaz.nom || "");
   const belgi = p.togri ? "□ " : "";
-  const karta = (k) => `<div class="sp-karta"><div class="sp-k-bosh${k.manba === "SKLAD" ? " sp-sklad" : ""}">${k.manba === "YANGI"
-      ? `YANGI ${son(k.L, 0)} sm hivich × ${k.soni} dona` : `SKLAD QOLDIQ ${son(k.L, 2)} sm × ${k.soni} dona`}</div>
-    ${k.bolaklar.map(([d, n]) => `<div class="sp-b">${belgi}${son(d, 2)} × ${n}</div>`).join("")}
-    <div class="sp-q">qoldiq: ${son(k.qoldiq, 2)} sm</div></div>`;
+  // Konstruksiya raqami nom boʻyicha — faqat bitta mos kelsa (nomsiz/takror nomda raqam yozilmaydi)
+  const kOl = (n) => { const m = zakaz.konstruksiyalar.filter((z) => z.nom === n && (z.soni ?? 1) !== 0); return m.length === 1 ? m[0] : null; };
+  const kartalar = skladKartalar(p.kartalar, p.konstruksiyalar.map((k) => ({ raqam: kOl(k.nom) ? kRaqam(kOl(k.nom)) : null, detallar: k.detallar })));
   return `<div class="sp">
-    <div class="p-sarlavha">${esc(p.nom)} — kesish rejasi</div>
-    <div>Zakaz: ${esc(nom)} · Rang: ${esc(r.rang)} · Hivich ${son((p.hivich_sm || r.hivich_sm) / 100, 1)} m · ${new Date().toISOString().slice(0, 10)}</div>
-    <div class="xira">${kesimMatn(p.kesim)}${p.togri ? " · □ — gradusga kesilmaydi (90°)" : ""}</div>
-    <div class="sp-kartalar">${p.kartalar.map(karta).join("")}</div>
-    <div class="sp-jami"><b>Jami yangi ${son((p.hivich_sm || r.hivich_sm) / 100, 1)} m hivich: ${p.yangi_soni} dona</b><br>Skladdan: ${p.sklad_soni} boʻlak · Jami detal: ${p.jami_detal} dona</div>
+    <div class="p-sarlavha">Profil kesish rejasi</div>
+    <div>Zakaz: ${esc(nom)} · Rang: ${esc(r.rang)} · ${new Date().toISOString().slice(0, 10)}</div>
+    ${profilKartaHtml({ nom: p.nom, hivich_sm: p.hivich_sm || r.hivich_sm, kesim: p.kesim, chegara: otxodChegarasi(p.profil), togri: p.togri, sklad: true, kartalar })}
     <div class="sp-sar">Qaysi konstruksiyaga</div>
-    ${p.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${(({ x }) => (x ? kRaqamHtml(x) + " " : ""))({ x: zakaz.konstruksiyalar.find((z) => z.nom === k.nom) })}${esc(k.nom)}: ${son(k.L, 1)} × ${son(k.H, 1)} sm, ${k.soni} dona</b>
+    ${p.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${kOl(k.nom) ? kRaqamHtml(kOl(k.nom)) + " " : ""}${esc(k.nom)}: ${son(k.L, 1)} × ${son(k.H, 1)} sm, ${k.soni} dona</b>
       ${k.detallar.map((x) => `<div>${belgi}${esc(x.nomi)}: ${son(x.uzunlik, 2)} × ${x.soni}</div>`).join("")}</div>`).join("")}
   </div>`;
 }
@@ -1189,7 +1224,7 @@ $("kesish-pdf").addEventListener("click", () => {
   kesishniChiz();
   if (!kesishNatija) return;
   $("chop").innerHTML = `<div class="p-sarlavha">Kesish chizmasi — ${esc(zakaz.raqam ? "№" + zakaz.raqam + " " : "")}${esc((zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "")}</div>
-    <div>Hivich 650 sm, skladsiz. Sana: ${new Date().toISOString().slice(0, 10)}</div>` + kesishHtml(kesishNatija);
+    <div>Skladsiz (narx hisobidagi variant). Sana: ${new Date().toISOString().slice(0, 10)}</div>` + kesishHtml(kesishNatija);
   const eski = document.title;
   document.title = "Kesish " + (zakaz.raqam ? "№" + zakaz.raqam : zakaz.nom || "");
   setTimeout(() => { window.print(); document.title = eski; }, 100);

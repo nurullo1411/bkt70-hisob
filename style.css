@@ -922,3 +922,37 @@ header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: 
   #e-zakaz { padding-bottom: 56px; }
   #e-zakaz .tablar button { flex-direction: row; justify-content: center; gap: 8px; min-height: 48px; padding-top: 4px; padding-bottom: 4px; }
 }
+
+/* ===== Kesish kartalari (2026-11-15, docs/dizayn.md "Kesish kartalari") ===== */
+.kk-profil { padding: 14px 0; border-top: 1px solid var(--chiziq); font-size: 16px; }
+.k-leg + .kk-profil, .sp .kk-profil { border-top: 0; }
+.kk-bosh { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; font-size: 17px; line-height: 1.3; }
+.kk-bosh b { font-size: 18px; }
+.kk-chizma-t { flex: 0 0 auto; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta);
+  color: var(--matn); font: 600 14px/1 system-ui, sans-serif; cursor: pointer; }
+.kk-stat { margin-top: 4px; font-size: 16px; font-variant-numeric: tabular-nums; }
+.kk-kesim { margin-top: 2px; font-size: 15px; color: var(--xira); }
+.kk-chizma { margin-top: 10px; }
+.kk-kartalar { display: grid; gap: 10px; margin-top: 12px; }
+.kk { border: 1px solid var(--chiziq); border-radius: 12px; padding: 10px 14px; background: var(--karta); font-variant-numeric: tabular-nums; break-inside: avoid; }
+.kk.sklad { border-left: 4px solid var(--aks-s-t); }
+.kk-sar { font-weight: 800; font-size: 16px; color: var(--aks-k-t); margin-bottom: 4px; }
+.kk.sklad .kk-sar { color: var(--aks-s-t); }
+.kk-sar small { font-weight: 500; font-size: 14px; color: var(--xira); }
+.kk-b { display: flex; gap: 8px; align-items: baseline; font-size: 17px; line-height: 1.5; padding-left: 8px; }
+.kk-r { font-size: 15px; color: var(--xira); letter-spacing: 1px; }
+.kk-q { margin-top: 4px; font-size: 15px; color: var(--xira); }
+.kk-q.butun { color: var(--matn); font-weight: 800; padding: 4px 8px; border: 2px solid var(--matn); border-radius: 8px; display: inline-block; }
+.kk-jami { margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: var(--aks-k-fon); border: 1px solid var(--chiziq); font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+@media print {
+  .kk-chizma-t, .kk-chizma { display: none !important; }
+  .kk-profil { break-inside: auto; }
+  .kk-kartalar { grid-template-columns: 1fr 1fr; }
+  .kk { border-color: #999; }
+  .kk-sar { color: #000 !important; }
+  .kk-r, .kk-q, .kk-kesim { color: #444 !important; }
+  .kk-q.butun { color: #000 !important; border-color: #000; }
+  .kk-jami { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+.kk-b > span:first-child { white-space: nowrap; }
+.kk-r, .kk-q, .kk-kesim, .kk-sar small { font-size: 16px; }
