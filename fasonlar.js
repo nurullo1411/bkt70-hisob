@@ -23,7 +23,10 @@ const TEPA = 0.25, PAST = 0.2;                                              // t
 // Faqat konstruksiya tepasiga tegadigan boʻlinishda; ichkaridagi kichik boʻlinish — eski ulush (25 %).
 const framugaBoyi = (h, eshik) => (eshik ? (h <= 270 ? 45 : h <= 290 ? 50 : 55) : (h < 180 ? 45 : h <= 220 ? 50 : 55));
 const FR = (jami, c, ol, h, tepada) => (!tepada ? TEPA * jami : c.arka ? c.arka + 15 : framugaBoyi(h, c.eshik));
-const ORTA = (jami, c, ol) => jami - ol[0] - PAST * jami;                   // 3 qavatda oʻrtasi: framuga va pastdan qolgani
+// Pastki gluxoy 70 sm (foydalanuvchi, 2026-11-15; rasmdan oʻqishdagidek); oʻrtaga 30 sm dan kam qolsa — eski 20 %
+const PAST_SM = 70;
+const pastBoy = (jami, tepa) => (jami - tepa - PAST_SM >= 30 ? PAST_SM : PAST * jami);
+const ORTA = (jami, c, ol) => jami - ol[0] - pastBoy(jami, ol[0]);         // 3 qavatda oʻrtasi: framuga va pastdan qolgani
 const fTepa = (...b) => fYot([FR], ...b);                                   // tepada framuga
 const fUch = () => fYot([FR, ORTA], fG(), fG(), fG());                      // framuga, oʻrta, past kichik
 // lapsha: alohida ramalar (H702); kalta ramaga _k — boʻy ulushi (tepaga tekislanadi)

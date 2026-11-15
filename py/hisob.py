@@ -892,7 +892,7 @@ def _ichki_chift(b, z, h, ctx, vertikal, profil):
         _bolak(bola, yangi, h, ctx)
 
 
-def _kosa_kesimlari(profil, en, boy, h, kesim, cy):
+def _kosa_kesimlari(profil, en, boy, h, kesim, cy, yol=None):
     """Ustun ichidagi chift kesgan kosa tomonlari: butun kosa oʻrniga boʻlaklar (har uchi chift oʻqidan cy qolib)."""
     zapas = h.seriya.rama_payvand
     for tomon, joylar in kesim.items():
@@ -907,7 +907,9 @@ def _kosa_kesimlari(profil, en, boy, h, kesim, cy):
             del h.profillar[kalit]
         nuqta = [D(0), *sorted(joylar), jami]
         for a, c in zip(nuqta, nuqta[1:]):
-            h.detal(nomi, profil, c - a - (cy if a > 0 else 0) - (cy if c < jami else 0) + zapas, 1)
+            # chizmada shu kosa boʻlagi ustida yoziladi: belgi ("kesik", rama yoʻli, "tomon:oʻrtasi")
+            with _yozuv(h, ("kesik", yol, f"{tomon}:{float((a + c) / 2)}") if yol is not None else None):
+                h.detal(nomi, profil, c - a - (cy if a > 0 else 0) - (cy if c < jami else 0) + zapas, 1)
 
 
 def _egilgan_bolinish(b, z, h, ctx):
@@ -1267,7 +1269,8 @@ def _rama_hisobi(profil, impost, en, boy, bolak, h):
            "rama_en": en, "rama_boy": boy, "kesim": {"chap": [], "ong": [], "tepa": [], "past": []}}
     _bolak(bolak, Zona(en, boy, r, r, r, r, tepa_yoy=h.arka), h, ctx)
     if any(ctx["kesim"].values()):
-        _kosa_kesimlari(profil, en, boy, h, ctx["kesim"], IMPOST_YARMI[h.seriya.chift] + h.lam / 2)
+        _kosa_kesimlari(profil, en, boy, h, ctx["kesim"], IMPOST_YARMI[h.seriya.chift] + h.lam / 2,
+                        bolak.get("_yol") if isinstance(bolak, dict) else None)
 
 
 LAPSHA_SAMOREZ_QADAM = D(100)

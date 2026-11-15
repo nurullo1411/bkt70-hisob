@@ -93,7 +93,7 @@ let tabOl = {};
 // Profil ustidagi kesish uzunligi (foydalanuvchi, 2026-11-15): har tugunga "_yol", hisob.py "yozuvlar" qaytaradi
 // → {rama: {p: [{nomi, uzunlik}]}, kosa: {p: [uzunlik…]}, imp: {"p|i": uzunlik}, ii: {"p|yol": [uzunlik…]}}
 function chizmaMalumot(k) {
-  const bosh = { tab: {}, yoz: { rama: {}, kosa: {}, imp: {}, ii: {}, shtulp: {} } };
+  const bosh = { tab: {}, yoz: { rama: {}, kosa: {}, imp: {}, ii: {}, shtulp: {}, kesik: {} } };
   if (typeof pyChizma !== "function" || !k || !k.bolak) return bosh;
   const c = nusxa(k), m = bosh.tab, y = bosh.yoz;
   const iiYol = (n, p, yol) => {
@@ -118,6 +118,7 @@ function chizmaMalumot(k) {
     else if (tur === "imp") y.imp[`${p}|${i}`] = z.uzunlik;
     else if (tur === "ii") (y.ii[p] = y.ii[p] || []).push(z.uzunlik);
     else if (tur === "shtulp") y.shtulp[p] = z.uzunlik;
+    else if (tur === "kesik") { const [tomon, joy] = String(i).split(":"); (y.kesik[p] = y.kesik[p] || []).push({ tomon, joy: Number(joy), u: z.uzunlik }); }
   }
   return bosh;
 }
@@ -879,14 +880,21 @@ function chizmaSVG(k, opts = {}) {
             kesYozuv.push(tikBol ? kesMatn(m, r.y + cT, u) + kesMatn(m, r.y + r.h - cT, u) : kesMatn(r.x + cT, m, u, true) + kesMatn(r.x + r.w - cT, m, u, true));
           });
         }
+        // ustun ichidagi chift kesgan kosa boʻlaklari (foydalanuvchi, 2026-11-15) — shu tomonda butun uzunlik oʻrniga
+        const kes = (Y.kesik || {})[r.p] || [], kesT = new Set(kes.map((z) => z.tomon));
+        for (const z of kes) {
+          if (z.tomon === "chap" || z.tomon === "ong") kesYozuv.push(kesMatn(z.tomon === "chap" ? r.x + cT : r.x + r.w - cT, r.y + z.joy, z.u, true));
+          else kesYozuv.push(kesMatn(r.x + z.joy, z.tomon === "tepa" ? r.y + cT : r.y + r.h - cT, z.u));
+        }
         if (eni && !(ks && tikBol)) {
-          kesYozuv.push(kesMatn(r.x + r.w / 2, r.y + r.h - cT, eni));
-          if (!(r.asosiy && ark)) kesYozuv.push(kesMatn(r.x + r.w / 2, r.y + cT, eni));
+          if (!kesT.has("past")) kesYozuv.push(kesMatn(r.x + r.w / 2, r.y + r.h - cT, eni));
+          if (!(r.asosiy && ark) && !kesT.has("tepa")) kesYozuv.push(kesMatn(r.x + r.w / 2, r.y + cT, eni));
         }
         if (arka && r.asosiy && ark) kesYozuv.push(kesMatn(r.x + r.w / 2, r.y + cT, arka));
         if (boy && !(ks && bol.length && !tikBol)) {
           const my = r.asosiy && ark ? r.y + r.h * 0.7 : r.y + r.h / 2;
-          kesYozuv.push(kesMatn(r.x + cT, my, boy, true) + kesMatn(r.x + r.w - cT, my, boy, true));
+          if (!kesT.has("chap")) kesYozuv.push(kesMatn(r.x + cT, my, boy, true));
+          if (!kesT.has("ong")) kesYozuv.push(kesMatn(r.x + r.w - cT, my, boy, true));
         }
       }
       for (const c of g.impostlar) {
