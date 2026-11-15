@@ -1099,11 +1099,14 @@ const lambriBor = () => true;  // Aldoksda ham PVX lambri (foydalanuvchi, 2026-1
 function asboblarniChiz() {
   if (!bolimBor(bolim)) bolim = "impost";
   $("k-bolimlar").innerHTML = BOLIMLAR.filter(([id]) => bolimBor(id)).map(([id, nom, i]) => `<button data-bolim="${id}" class="${id === bolim ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("") +
+    `<button data-qalam class="${qalam ? "faol" : ""}" title="Qoʻlda chizish" aria-label="Qoʻlda chizish">✏️</button>` +
     `<span class="bosh"></span><button data-tarix="orqaga" ${orqaga.length ? "" : "disabled"} aria-label="Orqaga">↶</button><button data-tarix="oldinga" ${oldinga.length ? "" : "disabled"} aria-label="Oldinga">↷</button>`;
   const faolId = bolim === "shakl" ? shaklId(tahrir) : asbob;
   let html = ASBOBLAR[bolim].filter(([id]) => asbobBor(id)).map(([id, nom, i]) => `<button data-asbob="${id}" class="nomli${id === faolId ? " faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("");
   $("k-asboblar").innerHTML = html;
   const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
+  $("k-chizma").classList.toggle("qalam", qalam);
+  if (qalam) { $("k-maslahat").textContent = QALAM_MASLAHAT; return; }
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
   $("k-maslahat").textContent = asbob === "ochir" ? "Impostni olib tashlash: impost yonidagi boʻlakka bosing — shu boʻlak va uning chap/tepa impost(i) olinadi, joyi qoʻshnisiga oʻtadi"
     : nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbobni bosib turib boʻlakka suring. Boʻlak yoki impostga bosib tanlang, impostni surib joyini oʻzgartiring, oʻlcham — raqamga bosing.";
@@ -1621,6 +1624,77 @@ function svgNuqta(e) {
   return pt.matrixTransform(m.inverse());
 }
 // olchamlar — oʻzgaradigan roʻyxat, s — haqiqiy oʻlchamlar, i — chap/tepa boʻlak, d — siljish (sm)
+// ---------- qoʻlda chizish (foydalanuvchi, 2026-11-15): chiziq tanilib, tekis konstruksiyaga aylanadi (qalam.js) ----------
+let qalam = false, qalamYutish = false;
+const QALAM_MASLAHAT = "✏️ Qoʻlda chizing: tik / yotiq chiziq — impost (chizilgan joyida), > < — tabaqa (uchi — ruchka tomoni), " +
+  "Λ — fortochka, V — fortochka (petlya tepada), O — oddiy oyna. Toʻxtatish — ✏️ ni yana bosing.";
+$("k-chizma").addEventListener("pointerdown", (e) => {
+  if (!qalam || e.button > 0) return;
+  const svg = $("k-chizma").querySelector("svg"), n0 = svgNuqta(e);
+  if (!svg || !n0) return;
+  e.stopImmediatePropagation(); e.preventDefault();
+  const pts = [n0], iz = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  iz.setAttribute("class", "qalam-iz");
+  svg.appendChild(iz);
+  const chiz = () => iz.setAttribute("d", "M" + pts.map((q) => `${q.x.toFixed(1)} ${q.y.toFixed(1)}`).join("L"));
+  const sur = (m) => { m.preventDefault(); const q = svgNuqta(m); if (q) { pts.push(q); chiz(); } };
+  const tugat = () => {
+    document.removeEventListener("pointermove", sur); document.removeEventListener("pointerup", tugat); document.removeEventListener("pointercancel", tugat);
+    iz.remove();
+    qalamYutish = true; setTimeout(() => { qalamYutish = false; }, 400);  // chizmadagi "click" boʻlak tanlamasin
+    qalamQolla(qalamTani(pts, Math.min(Number(tahrir.L), Number(tahrir.H))));
+  };
+  document.addEventListener("pointermove", sur, { passive: false }); document.addEventListener("pointerup", tugat); document.addEventListener("pointercancel", tugat);
+}, true);
+$("k-chizma").addEventListener("click", (e) => { if (qalam || qalamYutish) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+function qalamQolla(r) {
+  if (!r.tur) { xabar(`✏️ ${r.sabab}. ` + QALAM_MASLAHAT); return; }
+  const g = geometriya(tahrir);
+  const o = g.barglar.find((b) => !b.u && r.x >= b.x && r.x <= b.x + b.w && r.y >= b.y && r.y <= b.y + b.h);
+  if (!o) { xabar("✏️ Chiziq konstruksiya ichida boʻlishi kerak"); return; }
+  const b = o.b;
+  if (r.tur === "tik" || r.tur === "yotiq") {
+    const v = r.tur === "tik", yon = v ? "vertikal" : "gorizontal", d = (v ? r.x - o.x : r.y - o.y), jami = v ? o.w : o.h;
+    if (d < BOLAK_MIN || jami - d < BOLAK_MIN) { xabar(`✏️ Impost chetga juda yaqin (boʻlak kamida ${BOLAK_MIN} sm)`); return; }
+    if (b.tur === "eshik") {
+      // eshikka chiziq — tabaqa ichiga impost (asbobdagidek, teng)
+      tekshirib(() => { saqlaTarix(); ichkiImpostQosh(b, [], yon, 2); });
+      xabar(`✏️ Eshik tabaqasi ichiga ${v ? "tik" : "yotiq"} impost (teng) — oʻlchamini taxtachaga bosib kiriting`);
+      yangila();
+      return;
+    }
+    tekshirib(() => {
+      saqlaTarix();
+      const op = ota(o.p), otaB = op ? tugun(tahrir.bolak, op.yol) : null;
+      const qoshiladi = !!(otaB && otaB.tur === "bolinish" && otaB.yonalish === yon && !otaB.egilgan && !otaB.lapsha);
+      bolish(o.p, yon);
+      const yol = qoshiladi ? op.yol : o.p, i = qoshiladi ? op.i : 0;
+      const bl = geometriya(tahrir).bolinishlar.find((x) => x.p === yol), node = tugun(tahrir.bolak, yol);
+      const ol = node.olchamlar.slice(), q = bl && ikkiBolak(ol, bl.s, i, d - bl.s[i]);
+      if (q) { node.olchamlar = ol; xabar(`✏️ ${v ? "Tik" : "Yotiq"} impost: ${v ? "chap" : "tepa"} ${yx(q[0])} · ${v ? "oʻng" : "past"} ${yx(q[1])} sm`); }
+      tanlangan = bolaYoli(yol, i);
+    });
+    yangila();
+    return;
+  }
+  if (b.tur === "eshik") {
+    if (r.tur.startsWith("fortochka") || r.tur === "gluxoy") { xabar("✏️ Eshikda fortochka va gluxoy yoʻq: eshikni Eshik boʻlimidan oʻzgartiring"); return; }
+    saqlaTarix();
+    if (b.tabaqa_soni === 2) b.aktiv = r.tur === "tab_chap" ? "ong" : "chap";  // uchi — ruchkali tabaqa tomoni
+    else b.petlya_tomoni = r.tur === "tab_chap" ? "chap" : "ong";
+    xabar(`✏️ Eshik: ${b.tabaqa_soni === 2 ? "ruchkali tabaqa " + (b.aktiv === "chap" ? "chapda" : "oʻngda") : "petlya " + (b.petlya_tomoni === "chap" ? "chapda" : "oʻngda")}`);
+    yangila();
+    return;
+  }
+  if (!asbobBor(r.tur)) { xabar("✏️ Bu seriyada fortochka yoʻq"); return; }
+  const eski = asbob;
+  asbob = r.tur;
+  try { tekshirib(() => asbobniQollaIchki(o.p)); } finally { asbob = eski; }
+  xabar(`✏️ ${{ tab_chap: "Tabaqa, petlya chapda", tab_ong: "Tabaqa, petlya oʻngda", fortochka: "Fortochka (petlya pastda)",
+    fortochka_tepa: "Fortochka (petlya tepada)", gluxoy: "Oddiy oyna (gluxoy)" }[r.tur]}`);
+}
+
 function ikkiBolak(olchamlar, s, i, d) {
   const jami = s[i] + s[i + 1], a = Math.round((s[i] + d) / SURISH_QADAM) * SURISH_QADAM;
   if (a < BOLAK_MIN || jami - a < BOLAK_MIN) return false;
@@ -2180,6 +2254,7 @@ $("k-jadval").addEventListener("click", (e) => {
 $("k-bolimlar").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
+  if (b.dataset.qalam != null) { qalam = !qalam; asbob = null; yangila(); return; }
   if (b.dataset.bolim) { bolim = b.dataset.bolim; asbob = null; }
   else if (b.dataset.tarix === "orqaga" && orqaga.length) { oldinga.push(nusxa(tahrir)); tahrir = orqaga.pop(); }
   else if (b.dataset.tarix === "oldinga" && oldinga.length) { orqaga.push(nusxa(tahrir)); tahrir = oldinga.pop(); }

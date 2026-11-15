@@ -756,3 +756,6 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .jadval .jb { flex: 1 1 0; min-height: 36px; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta);
   color: var(--matn); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .jadval .jb.faol { background: var(--asosiy); color: var(--asosiy-matn); border-color: var(--asosiy); }
+/* qoʻlda chizish: chizma ustida barmoq sahifani surmaydi, iz toʻq sariq */
+#k-chizma.qalam { touch-action: none; outline: 2px dashed #e65100; outline-offset: -2px; }
+.chizma .qalam-iz { fill: none; stroke: #e65100; stroke-width: 3px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; opacity: .85; pointer-events: none; }
