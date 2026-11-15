@@ -1100,6 +1100,7 @@ function asboblarniChiz() {
   if (!bolimBor(bolim)) bolim = "impost";
   $("k-bolimlar").innerHTML = BOLIMLAR.filter(([id]) => bolimBor(id)).map(([id, nom, i]) => `<button data-bolim="${id}" class="${id === bolim ? "faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("") +
     `<button data-qalam class="${qalam ? "faol" : ""}" title="Qoʻlda chizish" aria-label="Qoʻlda chizish">✏️</button>` +
+    `<button data-fason title="Fasonlar" aria-label="Fasonlar">${ik('<rect x="4" y="4" width="16" height="16" rx="1"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>')}</button>` +
     `<span class="bosh"></span><button data-tarix="orqaga" ${orqaga.length ? "" : "disabled"} aria-label="Orqaga">↶</button><button data-tarix="oldinga" ${oldinga.length ? "" : "disabled"} aria-label="Oldinga">↷</button>`;
   const faolId = bolim === "shakl" ? shaklId(tahrir) : asbob;
   let html = ASBOBLAR[bolim].filter(([id]) => asbobBor(id)).map(([id, nom, i]) => `<button data-asbob="${id}" class="nomli${id === faolId ? " faol" : ""}" title="${nom}" aria-label="${nom}">${i}</button>`).join("");
@@ -1522,6 +1523,7 @@ function konstruktorniYop(saqlansin, tarixdan) {
   sozlamaYop();
   $("konstruktor").hidden = true;
   qalam = false; qalamTugma().hidden = true;
+  { const fo = document.getElementById("fason-oyna"); if (fo) fo.hidden = true; }
   $("asosiy").hidden = false;
   if (zakaz) ekran("zakaz", joriyEkran !== "zakaz");
   hisoblaKeyin();
@@ -1736,6 +1738,72 @@ function qalamQolla(r) {
   try { tekshirib(() => asbobniQollaIchki(o.p)); } finally { asbob = eski; }
   xabar(`✏️ ${{ tab_chap: "Tabaqa, petlya chapda", tab_ong: "Tabaqa, petlya oʻngda", fortochka: "Fortochka (petlya pastda)",
     fortochka_tepa: "Fortochka (petlya tepada)", gluxoy: "Oddiy oyna (gluxoy)", dv_chap: "Dvaynoy, petlya chapda", dv_ong: "Dvaynoy, petlya oʻngda" }[tur]}`);
+}
+
+// ---------- Fasonlar (foydalanuvchi, 2026-11-15): tayyor shakllar, roʻyxat ilova/fasonlar.js da ----------
+let fasonTab = "oyna";
+function fasonOyna() {
+  // oyna JS da yasaladi: telefonda eski index.html keshdan kelsa ham ishlaydi
+  let d = document.getElementById("fason-oyna");
+  if (d) return d;
+  d = document.createElement("div");
+  d.id = "fason-oyna"; d.className = "parda"; d.hidden = true;
+  d.innerHTML = `<div class="oyna-quti fason-quti"><div class="klav-bosh"><span class="sarlavha-katta">Fasonlar</span><button data-fason-yop class="yop" aria-label="Yopish">✕</button></div>
+    <div class="fason-tablar"></div><div class="fason-savol" hidden></div><div class="fason-tor"></div></div>`;
+  document.body.appendChild(d);
+  d.addEventListener("click", (e) => {
+    if (e.target === d || e.target.closest("[data-fason-yop]")) { d.hidden = true; return; }
+    const t = e.target.closest("[data-ftab]");
+    if (t) { fasonTab = t.dataset.ftab; fasonChiz(); return; }
+    const ha = e.target.closest("[data-fason-ha]");
+    if (ha) { fasonQolla(+ha.dataset.fasonHa); return; }
+    if (e.target.closest("[data-fason-yoq]")) { d.querySelector(".fason-savol").hidden = true; return; }
+    const f = e.target.closest("[data-fi]");
+    if (f) {
+      const i = +f.dataset.fi;
+      const b = tahrir.bolak, bor = tahrir.arka || (b && b.tur !== "gluxoy" && b.tur !== "tabaqa" && b.tur !== "eshik") || (b && b.tabaqa_impost);
+      if (!bor) { fasonQolla(i); return; }
+      const sv = d.querySelector(".fason-savol");
+      sv.innerHTML = `<b>Joriy chizma almashtirilsinmi?</b> <span class="xira">(${esc(FASONLAR[i].nom)})</span>
+        <span class="fason-savol-t"><button class="tugma yashil" data-fason-ha="${i}">Ha</button><button class="tugma" data-fason-yoq>Yoʻq</button></span>`;
+      sv.hidden = false;
+    }
+  });
+  return d;
+}
+function fasonOch() {
+  if (typeof FASONLAR === "undefined") { xabar("Fasonlar yuklanmadi — ilovani yopib qayta oching"); return; }
+  qalam = false; asbob = null;
+  fasonOyna().hidden = false;
+  fasonChiz();
+}
+function fasonChiz() {
+  const d = fasonOyna();
+  d.querySelector(".fason-tablar").innerHTML = FASON_TABLAR.filter(([id]) => id !== "arka" || bolimBor("shakl"))
+    .map(([id, nom]) => `<button data-ftab="${id}" class="${id === fasonTab ? "faol" : ""}">${nom}</button>`).join("");
+  d.querySelector(".fason-savol").hidden = true;
+  d.querySelector(".fason-tor").innerHTML = FASONLAR.map((f, i) => [f, i]).filter(([f]) => f.tab === fasonTab)
+    .map(([f, i]) => `<button class="fason" data-fi="${i}">${fasonRasm(f)}<span>${esc(f.nom)}</span></button>`).join("");
+}
+function fasonQolla(i) {
+  const f = FASONLAR[i], L = Number(tahrir.L), H = Number(tahrir.H);
+  const r = f.yasa(L, H, { ochilish: joriyOchilish(tahrir), aldoks: aldmi(seriyaRama()) });
+  if (r.arka && Number(r.arka.balandlik) >= H) { xabar(`Arka uchun boʻy yetmaydi: boʻyi ${yx(r.arka.balandlik)} sm dan katta boʻlishi kerak`); fasonOyna().hidden = true; return; }
+  tekshirib(() => {
+    saqlaTarix();
+    delete tahrir.tur; delete tahrir.chap; delete tahrir.ong;
+    tahrir.bolak = r.bolak;
+    if (r.arka) tahrir.arka = r.arka; else delete tahrir.arka;
+    if (r.kichik65) {
+      // katta + kichik: ikkinchi (ruchkasiz) tabaqa 65 sm, "Ikkinchisi 65" tugmasidek
+      const g = geometriya(tahrir), o = g.barglar.find((x) => x.b.tur === "eshik"), e = o && eshikTabaqalari(tahrir, g, o);
+      if (e && e.jami - 65 > 65) o.b.L1 = Math.round((e.jami - 65) * 100) / 100;
+    }
+    tanlangan = geometriya(tahrir).barglar[0].p;
+  });
+  fasonOyna().hidden = true;
+  yangila();
+  xabar(`Fason: ${f.nom}. Impostni surib yoki raqamga bosib oʻzgartiring, ↶ — qaytarish.`);
 }
 
 function ikkiBolak(olchamlar, s, i, d) {
@@ -2297,6 +2365,7 @@ $("sozlama-oyna").addEventListener("click", (e) => { if (e.target === e.currentT
 $("k-bolimlar").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
+  if (b.dataset.fason != null) { fasonOch(); return; }
   if (b.dataset.qalam != null) {
     if (typeof qalamTani === "undefined") { xabar("✏️ Qoʻlda chizish yuklanmadi — ilovani yopib qayta oching"); return; }
     qalam = !qalam; asbob = null; yangila(); return;

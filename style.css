@@ -763,3 +763,22 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
   border-radius: 24px; background: #e65100; color: #fff; font: inherit; font-weight: 700; font-size: 16px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
 .qalam-tugat[hidden] { display: none; }
 .chizma .qalam-iz { fill: none; stroke: #e65100; stroke-width: 3px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; opacity: .85; pointer-events: none; }
+/* Fasonlar oynasi (pastdan chiqadi) */
+.fason-quti .klav-bosh { margin-bottom: 8px; }
+.fason-quti .sarlavha-katta { margin: 0; color: var(--matn); }
+.fason-tablar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.fason-tablar button { padding: 10px 4px; border-radius: 12px; border: 1px solid var(--chiziq); background: none; color: var(--matn); font: inherit; font-weight: 600; }
+.fason-tablar button.faol { background: var(--asosiy); color: var(--asosiy-matn); border-color: var(--asosiy); }
+.fason-tor { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.fason { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border-radius: 14px; border: 1px solid var(--chiziq);
+  background: var(--fon, transparent); color: var(--matn); font: inherit; font-size: 12px; line-height: 1.25; text-align: center; }
+.fason:active { transform: scale(.97); }
+.fason-rasm { width: 100%; max-width: 88px; aspect-ratio: 1; }
+.fason-rasm .fr-pr { fill: #f4f6f8; stroke: #9aa5b1; stroke-width: .6; }
+.fason-rasm .fr-oy { fill: #8fd3f7; }
+.fason-rasm .fr-lam { fill: #e3e6ea; }
+.fason-rasm .fr-ch { fill: none; stroke: #2b6cb0; stroke-width: .7; stroke-dasharray: 2 1.5; }
+.fason-rasm .fr-rk { fill: #5b6570; }
+.fason-savol { margin-bottom: 12px; padding: 10px; border-radius: 12px; background: rgba(230,81,0,.1); }
+.fason-savol-t { display: flex; gap: 8px; margin-top: 8px; }
+.fason-savol-t .tugma { flex: 1; }
