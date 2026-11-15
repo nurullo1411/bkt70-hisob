@@ -786,3 +786,10 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .fason-rasm .fr-yoy { fill: none; stroke: #c9d1d9; }
 .fason-tor { max-height: 62vh; overflow-y: auto; }
 .fason .chizma.fason-rasm { width: 100%; max-width: 92px; height: 92px; aspect-ratio: auto; }
+/* Rasmdan oʻqilgandan keyin savollar */
+.ai-k { border: 1px solid var(--chiziq); border-radius: 12px; padding: 8px 10px; margin-bottom: 10px; }
+.ai-k-rasm .chizma { width: 100%; max-height: 28vh; }
+.ai-savol { margin: 8px 0; }
+.ai-savol p { margin: 4px 0; }
+.ai-var { flex-wrap: wrap; gap: 6px; }
+.ai-javob { width: 100%; margin-top: 6px; }

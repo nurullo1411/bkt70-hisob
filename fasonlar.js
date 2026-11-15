@@ -275,15 +275,15 @@ function fasonRasm(f) {
 // ildiz tik boʻlinish, har ustun ichida oʻsha yotiq qatorlar. Farq boʻlsa birinchi (tepa) qatordagi joy olinadi, izoh[] ga yoziladi.
 // W — shu boʻlak eni (sm), tol — farq chegarasi. Rasmdan oʻqilgan (AI), qoʻlda chizilgan (5 sm) va fasonlarda (aniq) qoʻllanadi.
 const TIK_FARQ = 5;
-function tikBirinchi(b, W, izoh = [], tol = TIK_FARQ) {
+function tikBirinchi(b, W, izoh = [], tol = TIK_FARQ, past = false) {
   if (!b || b.tur !== "bolinish") return b;
   const qism = (ol, jami) => {
     const ber = ol.reduce((m, q) => m + (q == null ? 0 : Number(q)), 0), bosh = ol.filter((q) => q == null).length;
     return ol.map((q) => (q == null ? (jami - ber) / Math.max(bosh, 1) : Number(q)));
   };
   // avval ichkaridagilar (tik boʻlinishda har bola oʻz enida)
-  if (b.yonalish === "vertikal" && !b.lapsha) { const en = qism(b.olchamlar || [], W); b.bolaklar = b.bolaklar.map((c, i) => tikBirinchi(c, en[i], izoh, tol)); }
-  else if (!b.lapsha) b.bolaklar = b.bolaklar.map((c) => tikBirinchi(c, W, izoh, tol));
+  if (b.yonalish === "vertikal" && !b.lapsha) { const en = qism(b.olchamlar || [], W); b.bolaklar = b.bolaklar.map((c, i) => tikBirinchi(c, en[i], izoh, tol, past)); }
+  else if (!b.lapsha) b.bolaklar = b.bolaklar.map((c) => tikBirinchi(c, W, izoh, tol, past));
   if (b.yonalish !== "gorizontal" || b.lapsha || b.egilgan || b.chift || b.bolaklar.length < 2) return b;
   // har qator: boʻlaklar [{c, x1, x2}]
   const qatorlar = b.bolaklar.map((c) => {
@@ -295,14 +295,19 @@ function tikBirinchi(b, W, izoh = [], tol = TIK_FARQ) {
   const chegara = qatorlar[0].slice(0, -1).map((p) => p.x2)
     .filter((x) => qatorlar.every((q) => q.slice(0, -1).some((p) => Math.abs(p.x2 - x) <= tol)));
   if (!chegara.length) return b;
-  // farqli joylarni tepa qatorga tekislash
-  let farq = 0;
-  for (const q of qatorlar.slice(1)) for (const p of q) for (const x of chegara) {
-    if (Math.abs(p.x2 - x) <= tol && p.x2 !== x) { farq = Math.max(farq, Math.abs(p.x2 - x)); p.x2 = x; }
-    if (Math.abs(p.x1 - x) <= tol && p.x1 !== x) p.x1 = x;
+  // farqli joylarni tepa (past = true — eng pastki) qatorga tekislash; juftlar izoh.juft ga (savol uchun)
+  const yx = (x) => Math.round(x * 10) / 10, oxir = qatorlar[qatorlar.length - 1];
+  const nishon = chegara.map((x) => (past ? oxir.find((p) => Math.abs(p.x2 - x) <= tol).x2 : x));
+  const juft = chegara.map((x, j) => ({ tepa: yx(x), past: yx(oxir.find((p) => Math.abs(p.x2 - x) <= tol).x2) }));
+  for (const q of qatorlar) for (const p of q) chegara.forEach((x, j) => {
+    if (Math.abs(p.x2 - x) <= tol) p.x2 = nishon[j];
+    if (Math.abs(p.x1 - x) <= tol) p.x1 = nishon[j];
+  });
+  if (juft.some((j) => j.tepa !== j.past)) {
+    izoh.push(`Tik impost butun boʻyga qoʻyildi; pastki qatordagi joyi tepadagidan farq qilgan — ${past ? "pastdagisi" : "tepadagisi"} olindi, tekshiring.`);
+    (izoh.juft = izoh.juft || []).push(...juft.filter((j) => j.tepa !== j.past));
   }
-  if (farq) izoh.push(`Tik impost butun boʻyga qoʻyildi; pastki qatordagi joyi tepadagidan ${Math.round(farq * 10) / 10} sm farq qilgan — tepadagisi olindi, tekshiring.`);
-  const chet = [0, ...chegara, W], yx = (x) => Math.round(x * 10) / 10;
+  const chet = [0, ...nishon, W];
   const ustunlar = chet.slice(0, -1).map((x1, j) => {
     const x2 = chet[j + 1];
     const bolaklar = qatorlar.map((q, r) => {
@@ -319,4 +324,44 @@ function tikBirinchi(b, W, izoh = [], tol = TIK_FARQ) {
   return { tur: "bolinish", yonalish: "vertikal", ...qolgan, olchamlar: ustunlar.map((_, j) => (j === ustunlar.length - 1 ? null : yx(chet[j + 1] - chet[j]))), bolaklar: ustunlar };
 }
 
-if (typeof module !== "undefined") module.exports = { FASONLAR, FASON_TABLAR, fasonRasm, fasonYasa, tikBirinchi };
+// Ildiz tik impostlari joyi (sm, chapdan) — 2 ramaga boʻlish variantlari uchun
+function ildizChegaralar(b, L) {
+  if (!b || b.tur !== "bolinish" || b.yonalish !== "vertikal" || b.lapsha) return [];
+  const ol = b.olchamlar || [], ber = ol.reduce((m, q) => m + (q == null ? 0 : Number(q)), 0), bosh = ol.filter((q) => q == null).length;
+  let x = 0;
+  return b.bolaklar.slice(0, -1).map((_, i) => Math.round((x += ol[i] == null ? (L - ber) / Math.max(bosh, 1) : Number(ol[i])) * 100) / 100);
+}
+// Detal hivichdan uzun (foydalanuvchi, 2026-11-15): rama ildizdagi i-tik impost joyidan 2 ga boʻlinadi —
+// Aldoksda shu chiziq Chift Quloq 109 (kosa boʻlinadi), boshqa seriyada H702 lapsha bilan 2 alohida rama (oraliq 0,5).
+function ramaBol(b, L, i, aldoks) {
+  const x = ildizChegaralar(b, L)[i];
+  if (x == null) return null;
+  const yangi = JSON.parse(JSON.stringify(b)), n = yangi.bolaklar.length, yx = (v) => Math.round(v * 100) / 100;
+  if (aldoks) {
+    const m = Array.isArray(yangi.chift) ? yangi.chift.slice() : Array(n - 1).fill(!!yangi.chift);
+    m[i] = true;
+    yangi.chift = m.every(Boolean) ? true : m;
+    return yangi;
+  }
+  const chet = [0, ...ildizChegaralar(b, L), L];
+  const guruh = (a, z, chapKam) => {
+    if (z - a === 1) return yangi.bolaklar[a];
+    const en = [];
+    for (let j = a; j < z; j++) en.push(j === z - 1 ? null : yx(chet[j + 1] - chet[j] - (j === a && chapKam ? 0.25 : 0)));
+    return { tur: "bolinish", yonalish: "vertikal", olchamlar: en, bolaklar: yangi.bolaklar.slice(a, z) };
+  };
+  return { tur: "bolinish", lapsha: true, yonalish: "vertikal", olchamlar: [yx(x - 0.25), null], bolaklar: [guruh(0, i + 1, false), guruh(i + 1, n, true)] };
+}
+// AI variant oʻzgarishi: konstruksiya ichida yol (kalitlar va indekslar) boʻyicha qiymat qoʻyish
+function yolQoy(k, yol, qiymat) {
+  if (!Array.isArray(yol) || !yol.length) return false;
+  const yomon = (x) => typeof x !== "string" && !Number.isInteger(x) || ["__proto__", "constructor", "prototype"].includes(x);
+  if (yol.some(yomon) || !["L", "H", "bolak", "arka", "soni", "tanlov", "nom"].includes(yol[0])) return false;
+  let o = k;
+  for (const x of yol.slice(0, -1)) { if (o == null || typeof o !== "object" || !(x in o)) return false; o = o[x]; }
+  if (o == null || typeof o !== "object") return false;
+  o[yol[yol.length - 1]] = JSON.parse(JSON.stringify(qiymat));
+  return true;
+}
+
+if (typeof module !== "undefined") module.exports = { FASONLAR, FASON_TABLAR, fasonRasm, fasonYasa, tikBirinchi, ildizChegaralar, ramaBol, yolQoy };
