@@ -313,6 +313,7 @@ class Hisob:
         self.dvaynoy_tomonlari = []  # petlya tomoni (chap / ong) — Roto nojnitsa petlyasi va planka
         self.fortochkalar = []  # (en, boʻy, ruchka bilanmi)
         self.impost_soni = 0
+        self.impost_uchi = 0   # qoʻshimcha impost/kosa uchlari (ustun ichidagi chift: toq son boʻlishi mumkin)
         self.armatura_samorez = 0
         self.lapsha_samorez = 0
         self.medved_samorez = 0
@@ -770,6 +771,8 @@ def _chift_bolinish(b, z, h, ctx, vertikal):
     profil = h.seriya.chift
     if not profil:
         raise HisobXato(f"{h.seriya.nomi}da Chift Quloq va tashqi chetigacha impost yoʻq")
+    if ctx.get("bolinish_ichida") and not h.arka and not h.segment and "kesim" in ctx:
+        return _ichki_chift(b, z, h, ctx, vertikal, profil)
     if ctx.get("bolinish_ichida") or h.arka or h.segment:
         raise HisobXato("Chift Quloq va tashqi chetigacha impost faqat ramaning birinchi boʻlinishida (arkasiz) boʻladi")
     chift = _chift_mask(b)
@@ -829,6 +832,76 @@ def _chift_bolinish(b, z, h, ctx, vertikal):
             yangi = Zona(z.en, olcham, z.chap, z.ong, boshi, oxiri, z.x, z.y + q)
         q += olcham
         _bolak(bola, yangi, h, ichki_ctx)
+
+
+def _ichki_chift(b, z, h, ctx, vertikal, profil):
+    """Ustun (yoki qator) ichidagi Chift Quloq (foydalanuvchi, 2026-11-15; masalan eshik ustidagi framuga):
+    chift kosaga tegadigan uchida tashqi chetgacha boradi — kosa shu joyda boʻlinadi (oʻqdan 2,125 qolib,
+    har kosa uchiga Bolshoy + 3,9×16 × 7); tik impostga (yoki chiftga) tegadigan uchi impost oʻqidan 2,125 kalta,
+    uchiga Bolshoy (oddiy impost uchidek). Ikkala tomoni impost — kosa boʻlinmaydi. Boʻlak, oyna oʻzgarmaydi.
+    Kosa boʻlaklari rama oxirida ctx["kesim"] boʻyicha tuziladi."""
+    if any(_chift_mask(b, "tashqi")):
+        raise HisobXato("Tashqi chetigacha impost faqat ramaning birinchi boʻlinishida boʻladi")
+    chift = _chift_mask(b)
+    turlar = _impost_turlari(b, h, ctx)
+    cy = IMPOST_YARMI[profil] + h.lam / 2
+    iy = ctx["yarmi"]
+    oxirgi = len(b.get("olchamlar") or []) - 1
+
+    def chetlar(i):
+        boshi = (cy if chift[i - 1] else iy) if i > 0 else (z.chap if vertikal else z.tepa)
+        oxiri = (cy if chift[i] else iy) if i < oxirgi else (z.ong if vertikal else z.past)
+        return boshi, oxiri
+
+    olchamlar = _olchamlar(b, z.en if vertikal else z.boy, [sum(chetlar(i)) for i in range(oxirgi + 1)])
+    # chift chizigʻi boʻylab: tik chiftda tepa/past, yotiqda chap/oʻng — kosami yoki impostmi
+    if vertikal:
+        jami, d1, d2, k1, k2, t1, t2 = z.boy, z.tepa, z.past, z.y == 0, z.y + z.boy == ctx["rama_boy"], "tepa", "past"
+    else:
+        jami, d1, d2, k1, k2, t1, t2 = z.en, z.chap, z.ong, z.x == 0, z.x + z.en == ctx["rama_en"], "chap", "ong"
+    uz = jami - (0 if k1 else d1) - (0 if k2 else d2)
+    joy = D(0)
+    for i, o in enumerate(olchamlar[:-1]):
+        joy += o
+        with _yozuv(h, ("imp", b["_yol"], i + 1) if "_yol" in b else None):
+            if chift[i]:
+                h.detal("Chift Quloq vertikal" if vertikal else "Chift Quloq gorizontal", profil, uz, 1)
+                joyi = (z.x if vertikal else z.y) + joy
+                for kosa, tomon in ((k1, t1), (k2, t2)):
+                    if kosa:
+                        ctx["kesim"][tomon].append(joyi)
+                h.impost_uchi += (0 if k1 else 1) + (0 if k2 else 1) + 2 * (int(k1) + int(k2))
+            else:
+                nomi = "Impost vertikal" if vertikal else "Impost gorizontal"
+                h.detal(nomi, turlar[i], _impost_uzunligi(vertikal, joy, z, h), 1)
+                h.impost_soni += 1
+    q = D(0)
+    for i, (olcham, bola) in enumerate(zip(olchamlar, b["bolaklar"])):
+        boshi, oxiri = chetlar(i)
+        if vertikal:
+            yangi = Zona(olcham, z.boy, boshi, oxiri, z.tepa, z.past, z.x + q, z.y)
+        else:
+            yangi = Zona(z.en, olcham, z.chap, z.ong, boshi, oxiri, z.x, z.y + q)
+        q += olcham
+        _bolak(bola, yangi, h, ctx)
+
+
+def _kosa_kesimlari(profil, en, boy, h, kesim, cy):
+    """Ustun ichidagi chift kesgan kosa tomonlari: butun kosa oʻrniga boʻlaklar (har uchi chift oʻqidan cy qolib)."""
+    zapas = h.seriya.rama_payvand
+    for tomon, joylar in kesim.items():
+        if not joylar:
+            continue
+        nomi, jami = ("Rama boʻyi", boy) if tomon in ("chap", "ong") else ("Rama eni", en)
+        kalit = (nomi, profil, jami + zapas)
+        if not h.profillar.get(kalit):
+            raise HisobXato("Bu chift joylashuvi hali hisoblanmaydi (kosa allaqachon boʻlingan)")
+        h.profillar[kalit] -= 1
+        if not h.profillar[kalit]:
+            del h.profillar[kalit]
+        nuqta = [D(0), *sorted(joylar), jami]
+        for a, c in zip(nuqta, nuqta[1:]):
+            h.detal(nomi, profil, c - a - (cy if a > 0 else 0) - (cy if c < jami else 0) + zapas, 1)
 
 
 def _egilgan_bolinish(b, z, h, ctx):
@@ -1184,8 +1257,11 @@ def _rama_hisobi(profil, impost, en, boy, bolak, h):
     h.r = r
     with _yozuv(h, ("rama", bolak.get("_yol")) if isinstance(bolak, dict) and "_yol" in bolak else None):
         h.rama(profil, en, boy)
-    ctx = {"impost": impost, "yarmi": IMPOST_YARMI[impost] + h.lam / 2, "bolinish_ichida": False, "rama": profil}
+    ctx = {"impost": impost, "yarmi": IMPOST_YARMI[impost] + h.lam / 2, "bolinish_ichida": False, "rama": profil,
+           "rama_en": en, "rama_boy": boy, "kesim": {"chap": [], "ong": [], "tepa": [], "past": []}}
     _bolak(bolak, Zona(en, boy, r, r, r, r, tepa_yoy=h.arka), h, ctx)
+    if any(ctx["kesim"].values()):
+        _kosa_kesimlari(profil, en, boy, h, ctx["kesim"], IMPOST_YARMI[h.seriya.chift] + h.lam / 2)
 
 
 LAPSHA_SAMOREZ_QADAM = D(100)
@@ -1328,6 +1404,7 @@ def hisobla(k):
             "dvaynoy_tomonlari": h.dvaynoy_tomonlari,
             "fortochkalar": [[float(e), float(b), r] for e, b, r in h.fortochkalar],
             "impost_soni": h.impost_soni,
+            "impost_uchi": h.impost_uchi,
             "armatura_samorez": h.armatura_samorez,
             "lapsha_samorez": h.lapsha_samorez,
             "medved_samorez": h.medved_samorez,

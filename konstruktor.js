@@ -220,10 +220,15 @@ function impostProfil(ip, ii, kod) {
   t[ii - 1] = kod || null;
   if (t.some(Boolean)) b.impost_profil = t; else delete b.impost_profil;
 }
-// Tanlangan impost (ildiz boʻlinishida) — Urta ⇄ Chift Quloq (Romchi kabi, foydalanuvchi, 2026-11-14)
+// Tanlangan impost — Urta ⇄ Chift Quloq (Romchi kabi, foydalanuvchi, 2026-11-14); ustun ichidagi impostda ham
+// (foydalanuvchi, 2026-11-15: eshik ustidagi framuga) — kosaga tegadigan uchi kosani boʻladi, impostga tegadigani taqaladi
 function chiftBolishiMumkin(ip) {
   const b = tugun(tahrir.bolak, ip);
-  return ip === "" && aldmi(seriyaRama()) && !joriy(tahrir).arka && b && b.tur === "bolinish" && !b.lapsha && !b.egilgan;
+  if (!(aldmi(seriyaRama()) && !joriy(tahrir).arka && b && b.tur === "bolinish" && !b.lapsha && !b.egilgan)) return false;
+  // yoʻldagi hamma ota oddiy boʻlinish (lapsha / yoy / portal emas)
+  let t = tahrir.bolak;
+  for (const i of yolQism(ip)) { if (t.tur !== "bolinish" || t.lapsha || t.egilgan) return false; t = t.bolaklar[i]; }
+  return true;
 }
 function impostTuri(ip, ii, chift) {
   const b = tugun(tahrir.bolak, ip), m = (chiftMask(b) || b.olchamlar.slice(1).map(() => false)).slice();
@@ -1918,7 +1923,7 @@ function panelniChiz() {
     const turlar = [...IMPOST_TURLARI, ...(chiftBolishiMumkin(ip) ? [["109", "Chift Quloq 109"]] : [])];
     const tur = aldmi(seriyaRama()) && !lap && !ib?.egilgan
       ? `<div class="sarlavha">Turi</div><div class="tugmalar">${turlar.map(([v, n]) => `<button data-imptur="${v}" class="${v === kod ? "faol" : ""}">${n}</button>`).join("")}</div>`
-        + (chiftBolishiMumkin(ip) && !ch
+        + (ip === "" && chiftBolishiMumkin(ip) && !ch
           ? `<div class="sarlavha">Uzunligi</div><div class="tugmalar"><button data-imptash="0" class="${(ib.tashqi || [])[ii - 1] ? "" : "faol"}">Ichki (kosa orasida)</button><button data-imptash="1" class="${(ib.tashqi || [])[ii - 1] ? "faol" : ""}">Tashqi chetigacha</button></div>`
           : "")
       : "";

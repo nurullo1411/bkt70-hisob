@@ -781,8 +781,8 @@ def _ald_hisobot(s, rang, r, tanlov=None, seriya="Aldoks"):
     burchak += 2 * s.get("segment_ramalar", 0)  # yarim aylana ramasi: 2 burchak
     samorez = (burchak + balkon) * ALD_BURCHAK_SAMOREZ  # 190 Chovushga ham 3,9×16 × 8 (foydalanuvchi, 2026-11-14)
     r.qosh("Aksessuar", t["chovush"], burchak, "dona")
-    if s["impost_soni"]:
-        uch = 2 * s["impost_soni"]
+    if s["impost_soni"] or s.get("impost_uchi"):
+        uch = 2 * s["impost_soni"] + s.get("impost_uchi", 0)   # ustun ichidagi chift uchlari (foydalanuvchi, 2026-11-15)
         r.qosh("Aksessuar", t["bolshoy"], uch, "dona")
         samorez += uch * ALD_IMPOST_SAMOREZ
     r.qosh("Aksessuar", ARMATURA_SAMOREZ, samorez, "dona")
