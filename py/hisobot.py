@@ -819,6 +819,12 @@ def _ald_hisobot(s, rang, r, tanlov=None, seriya="Aldoks"):
     r.qosh("Furnitura", ALD_ZATSEP_SAMOREZ[0], samorez_19 + soni * 2 * ALD_ZATSEP_SAMOREZ[1], "dona")
 
 
+def _eshik_bor(b):
+    if not isinstance(b, dict):
+        return False
+    return b.get("tur") == "eshik" or any(_eshik_bor(x) for x in b.get("bolaklar") or [])
+
+
 def hisobot(k, narxlar):
     tanlov = k.get("tanlov", {})
     rang = _kerak(tanlov, "rang", "Rang")
@@ -882,7 +888,8 @@ def hisobot(k, narxlar):
         som = r.narx.get(ARKA_OYNA)
         r.summa_bilan("Arka", ARKA_OYNA, m2, "m²", None if som is None else m2 * D(som) / kurs, ARKA_OYNA)
     # Podokonnik: L + 15 sm, metr narxi rom rangi turkumi boʻyicha (Narxlar: "Podokonnik 25 | Oq"), uchiga 2 qopqoq
-    pod = tanlov.get("podokonnik")
+    # faqat rom va fortochkaga (foydalanuvchi, 2026-11-15): eshik bor konstruksiyada (eshik, vitraj) qoʻyilmaydi
+    pod = tanlov.get("podokonnik") if not _eshik_bor(k.get("bolak")) else None
     if pod:
         if int(pod) not in PODOKONNIK_ENLARI:
             raise HisobXato(f"Podokonnik eni {pod} sm boʻlmaydi: {', '.join(map(str, PODOKONNIK_ENLARI))}")

@@ -64,7 +64,8 @@ function yangiZakaz() {
     nom: "Yangi zakaz",
     umumiy: {
       rama: "F702", oyna_qalinligi: 24,
-      tanlov: { rang: "Laminatsiya", oyna_turi: "Oq+oq", ruchka: ESHIK_RUCHKA[0], zamok: ZAMOKLAR[0], montaj: false },
+      // podokonnik standarti 30 (foydalanuvchi, 2026-11-15; faqat rom va fortochkaga — eshikda hisobot qoʻymaydi)
+      tanlov: { rang: "Laminatsiya", oyna_turi: "Oq+oq", ruchka: ESHIK_RUCHKA[0], zamok: ZAMOKLAR[0], montaj: false, podokonnik: 30 },
     },
     konstruksiyalar: [],
   };
@@ -2048,8 +2049,8 @@ function sozlamaHtml() {
     <div class="sz-seg">${RANG_TURKUMLARI.filter((t) => (!pvxmi(j.rama) || t[0] === "Oq" || t[0] === "Laminatsiya") && (!aldmi(j.rama) || t[0] !== "Anod")).map(([v, y]) => `<button data-sz="t:rang" data-v="${esc(JSON.stringify(v))}" class="${faol(j.rang === v)}">${y}</button>`).join("")}</div>
     <div class="sz-ranglar">${turkum[2].map(([v, y, c]) => `<button data-sz="t:rang_nomi" data-v="${esc(JSON.stringify(v))}" class="sz-rang${faol((j.rangNomi ?? turkum[2][0][0]) === v)}"><span class="namuna" style="background:${c}"></span>${y}</button>`).join("")}</div>
 
-    <div class="sz-bolim">Podokonnik <span class="xira">(uzunligi L + 15 sm, rangi rom rangida)</span></div>
-    <div class="sz-seg sz-pod">${[[null, "Yoʻq"], ...[15, 20, 25, 30, 35, 40, 45].map((v) => [v, String(v)])].map(([v, y]) => `<button data-sz="t:podokonnik" data-v="${JSON.stringify(v)}" class="${faol(j.pod === v)}">${y}</button>`).join("")}</div>
+    ${eshiklar(k.bolak).length ? "" : `<div class="sz-bolim">Podokonnik <span class="xira">(faqat rom va fortochka; uzunligi L + 15 sm, rangi rom rangida)</span></div>
+    <div class="sz-seg sz-pod">${[[null, "Yoʻq"], ...[15, 20, 25, 30, 35, 40, 45].map((v) => [v, String(v)])].map(([v, y]) => `<button data-sz="t:podokonnik" data-v="${JSON.stringify(v)}" class="${faol(j.pod === v)}">${y}</button>`).join("")}</div>`}
 
     ${pvxmi(j.rama) || aldmi(j.rama) ? "" : `<div class="sz-bolim">Impost soedineli</div>
     <div class="sz-seg">${[["ugol", "01.553 ugol"], ["J01+J05", "236 J01 + J05"]].map(([v, y]) => `<button data-sz="t:impost_soedinitel" data-v="${esc(JSON.stringify(v))}" class="${faol(j.soed === v)}">${y}</button>`).join("")}</div>

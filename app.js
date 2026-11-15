@@ -382,7 +382,7 @@ function royxatniChiz() {
     const h = hisoblangan[nom];
     const soni = k.soni ?? 1;
     const u = zakaz.umumiy, t = { ...(u.tanlov || {}), ...(k.tanlov || {}) };
-    const teglar = [k.rama || u.rama, t.rang_nomi || t.rang, (t.oyna_turi || "") + " " + (k.oyna_qalinligi || u.oyna_qalinligi || 24) + " mm", t.podokonnik ? "podokonnik " + t.podokonnik : null];
+    const teglar = [k.rama || u.rama, t.rang_nomi || t.rang, (t.oyna_turi || "") + " " + (k.oyna_qalinligi || u.oyna_qalinligi || 24) + " mm", t.podokonnik && !/"tur":"eshik"/.test(JSON.stringify(k.bolak || {})) ? "podokonnik " + t.podokonnik : null];
     return `<div class="konstr${soni === 0 ? " nol" : ""}">
       <div class="konstr-ichi">
         <button class="eskiz" data-tahrir="${i}" aria-label="Tahrirlash">${chizmaSVG(k, { kichik: true })}</button>
