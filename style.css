@@ -750,7 +750,8 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
   #konstruktor:not([hidden]) { display: grid; grid-template-columns: 1fr 340px; column-gap: 16px; align-items: start; }
   #konstruktor > * { grid-column: 1; }
   #konstruktor > .k-tepa { grid-column: 1 / -1; }
-  #konstruktor > #k-jadval { grid-column: 2; grid-row: 2 / span 6; }
+  /* narx jadval tepasida, ikkalasi bitta oʻng ustunda (foydalanuvchi, 2026-11-15) */
+  #konstruktor > #k-ong { grid-column: 2; grid-row: 2 / span 7; }
 }
 .parda.markaz .oyna-quti { border-radius: 16px; max-height: 80vh; }
 .jadval .jq-juft { cursor: default; }
