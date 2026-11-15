@@ -269,4 +269,53 @@ function fasonRasm(f) {
   return `<svg viewBox="0 0 72 72" class="fason-rasm">${ich}</svg>`;
 }
 
-if (typeof module !== "undefined") module.exports = { FASONLAR, FASON_TABLAR, fasonRasm, fasonYasa };
+// Impost tartibi (foydalanuvchi, 2026-11-02 va 2026-11-15): avval tik impost (butun boʻyga), keyin yotiq.
+// Yotiq boʻlinish qatorlarida bir xil joyda (TIK_FARQ sm gacha farq) tik impost boʻlsa — tik ustunlarga oʻgiriladi:
+// ildiz tik boʻlinish, har ustun ichida oʻsha yotiq qatorlar. Farq boʻlsa birinchi (tepa) qatordagi joy olinadi, izoh[] ga yoziladi.
+// W — shu boʻlak eni (sm). Rasmdan oʻqilgan (AI) zakazga qoʻllanadi.
+const TIK_FARQ = 5;
+function tikBirinchi(b, W, izoh = []) {
+  if (!b || b.tur !== "bolinish") return b;
+  const qism = (ol, jami) => {
+    const ber = ol.reduce((m, q) => m + (q == null ? 0 : Number(q)), 0), bosh = ol.filter((q) => q == null).length;
+    return ol.map((q) => (q == null ? (jami - ber) / Math.max(bosh, 1) : Number(q)));
+  };
+  // avval ichkaridagilar (tik boʻlinishda har bola oʻz enida)
+  if (b.yonalish === "vertikal" && !b.lapsha) { const en = qism(b.olchamlar || [], W); b.bolaklar = b.bolaklar.map((c, i) => tikBirinchi(c, en[i], izoh)); }
+  else if (!b.lapsha) b.bolaklar = b.bolaklar.map((c) => tikBirinchi(c, W, izoh));
+  if (b.yonalish !== "gorizontal" || b.lapsha || b.egilgan || b.chift || b.bolaklar.length < 2) return b;
+  // har qator: boʻlaklar [{c, x1, x2}]
+  const qatorlar = b.bolaklar.map((c) => {
+    if (!c || c.tur !== "bolinish" || c.yonalish !== "vertikal" || c.lapsha || c.chift || c.impost_profil || c.tashqi) return null;
+    const en = qism(c.olchamlar || [], W); let x = 0;
+    return c.bolaklar.map((d, i) => ({ d, x1: x, x2: (x += en[i]), bosh: (c.olchamlar || [])[i] == null }));
+  });
+  if (qatorlar.some((q) => !q)) return b;
+  const chegara = qatorlar[0].slice(0, -1).map((p) => p.x2)
+    .filter((x) => qatorlar.every((q) => q.slice(0, -1).some((p) => Math.abs(p.x2 - x) <= TIK_FARQ)));
+  if (!chegara.length) return b;
+  // farqli joylarni tepa qatorga tekislash
+  let farq = 0;
+  for (const q of qatorlar.slice(1)) for (const p of q) for (const x of chegara) {
+    if (Math.abs(p.x2 - x) <= TIK_FARQ && p.x2 !== x) { farq = Math.max(farq, Math.abs(p.x2 - x)); p.x2 = x; }
+    if (Math.abs(p.x1 - x) <= TIK_FARQ && p.x1 !== x) p.x1 = x;
+  }
+  if (farq) izoh.push(`Tik impost butun boʻyga qoʻyildi; pastki qatordagi joyi tepadagidan ${Math.round(farq * 10) / 10} sm farq qilgan — tepadagisi olindi, tekshiring.`);
+  const chet = [0, ...chegara, W], yx = (x) => Math.round(x * 10) / 10;
+  const ustunlar = chet.slice(0, -1).map((x1, j) => {
+    const x2 = chet[j + 1];
+    const bolaklar = qatorlar.map((q, r) => {
+      const ichi = q.filter((p) => p.x1 >= x1 - 0.01 && p.x2 <= x2 + 0.01);
+      if (ichi.length === 1) return ichi[0].d;
+      const asl = b.bolaklar[r], { tur, yonalish, olchamlar, bolaklar: _, ...qolgan } = asl;
+      return { tur: "bolinish", yonalish: "vertikal", ...qolgan,
+        olchamlar: ichi.every((p) => p.bosh) ? ichi.map(() => null) : ichi.map((p, i) => (i === ichi.length - 1 ? null : yx(p.x2 - p.x1))),
+        bolaklar: ichi.map((p) => p.d) };
+    });
+    return { tur: "bolinish", yonalish: "gorizontal", olchamlar: [...b.olchamlar], bolaklar };
+  });
+  const { tur, yonalish, olchamlar, bolaklar, ...qolgan } = b;
+  return { tur: "bolinish", yonalish: "vertikal", ...qolgan, olchamlar: ustunlar.map((_, j) => (j === ustunlar.length - 1 ? null : yx(chet[j + 1] - chet[j]))), bolaklar: ustunlar };
+}
+
+if (typeof module !== "undefined") module.exports = { FASONLAR, FASON_TABLAR, fasonRasm, fasonYasa, tikBirinchi };

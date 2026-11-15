@@ -1140,6 +1140,7 @@ USTANING CHIZISH QOIDALARI (shularga qat'iy amal qil):
 - T ham Z ham yoʻq ochiladigan boʻlak — eshik EMAS: rom tabaqasi yoki fortochka.
 - Chizma odatda ichkaridan koʻrinishda; tashqariga (T) ochiladigan eshik tashqaridan koʻrinishda chiziladi. Chap/oʻngni chizmada koʻringanidek yoz.
 Rom tabaqalari orasida doim impost.
+IMPOST TARTIBI: avval TIK impost (butun boʻyga, tepadan pastgacha), keyin yotiq. Agar tik impost yotiq impostni kesib oʻtib tepadan pastgacha borsa (yuqori va pastki qatorda bir joyda), ildiz — "vertikal" boʻlinish (ustunlar), har ustun ichida "gorizontal". Ildiz "gorizontal" faqat yotiq impost butun eniga uzluksiz borsa (masalan eshik ustidagi butun framuga, ostida ustunlar boshqa joyda).
 Soni yozilmagan boʻlsa 1. nom: hujjatdagi raqam yoki "Rom 1", "Eshik 1".
 Rasm yonboshlab olingan boʻlsa, raqamlar va yozuvlar yoʻnalishiga qarab konstruksiyani toʻgʻri holatda oʻqi: L gorizontal (eni), H vertikal (boʻyi) oʻlcham. Eshik doim boʻyi enidan katta.
 Agar usta "Nima chizilgan" deb Eshik yoki Vitraj tanlagan boʻlsa, T/Z yozilmagan boʻlsa ham ochiladigan qism eshik; ochilishi bilinmasa "ichkariga" yoz va savollar ga qoʻsh.
@@ -1300,7 +1301,7 @@ $("ai-boshla").addEventListener("click", async () => {
     return;
   }
   if (aiRejim === "yangi" || !zakaz) { zakaz = yangiZakaz(); belgila(zakaz); }
-  const qoshildi = [], xatolar = [];
+  const qoshildi = [], xatolar = [], tikIzoh = [];
   const nomlar = new Set(zakaz.konstruksiyalar.map((k) => k.nom));
   for (const k of r.natija.konstruksiyalar || []) {
     k.soni = Number.isInteger(k.soni) && k.soni > 0 ? k.soni : 1;
@@ -1312,6 +1313,12 @@ $("ai-boshla").addEventListener("click", async () => {
       k.tanlov = oynaTurlari().includes(t) ? { oyna_turi: t } : undefined;
       if (!k.tanlov) delete k.tanlov;
     } else delete k.tanlov;
+    // avval tik impost (foydalanuvchi qoidasi): qatorlardagi bir joydagi tik impostlar — butun boʻyga
+    if (typeof tikBirinchi === "function" && k.bolak && Number(k.L) > 0) {
+      const iz = [];
+      k.bolak = tikBirinchi(k.bolak, Number(k.L), iz);
+      iz.forEach((m) => tikIzoh.push(`${nom}: ${m}`));
+    }
     const x = konstrTekshir(k);
     if (x) { xatolar.push(`${nom}: ${x}`); continue; }
     nomlar.add(nom);
@@ -1322,7 +1329,7 @@ $("ai-boshla").addEventListener("click", async () => {
   saqla("oxirgi_zakaz", JSON.stringify(zakaz));
   hisobla();
   ekran("zakaz");
-  const savol = r.natija.savollar || [];
+  const savol = [...(r.natija.savollar || []), ...tikIzoh];
   $("ai-sarlavha").textContent = qoshildi.length ? `${qoshildi.length} ta konstruksiya qoʻshildi` : "Konstruksiya qoʻshilmadi";
   $("ai-matn").innerHTML = (qoshildi.length ? `<p>${qoshildi.map(esc).join(", ")}</p><p class="xira">Har birini ochib tekshiring: oʻlcham va ochilish tomoni.</p>` : "") +
     (xatolar.length ? `<p class="ogoh">Qoʻshilmadi:<br>${xatolar.map(esc).join("<br>")}</p>` : "") +
