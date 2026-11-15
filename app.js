@@ -1144,6 +1144,8 @@ USTANING CHIZISH QOIDALARI (shularga qat'iy amal qil):
 - Chizma odatda ichkaridan koʻrinishda; tashqariga (T) ochiladigan eshik tashqaridan koʻrinishda chiziladi. Chap/oʻngni chizmada koʻringanidek yoz.
 Rom tabaqalari orasida doim impost.
 IMPOST TARTIBI: avval TIK impost (butun boʻyga, tepadan pastgacha), keyin yotiq. Agar tik impost yotiq impostni kesib oʻtib tepadan pastgacha borsa (yuqori va pastki qatorda bir joyda), ildiz — "vertikal" boʻlinish (ustunlar), har ustun ichida "gorizontal". Ildiz "gorizontal" faqat yotiq impost butun eniga uzluksiz borsa (masalan eshik ustidagi butun framuga, ostida ustunlar boshqa joyda).
+SERIYA VA RANG (hujjatda yoki eskiz yonida yozilgan boʻlsa; lotin yoki kirill, masalan "Алдокс 306g"): har konstruksiyaga "rama" qoʻsh — Aldoks / Aldox / Алдокс → "183"; Engelberg / 7000 → "7051"; Termo 70 / BKT 70 → "F702" (F703 aniq yozilsa "F703"). Rang — "tanlov" ga: oq → "rang": "Oq", "rang_nomi": "oq"; 306g (kraska) → "rang": "Svetnoy (kraska)", "rang_nomi": "306g"; grey, z/d, d/m, sh/d, alux → "rang": "Laminatsiya", "rang_nomi": shu nom; anod → "rang": "Anod", "rang_nomi": "anod". Yozilmagan boʻlsa qoʻshma.
+Qoʻlda chizilgan eskizda ichki oʻlcham yozilmagan boʻlsa, chiziq tepadan pastgacha bitta boʻlib ketsa — bu bitta tik impost: ustunlarni oldin ajrat, yuqori va pastki qatordagi joyi bir xil boʻlsin.
 Soni yozilmagan boʻlsa 1. nom: hujjatdagi raqam yoki "Rom 1", "Eshik 1".
 Rasm yonboshlab olingan boʻlsa, raqamlar va yozuvlar yoʻnalishiga qarab konstruksiyani toʻgʻri holatda oʻqi: L gorizontal (eni), H vertikal (boʻyi) oʻlcham. Eshik doim boʻyi enidan katta.
 Agar usta "Nima chizilgan" deb Eshik yoki Vitraj tanlagan boʻlsa, T/Z yozilmagan boʻlsa ham ochiladigan qism eshik; ochilishi bilinmasa "ichkariga" yoz va savollar ga qoʻsh.
@@ -1161,7 +1163,7 @@ ProfStroy / ProfOkna PDF ("Коммерческое предложение", "�
 - "дверная T створка" yoki "наружу" — tashqariga; "дверная Z", "внутрь", "вовнутрь" — ichkariga ochiladigan eshik. "поворотное вправо" — petlya oʻngda ("ong"), "влево" — chapda. "поворотно-откидное" — dvaynoy, "откидное" — fortochka.
 - Chizmasi boʻlmasa ham jadvaldan konstruksiyani tuz; boʻlinishi bilinmasa bitta boʻlak qilib, savollar ga yoz.
 Ikkala PDF uchun ham:
-- Seriya yoki Система TERMO 70 / BKT 70 boʻlmasa (masalan TRIO, ENGELBERG, Aldoks, PVX), konstruksiyani baribir oʻqi, savollar ga "N: seriya X, Termo 70 da hisoblandi" deb yoz.
+- Seriya yoki Система TERMO 70 / BKT 70 boʻlmasa (masalan TRIO, PVX), konstruksiyani baribir oʻqi, savollar ga "N: seriya X, Termo 70 da hisoblandi" deb yoz.
 - Narx, rang, ruchka — oʻqima (dastur oʻzi hisoblaydi). Podokonnik chizmada aniq yozilgan boʻlsa (masalan "podokonnik 25"), konstruksiyaga "tanlov": {"podokonnik": 25} qoʻsh (faqat 15, 20, 25, 30, 35, 40, 45). Faqat oyna turi roʻyxatdagilardan biriga aniq mos kelsa, konstruksiyaga "tanlov": {"oyna_turi": "..."} qoʻsh. Roʻyxat: OYNA_ROYXATI.`;
 
 function aiKalit() { return ol("ai_kalit"); }
@@ -1326,6 +1328,7 @@ $("ai-boshla").addEventListener("click", async () => {
 // detal hivichdan uzun — qaysi impost joyidan 2 ramaga (Aldoksda chift, boshqasida lapsha). Javob bosilganda qayta quriladi,
 // matnli javob boʻlsa "Davom" AI ga qayta yuboradi.
 let aiSuhbat = null;
+const AI_RAMALAR = ["F702", "F703", "183", "7051"];
 const aiSon = (x) => son(Number(x) || 0, 2);
 function aiQur() {
   const { r, javob } = aiSuhbat, n = r.natija;
@@ -1340,20 +1343,38 @@ function aiQur() {
       if (v && k) (v.ozgarish || []).forEach((o) => yolQoy(k, o.yol, o.qiymat));
     } else savollar.push({ id, matn: typeof sv === "string" ? sv : String((sv && sv.savol) || ""), variantlar: [] });
   });
+  // yangi (boʻsh) zakazda hamma konstruksiya seriyasi / rangi bir xil boʻlsa — zakazning umumiy tanloviga
+  if (!zakaz.konstruksiyalar.length && konstr.length) {
+    const bir = (f) => { const v = konstr.map(f); return v[0] != null && v.every((x) => x === v[0]) ? v[0] : null; };
+    const rama = bir((k) => (AI_RAMALAR.includes(k.rama) ? k.rama : null));
+    if (rama) {
+      zakaz.umumiy.rama = rama;
+      if (rama === "183") zakaz.umumiy.oyna_qalinligi = 20; else if (zakaz.umumiy.oyna_qalinligi === 20) zakaz.umumiy.oyna_qalinligi = 24;
+      konstr.forEach((k) => delete k.rama);
+    }
+    const rang = bir((k) => (k.tanlov && k.tanlov.rang ? k.tanlov.rang + "|" + (k.tanlov.rang_nomi || "") : null));
+    const rt = rang && RANG_TURKUMLARI.find((x) => x[0] === rang.split("|")[0]);
+    if (rt) {
+      zakaz.umumiy.tanlov = { ...(zakaz.umumiy.tanlov || {}), rang: rt[0], rang_nomi: (rt[2].find((x) => x[0] === rang.split("|")[1]) || rt[2][0])[0] };
+      konstr.forEach((k) => { if (k.tanlov) { delete k.tanlov.rang; delete k.tanlov.rang_nomi; } });
+    }
+  }
   const natija = konstr.map((k, i) => {
     k.soni = Number.isInteger(k.soni) && k.soni > 0 ? k.soni : 1;
     k.nom = String(k.nom || "K" + (i + 1));
+    if (!AI_RAMALAR.includes(k.rama)) delete k.rama;
     if (k.tanlov && typeof k.tanlov === "object") {
       const t = k.tanlov.oyna_turi, pk = k.tanlov.podokonnik;
-      const tl = {};
+      const tl = {}, rt = RANG_TURKUMLARI.find((x) => x[0] === k.tanlov.rang);
       if (oynaTurlari().includes(t)) tl.oyna_turi = t;
       if ([15, 20, 25, 30, 35, 40, 45].includes(pk)) tl.podokonnik = pk;
+      if (rt) { tl.rang = rt[0]; tl.rang_nomi = (rt[2].find((x) => x[0] === k.tanlov.rang_nomi) || rt[2][0])[0]; }
       if (Object.keys(tl).length) k.tanlov = tl; else delete k.tanlov;
     } else delete k.tanlov;
-    // avval tik impost; tepa va past qator farq qilsa — qaysi biri
+    // avval tik impost; tepa va past qator farq qilsa — qaysi biri (eskizda oʻlcham taxminiy: eni 2,5 % gacha farq)
     if (typeof tikBirinchi === "function" && k.bolak && Number(k.L) > 0) {
       const iz = [];
-      k.bolak = tikBirinchi(k.bolak, Number(k.L), iz, 5, javob["tik" + i] === 1);
+      k.bolak = tikBirinchi(k.bolak, Number(k.L), iz, Math.max(5, Number(k.L) * 0.025), javob["tik" + i] === 1);
       if (iz.juft) savollar.push({ id: "tik" + i, k: i, matn: `${k.nom}: tik impost tepa va past qatorda har xil joyda — qaysi biri toʻgʻri?`,
         variantlar: [`Tepadagi: ${iz.juft.map((j) => aiSon(j.tepa)).join(", ")}`, `Pastdagi: ${iz.juft.map((j) => aiSon(j.past)).join(", ")}`], tanlov: javob["tik" + i] || 0 });
     }
