@@ -750,3 +750,9 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
   #konstruktor > .k-tepa { grid-column: 1 / -1; }
   #konstruktor > #k-jadval { grid-column: 1; grid-row: 2 / span 6; }
 }
+.parda.markaz .oyna-quti { border-radius: 16px; max-height: 80vh; }
+.jadval .jq-juft { cursor: default; }
+.jadval .jq-tg { flex: 1; display: flex; gap: 6px; }
+.jadval .jb { flex: 1 1 0; min-height: 36px; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta);
+  color: var(--matn); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.jadval .jb.faol { background: var(--asosiy); color: var(--asosiy-matn); border-color: var(--asosiy); }
