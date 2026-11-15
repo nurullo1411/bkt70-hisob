@@ -2017,7 +2017,7 @@ function oldindanHisobla() {
     let { z, j, yolgiz } = oldindanZakaz();
     let d = pyTannarx(z);
     if (d.xato && !yolgiz) {  // boshqa konstruksiyadagi xato shu konstruksiya narxini yashirmasin
-      const y = pyTannarx({ umumiy: zakaz.umumiy, konstruksiyalar: [{ ...z.konstruksiyalar.filter((k) => (k.soni ?? 1) !== 0)[j], soni: 1 }] });
+      const y = pyTannarx({ umumiy: zakaz.umumiy, konstruksiyalar: [z.konstruksiyalar.filter((k) => (k.soni ?? 1) !== 0)[j]] });  // haqiqiy soni bilan
       if (!y.xato) { d = y; j = 0; yolgiz = true; }
     }
     if (d.xato) {
