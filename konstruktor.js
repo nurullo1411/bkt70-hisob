@@ -566,7 +566,9 @@ function chizmaSVG(k, opts = {}) {
   };
   // profil rom rangida (oq — standart)
   const pr = profilRangi(k);
-  const prUslub = pr ? `;--rama-1:${aralash(pr, "#ffffff", 0.3)};--rama-2:${aralash(pr, "#000000", 0.12)};--rama-chiziq:${aralash(pr, "#000000", 0.5)}` : "";
+  // oq rom — qorongʻi mavzuda ham oppoq (foydalanuvchi, 2026-11-15: kulrang koʻrinardi)
+  const prUslub = pr ? `;--rama-1:${aralash(pr, "#ffffff", 0.3)};--rama-2:${aralash(pr, "#000000", 0.12)};--rama-chiziq:${aralash(pr, "#000000", 0.5)}`
+    : ";--rama:#ffffff;--rama-1:#ffffff;--rama-2:#f1f3f5;--rama-chiziq:#7d8893";
   const ark = g.ark;
   const shrift = M * 0.04;
   const qadam = M * 0.085;  // oʻlcham qatorlari orasidagi masofa
