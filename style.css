@@ -1017,3 +1017,23 @@ header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: 
   .kk-katak span { font-size: 22px; }
   .kk-q, .kk-qiya { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ===== Raqamli tugmalar, konstruksiyalar jadvali (2026-11-16, docs/dizayn.md "Kesish varoqlari") ===== */
+.kv-raqamlar { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.kv-raqamlar button { min-width: 40px; height: 40px; padding: 0 4px; border-radius: 8px; border: 1px solid var(--chiziq); background: var(--karta);
+  color: var(--matn); font: 700 15px/1 system-ui, sans-serif; font-variant-numeric: tabular-nums; cursor: pointer;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.kv-raqamlar button small { font-size: 11px; font-weight: 700; }
+.kv-raqamlar button.toliq { background: var(--aks-s); border-color: var(--aks-s); color: #fff; }
+.kv-raqamlar button.qisman { border-color: var(--aks-s); color: var(--matn);
+  background: linear-gradient(to top, color-mix(in srgb, var(--aks-s) 28%, var(--karta)) 50%, var(--karta) 50%); }
+.kk.sakradi { outline: 3px solid var(--aks-s-t); outline-offset: 2px; transition: outline-color .9s; }
+.kv-bosh-royxat { margin: 10px 0; padding: 10px 14px; border-radius: 12px; background: #EAF6EC; color: #14532D; font-weight: 700; }
+.kv-kon-sar { margin: 14px 0 4px; font-weight: 800; font-size: 16px; color: var(--matn); }
+.kv-kon { width: 100%; border-collapse: collapse; font-size: 16px; font-variant-numeric: tabular-nums; }
+.kv-kon th { text-align: left; font-size: 14px; font-weight: 600; color: var(--xira); padding: 4px 6px; border-bottom: 1px solid var(--chiziq); }
+.kv-kon td { padding: 6px; border-bottom: 1px solid var(--chiziq); vertical-align: top; }
+.kv-kon td:first-child { width: 32px; }
+.kv-kon td:last-child { line-height: 1.4; }
+.kv-kon tr { break-inside: avoid; }
+@media print { .kv-raqamlar, .kv-bosh-royxat { display: none !important; } .kv-kon th { color: #444 !important; } .kv-kon-sar { color: #000 !important; } }

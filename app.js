@@ -703,15 +703,22 @@ function varoqHtml(v, pdf) {
   const karta = (k, i) => {
     const n = pdf ? 0 : sanoq.k[i], toliq = !pdf && n === k.soni, kal = kesildiKalit(v) + "#" + i;
     const sar = `#${i + 1} · ${k.manba === "SKLAD" ? `SKLAD QOLDIQ ${kkSon(k.L)} sm` : `YANGI ${kkSon(k.L)} sm`}`;
-    if (toliq && !ochiqKartalar.has(kal)) return `<button class="kk toliq yigiq" data-ochkarta="${i}">#${i + 1} ✓ kesildi <small>${sar.slice(String(i + 1).length + 4)} × ${k.soni}</small></button>`;
+    if (toliq && !ochiqKartalar.has(kal)) return "";
     return `<div class="kk${k.manba === "SKLAD" ? " sklad" : ""}${toliq ? " toliq" : ""}" data-karta="${i}">
       <div class="kk-sar"${toliq ? ` data-ochkarta="${i}"` : ""}>${sar} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
-      ${k.bolaklar.map(([d, c, rq]) => { const b = kb(d); return `<div class="kk-b"><span><i class="kk-belgi">${b.belgi}</i> ${kkSon(d)} × ${c}</span>${rq.length ? `<span class="kk-r">· ${raqamMatn(rq, c * k.soni)}</span>` : ""}${b.qiya ? `<span class="kk-qiya">${esc(b.qiya)}</span>` : ""}</div>`; }).join("")}
+      ${k.bolaklar.map(([d, c, rq]) => { const b = kb(d); return `<div class="kk-b"><span><i class="kk-belgi">${b.belgi}</i> ${kkSon(d)} × ${c}</span>${b.qiya ? `<span class="kk-qiya">${esc(b.qiya)}</span>` : ""}</div>`; }).join("")}
       <div class="kk-q">qoldiq: ${qoldiqSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}</div>
       <div class="kk-katak">${Array.from({ length: k.soni }, (_, x) => pdf ? "<span>▢</span>" : `<button data-katak="${i}:${x}" aria-pressed="${x < n}" aria-label="${x + 1}-hivich kesildi">${x < n ? "■" : "▢"}</button>`).join("")}${pdf ? "" : `<span class="kk-katak-s">Kesildi ${n} / ${k.soni}</span>`}</div></div>`;
   };
-  const rq = [...new Set(v.kartalar.flatMap((k) => k.bolaklar.flatMap((b) => b[2].map((x) => x[0]))))].sort((a, b) => a - b);
-  const leg = rq.map((r) => { const k = zakaz.konstruksiyalar.find((z) => kRaqam(z) === r); return k ? `<span>${doiraRaqam(r)} ${esc(k.nom || "")}</span>` : ""; }).join("");
+  // "Konstruksiyalar boʻyicha" (foydalanuvchi, 2026-11-16): № (rang doirachasi) | nom | boʻlaklar kattadan kichikka
+  const kb2 = konstruksiyaBolaklar(v.kartalar);
+  const kon = kb2.map(([r, b]) => { const k = r == null ? null : zakaz.konstruksiyalar.find((z) => kRaqam(z) === r);
+    return `<tr><td>${k ? kRaqamHtml(k) : r == null ? "—" : doiraRaqam(r)}</td><td>${r == null ? "raqamsiz" : esc((k && k.nom) || "")}</td><td>${bolaklarMatn(b)}</td></tr>`; }).join("");
+  // Raqamli tugmalar (foydalanuvchi, 2026-11-16): har karta — bitta tugma; bosilsa kartaga surish va ochish (belgi qoʻymaydi)
+  const tug = pdf ? "" : `<div class="kv-raqamlar" role="navigation" aria-label="Hivich kartalari">${v.kartalar.map((k, i) => {
+    const n = sanoq.k[i], h = tugmaHolat(n, k.soni);
+    return `<button data-sakra="${i}" class="${h}"${h === "qisman" ? ` style="--ulush:${Math.round(n / k.soni * 100)}%"` : ""} aria-label="${i + 1}-karta${h === "toliq" ? ", kesildi" : h ? `, ${n} / ${k.soni}` : ""}">${h === "toliq" ? `${i + 1}<small>✓</small>` : h === "qisman" ? `${i + 1}<small>${n}/${k.soni}</small>` : i + 1}</button>`; }).join("")}</div>`;
+  const kartaHtml = v.kartalar.map(karta).join("");
   return `<div class="kv">
     <div class="kv-bosh">
       <div class="kv-q1"><b>${esc(v.nom)}</b>${v.rang ? " · " + esc(v.rang) : ""} · ${hiv}</div>
@@ -719,12 +726,15 @@ function varoqHtml(v, pdf) {
       <div class="kv-q3">${KESIM_IZOH}</div>
       ${pdf ? "" : `<div class="kv-tug">${v.chizma ? '<button data-chizma aria-expanded="false">Chizma</button>' : ""}<button data-varoq-pdf>PDF</button></div>`}
     </div>
+    ${tug}
     ${sanoq.eski && !pdf ? `<div class="kv-eski">Reja oʻzgargan (${esc((saq && saq.sana) || "")} dagi belgilar) — mos kartalardagi belgilar saqlandi, tekshiring</div>` : ""}
     ${diqqat >= 0 ? `<div class="kv-diqqat">${esc(String(v.kesim).slice(diqqat))}</div>` : ""}
     ${v.chizma && !pdf ? `<div class="kk-chizma" hidden>${v.chizma}</div>` : ""}
-    <div class="kk-kartalar">${v.kartalar.map(karta).join("")}</div>
+    <div class="kk-kartalar">${kartaHtml}</div>
+    ${!pdf && !kartaHtml ? '<div class="kv-bosh-royxat">✓ Hamma hivich kesildi — koʻrish uchun raqamni bosing</div>' : ""}
     <div class="kk-jami">${jamiMatn(j, H)}${v.chegara ? `<small> · ${v.chegara} sm dan kichik qoldiq otxod</small>` : ""}</div>
-    ${leg ? `<div class="kv-leg">${leg}</div>` : ""}
+    ${kon ? `<div class="sp-sar kv-kon-sar">Konstruksiyalar boʻyicha</div>
+      <table class="kv-kon"><thead><tr><th>№</th><th>Konstruksiya</th><th>Boʻlaklar</th></tr></thead><tbody>${kon}</tbody></table>` : ""}
     ${pdf && v.konstruksiyalar ? `<div class="sp-sar">Qaysi konstruksiyaga</div>
       ${v.konstruksiyalar.map((k) => `<div class="sp-kon"><b>${skladK(k.nom) ? doiraRaqam(kRaqam(skladK(k.nom))) + " " : ""}${esc(k.nom)}: ${kkSon(k.L)} × ${kkSon(k.H)} sm, ${k.soni} dona</b>
         ${k.detallar.map((x) => `<div>${kb(x.uzunlik).belgi} ${esc(x.nomi)}: ${kkSon(x.uzunlik)} × ${x.soni}</div>`).join("")}</div>`).join("")}` : ""}
@@ -732,9 +742,10 @@ function varoqHtml(v, pdf) {
 }
 // Birinchi toʻlmagan kartaga surish (varoq ochilganda); dan — karta toʻlganda: undan keyingi toʻlmagan kartaga (yuqoriga emas)
 function varoqSur(dan) {
-  const kk = [...$("kesish").querySelectorAll(".kk")];
-  const k = kk.find((e, j) => !e.classList.contains("toliq") && (dan == null || j > dan));
-  if (k && k !== kk[0]) k.scrollIntoView({ block: "start" });
+  const kk = [...$("kesish").querySelectorAll(".kk[data-karta]")];
+  const k = kk.find((e) => !e.classList.contains("toliq") && (dan == null || Number(e.dataset.karta) > dan));
+  // toʻla kartalar roʻyxatda yoʻq: oldinda kesilgan karta boʻlsa (indeks > 0) — surish
+  if (k && Number(k.dataset.karta) > 0) k.scrollIntoView({ block: "start" });
 }
 function eslanganVaroq() { try { return (JSON.parse(localStorage.getItem("kesish_varoq") || "{}") || {})[zakaz.id]; } catch (e) { return null; } }
 function varoqniEsla() {
@@ -812,11 +823,20 @@ $("kesish").addEventListener("click", (e) => {
     s.k[i] = katakBos(s.k[i], x, v.kartalar[i].soni);
     zakaz.kesildi = zakaz.kesildi || {};
     zakaz.kesildi[kesildiKalit(v)] = kesildiYoz(v.kartalar, s.k, imzo(v.kartalar), new Date().toISOString().slice(0, 10), kesildiSaq(v), i, Date.now());
-    if (s.k[i] < v.kartalar[i].soni) ochiqKartalar.delete(kesildiKalit(v) + "#" + i);
+    ochiqKartalar.delete(kesildiKalit(v) + "#" + i);  // qisman — baribir koʻrinadi; toʻlsa — roʻyxatdan yoʻqoladi
     saqla("oxirgi_zakaz", JSON.stringify(zakaz));
     varoqlarniChiz(true);
     // karta toʻlib yigʻilsa — keyingi toʻlmagan karta barmoq ostiga emas, koʻrinishga olinadi
     if (s.k[i] === v.kartalar[i].soni) varoqSur(i);
+    return;
+  }
+  const sk = e.target.closest("[data-sakra]");
+  if (sk) {
+    const i = Number(sk.dataset.sakra);
+    if (sk.classList.contains("toliq")) ochiqKartalar.add(kesildiKalit(v) + "#" + i);  // toʻliq — ochiladi (koʻrish, belgini bekor qilish)
+    varoqlarniChiz(true);
+    const c = $("kesish").querySelector(`.kk[data-karta="${i}"]`);
+    if (c) { c.scrollIntoView({ block: "start" }); c.classList.add("sakradi"); setTimeout(() => c.classList.remove("sakradi"), 900); }
     return;
   }
   const oc = e.target.closest("[data-ochkarta]");

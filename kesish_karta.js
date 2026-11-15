@@ -198,8 +198,27 @@ function kesildiBirlashtir(a, b) {
   }
   return r;
 }
+// "Konstruksiyalar boʻyicha" jadvali (foydalanuvchi, 2026-11-16): kartalar → [[raqam, [[uzunlik, jami soni]]]], raqam oʻsishi,
+// uzunlik kattadan kichikka; egasi topilmagan boʻlaklar — raqam null, oxirida.
+function konstruksiyaBolaklar(kartalar) {
+  const m = new Map();
+  const qosh = (r, d, n) => { if (!m.has(r)) m.set(r, new Map()); const x = m.get(r); x.set(mm(d), (x.get(mm(d)) || 0) + n); };
+  for (const k of kartalar || []) {
+    for (const [d, c, rq] of k.bolaklar) {
+      let qolgan = c * k.soni;
+      for (const [r, n] of rq || []) { qosh(r, d, n); qolgan -= n; }
+      if (qolgan > 0) qosh(null, d, qolgan);
+    }
+  }
+  return [...m].sort((a, b) => (a[0] == null) - (b[0] == null) || a[0] - b[0])
+    .map(([r, x]) => [r, [...x].sort((a, b) => b[0] - a[0]).map(([d, n]) => [d / 10, n])]);
+}
+const bolaklarMatn = (b) => b.map(([d, n]) => `${kkSon(d)} × ${n}`).join(" · ");
+// Raqamli tugma holati: kesilmagan "", toʻliq "toliq", qisman "qisman"
+const tugmaHolat = (n, soni) => (n >= soni && soni > 0 ? "toliq" : n > 0 ? "qisman" : "");
+
 // Katak bosildi: j < n — bitta kamayadi (bekor), aks holda bitta oshadi
 const katakBos = (n, j, soni) => Math.max(0, Math.min(soni, j < n ? n - 1 : n + 1));
 
 if (typeof module !== "undefined") module.exports = { mm, sexSon, kkSon, qoldiqSon, sm100, butunmi, doiraRaqam, raqamMatn, qisqaNom, yigKartalar,
-  qoldiqMm, profilBurchagi, uchlar, uchBelgi, kesimBelgilari, KESIM_IZOH, kartaKalit, kesildiOqi, kesildiYoz, kesildiBirlashtir, katakBos, hivichKartalar, skladKartalar, kartaJami, jamiMatn, kesimQisqa, imzo };
+  qoldiqMm, profilBurchagi, uchlar, uchBelgi, kesimBelgilari, KESIM_IZOH, kartaKalit, kesildiOqi, kesildiYoz, kesildiBirlashtir, katakBos, konstruksiyaBolaklar, bolaklarMatn, tugmaHolat, hivichKartalar, skladKartalar, kartaJami, jamiMatn, kesimQisqa, imzo };
