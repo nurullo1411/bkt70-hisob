@@ -18,8 +18,14 @@ const fTik = (...b) => fBol("vertikal", null, b);
 const fTikU = (ulush, ...b) => fBol("vertikal", ulush, b);
 const fYot = (ulush, ...b) => fBol("gorizontal", ulush, b);
 const TEPA = 0.25, PAST = 0.2;                                              // tepa / past kichik boʻlak ulushi
-const fTepa = (...b) => fYot([TEPA], ...b);                                 // tepada kichik boʻlak (framuga)
-const fUch = () => fYot([TEPA, 1 - TEPA - PAST], fG(), fG(), fG());         // tepa kichik, oʻrta, past kichik
+// Framuga boʻyi (foydalanuvchi, 2026-11-15): rom — H 180 dan kichik 45, 180–220 50, kattasi 55;
+// eshik — H 270 gacha 45, 270–290 50, kattasi 55; arkada — yelkadan (arka boshlanishidan) 15 sm pastda.
+// Faqat konstruksiya tepasiga tegadigan boʻlinishda; ichkaridagi kichik boʻlinish — eski ulush (25 %).
+const framugaBoyi = (h, eshik) => (eshik ? (h <= 270 ? 45 : h <= 290 ? 50 : 55) : (h < 180 ? 45 : h <= 220 ? 50 : 55));
+const FR = (jami, c, ol, h, tepada) => (!tepada ? TEPA * jami : c.arka ? c.arka + 15 : framugaBoyi(h, c.eshik));
+const ORTA = (jami, c, ol) => jami - ol[0] - PAST * jami;                   // 3 qavatda oʻrtasi: framuga va pastdan qolgani
+const fTepa = (...b) => fYot([FR], ...b);                                   // tepada framuga
+const fUch = () => fYot([FR, ORTA], fG(), fG(), fG());                      // framuga, oʻrta, past kichik
 // lapsha: alohida ramalar (H702); kalta ramaga _k — boʻy ulushi (tepaga tekislanadi)
 const fLapsha = (yon, ulush, ...b) => ({ ...fBol(yon, ulush, b), lapsha: true });
 const fKalta = (b, k = 0.62) => ({ ...b, _k: k });
@@ -36,11 +42,11 @@ const fEshikUlush = (L, ikki) => Math.min(L - 60, Math.max(L * (ikki ? 0.5 : 0.3
 // tashqariga ochilsa yon oyna alohida ramada (H702 lapsha; Termo / Engelberg qoidasi), Aldoksda lapsha yoʻq
 const fVitraj = (o, ulush, ...b) => (o.ochilish === "tashqariga" && !o.aldoks ? fLapsha("vertikal", ulush, ...b) : fTikU(ulush, ...b));
 // framuga + vitraj: vitraj lapshali boʻlsa framuga ham alohida rama (rama ichida lapsha boʻlmaydi)
-const fTepaV = (tepa, past) => (past.lapsha ? fLapsha("gorizontal", [TEPA], tepa, past) : fTepa(tepa, past));
+const fTepaV = (tepa, past) => (past.lapsha ? fLapsha("gorizontal", [FR], tepa, past) : fTepa(tepa, past));
 const fYarim = (L) => Math.round(L / 2 * 10) / 10;
 const fYassi = (L) => Math.round(L * 0.2 * 10) / 10;
 const fArka = (a, bolak) => ({ arka: { balandlik: a }, bolak });
-const fArkaOsti = (a, tepa, past) => fArka(a, { tur: "bolinish", yonalish: "gorizontal", olchamlar: [a, null], bolaklar: [tepa, past] });
+const fArkaOsti = (a, tepa, past) => fArka(a, { tur: "bolinish", yonalish: "gorizontal", olchamlar: [a + 15, null], bolaklar: [tepa, past] });  // impost yelkadan 15 sm pastda
 
 const FASONLAR = [
   // ---------- OYNA ----------
@@ -67,15 +73,15 @@ const FASONLAR = [
   { tab: "oyna", nom: "Tepa + 3, oʻrtasi boʻlingan", yasa: () => ({ bolak: fTepa(fG(), fTik(fG(), fTepa(fG(), fG()), fG())) }) },
   { tab: "oyna", nom: "3 ustun, hammasi boʻlingan", yasa: () => ({ bolak: fTepa(fTikU([0.25, 0.5], fG(), fG(), fG()), fTikU([0.25, 0.5], fG(), fG(), fG())) }) },
   { tab: "oyna", nom: "Oʻrtasi katta, chetlari 3 qavat", yasa: () => ({ bolak: fTikU([0.25, 0.5], fUch(), fG(), fUch()) }) },
-  { tab: "oyna", nom: "Tepa 4 + oʻrta 5 + past 5", rasm: [250, 170], yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+  { tab: "oyna", nom: "Tepa 4 + oʻrta 5 + past 5", rasm: [250, 170], yasa: () => ({ bolak: fYot([FR, ORTA],
       fTikU([0.15, 0.35, 0.35], fG(), fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG(), fG())) }) },
-  { tab: "oyna", nom: "4 ustun, 3 qavat", rasm: [200, 170], yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+  { tab: "oyna", nom: "4 ustun, 3 qavat", rasm: [200, 170], yasa: () => ({ bolak: fYot([FR, ORTA],
       fTik(fG(), fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG())) }) },
-  { tab: "oyna", nom: "Tepa 2 + 3 + sendvich", yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+  { tab: "oyna", nom: "Tepa 2 + 3 + sendvich", yasa: () => ({ bolak: fYot([FR, ORTA],
       fTik(fG(), fG()), fTik(fG(), fG(), fG()), fTik(fLam(), fLam(), fLam())) }) },
-  { tab: "oyna", nom: "Tepa 3 + 4 + sendvich", rasm: [200, 170], yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+  { tab: "oyna", nom: "Tepa 3 + 4 + sendvich", rasm: [200, 170], yasa: () => ({ bolak: fYot([FR, ORTA],
       fTik(fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG()), fTik(fLam(), fLam(), fLam(), fLam())) }) },
-  { tab: "oyna", nom: "Tepa 3 + 5 + sendvich", rasm: [250, 170], yasa: () => ({ bolak: fYot([TEPA, 1 - TEPA - PAST],
+  { tab: "oyna", nom: "Tepa 3 + 5 + sendvich", rasm: [250, 170], yasa: () => ({ bolak: fYot([FR, ORTA],
       fTik(fG(), fG(), fG()), fTik(fG(), fG(), fG(), fG(), fG()), fTik(fLam(), fLam(), fLam(), fLam(), fLam())) }) },
 
   // ---------- ESHIK ----------
@@ -102,11 +108,11 @@ const FASONLAR = [
   { tab: "eshik", nom: "Balkon: eshik + oyna", rasm: [180, 220], yasa: (L, H, o) => ({ bolak: fLapsha("vertikal", null, fE1(o), fKalta(fG())) }) },
   { tab: "eshik", nom: "Balkon: framuga + oyna + eshik + oyna", rasm: [250, 240], yasa: (L, H, o) => {
       const d = fEshikUlush(L, false);
-      return { bolak: fLapsha("gorizontal", [0.2], fG(), fLapsha("vertikal", [(1 - d) / 2, d], fKalta(fG(), 0.55), fE1(o), fKalta(fG(), 0.55))) }; } },
+      return { bolak: fLapsha("gorizontal", [FR], fG(), fLapsha("vertikal", [(1 - d) / 2, d], fKalta(fG(), 0.55), fE1(o), fKalta(fG(), 0.55))) }; } },
   { tab: "eshik", nom: "Balkon: framuga + oyna + eshik", rasm: [180, 240], yasa: (L, H, o) => ({
-      bolak: fLapsha("gorizontal", [0.2], fG(), fLapsha("vertikal", null, fKalta(fG(), 0.55), fE1(o))) }) },
+      bolak: fLapsha("gorizontal", [FR], fG(), fLapsha("vertikal", null, fKalta(fG(), 0.55), fE1(o))) }) },
   { tab: "eshik", nom: "Balkon: framuga + eshik + oyna", rasm: [180, 240], yasa: (L, H, o) => ({
-      bolak: fLapsha("gorizontal", [0.2], fG(), fLapsha("vertikal", null, fE1(o), fKalta(fG(), 0.55))) }) },
+      bolak: fLapsha("gorizontal", [FR], fG(), fLapsha("vertikal", null, fE1(o), fKalta(fG(), 0.55))) }) },
   { tab: "eshik", nom: "Oyna + 2 tabaqa", rasm: [220, 220], yasa: (L, H, o) => {
       const d = fEshikUlush(L, true); return { bolak: fVitraj(o, [1 - d], fG(), fE2(o, "chap")) }; } },
   { tab: "eshik", nom: "2 tabaqa + oyna", rasm: [220, 220], yasa: (L, H, o) => {
@@ -153,24 +159,32 @@ const FASONLAR = [
   { tab: "arka", nom: "Yassi arka, 3 ustun (oʻrtasi boʻlingan)", rasm: [150, 220], yasa: (L) => fArka(fYassi(L), fTik(fG(), fTepa(fG(), fG()), fG())) },
 ];
 
-// Ulushlarni (_u, _k) joriy oʻlchamga koʻra sm ga aylantiradi; eshik _k65 qoladi (konstruktor hisoblaydi)
-function fasonTayyorla(b, w, h) {
+// Ulushlarni (_u, _k) joriy oʻlchamga koʻra sm ga aylantiradi; eshik _k65 qoladi (konstruktor hisoblaydi).
+// _u: son — ulush (0…1), funksiya (jami, c, oldingilar, h, tepada) — sm; c = {eshik, arka}; tepada — konstruksiya tepasiga tegadi
+function fasonTayyorla(b, w, h, c = {}, tepada = true) {
   if (!b || b.tur !== "bolinish") return b;
   const v = b.yonalish === "vertikal", jami = (v ? w : h) - (b.lapsha ? 0.5 * (b.bolaklar.length - 1) : 0);
   const yx = (x) => Math.round(x * 2) / 2;
-  if (b._u) b.olchamlar = b.bolaklar.map((_, i) => (i < b._u.length && b._u[i] != null && i < b.bolaklar.length - 1 ? yx(b._u[i] * jami) : null));
+  if (b._u) {
+    const ol = [];
+    b.bolaklar.forEach((_, i) => {
+      const u = i < b._u.length && i < b.bolaklar.length - 1 ? b._u[i] : null;
+      ol.push(u == null ? null : yx(typeof u === "function" ? u(jami, c, ol, h, tepada) : u * jami));
+    });
+    b.olchamlar = ol;
+  }
   delete b._u;
   const ber = b.olchamlar.reduce((m, q) => m + (q || 0), 0), bosh = b.olchamlar.filter((q) => q == null).length;
-  b.bolaklar.forEach((c, i) => {
+  b.bolaklar.forEach((q, i) => {
     const d = b.olchamlar[i] != null ? b.olchamlar[i] : (jami - ber) / bosh;
-    if (c._k != null) { if (b.lapsha && v) c.boy = yx(h * c._k); delete c._k; }
-    fasonTayyorla(c, v ? d : w, v ? (c.boy || h) : d);
+    if (q._k != null) { if (b.lapsha && v) q.boy = yx(h * q._k); delete q._k; }
+    fasonTayyorla(q, v ? d : w, v ? (q.boy || h) : d, c, tepada && (v || i === 0));
   });
   return b;
 }
 function fasonYasa(f, L, H, o) {
   const r = f.yasa(L, H, o);
-  fasonTayyorla(r.bolak, L, H);
+  fasonTayyorla(r.bolak, L, H, { eshik: f.tab === "eshik", arka: r.arka ? Number(r.arka.balandlik) : 0 });
   return r;
 }
 
