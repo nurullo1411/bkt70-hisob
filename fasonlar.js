@@ -185,6 +185,7 @@ function fasonTayyorla(b, w, h, c = {}, tepada = true) {
 function fasonYasa(f, L, H, o) {
   const r = f.yasa(L, H, o);
   fasonTayyorla(r.bolak, L, H, { eshik: f.tab === "eshik", arka: r.arka ? Number(r.arka.balandlik) : 0 });
+  r.bolak = tikBirinchi(r.bolak, L, [], 0.01);   // avval tik impost (foydalanuvchi, 2026-11-15); fasonda faqat aniq bir joy
   return r;
 }
 
@@ -272,17 +273,17 @@ function fasonRasm(f) {
 // Impost tartibi (foydalanuvchi, 2026-11-02 va 2026-11-15): avval tik impost (butun boʻyga), keyin yotiq.
 // Yotiq boʻlinish qatorlarida bir xil joyda (TIK_FARQ sm gacha farq) tik impost boʻlsa — tik ustunlarga oʻgiriladi:
 // ildiz tik boʻlinish, har ustun ichida oʻsha yotiq qatorlar. Farq boʻlsa birinchi (tepa) qatordagi joy olinadi, izoh[] ga yoziladi.
-// W — shu boʻlak eni (sm). Rasmdan oʻqilgan (AI) zakazga qoʻllanadi.
+// W — shu boʻlak eni (sm), tol — farq chegarasi. Rasmdan oʻqilgan (AI), qoʻlda chizilgan (5 sm) va fasonlarda (aniq) qoʻllanadi.
 const TIK_FARQ = 5;
-function tikBirinchi(b, W, izoh = []) {
+function tikBirinchi(b, W, izoh = [], tol = TIK_FARQ) {
   if (!b || b.tur !== "bolinish") return b;
   const qism = (ol, jami) => {
     const ber = ol.reduce((m, q) => m + (q == null ? 0 : Number(q)), 0), bosh = ol.filter((q) => q == null).length;
     return ol.map((q) => (q == null ? (jami - ber) / Math.max(bosh, 1) : Number(q)));
   };
   // avval ichkaridagilar (tik boʻlinishda har bola oʻz enida)
-  if (b.yonalish === "vertikal" && !b.lapsha) { const en = qism(b.olchamlar || [], W); b.bolaklar = b.bolaklar.map((c, i) => tikBirinchi(c, en[i], izoh)); }
-  else if (!b.lapsha) b.bolaklar = b.bolaklar.map((c) => tikBirinchi(c, W, izoh));
+  if (b.yonalish === "vertikal" && !b.lapsha) { const en = qism(b.olchamlar || [], W); b.bolaklar = b.bolaklar.map((c, i) => tikBirinchi(c, en[i], izoh, tol)); }
+  else if (!b.lapsha) b.bolaklar = b.bolaklar.map((c) => tikBirinchi(c, W, izoh, tol));
   if (b.yonalish !== "gorizontal" || b.lapsha || b.egilgan || b.chift || b.bolaklar.length < 2) return b;
   // har qator: boʻlaklar [{c, x1, x2}]
   const qatorlar = b.bolaklar.map((c) => {
@@ -292,13 +293,13 @@ function tikBirinchi(b, W, izoh = []) {
   });
   if (qatorlar.some((q) => !q)) return b;
   const chegara = qatorlar[0].slice(0, -1).map((p) => p.x2)
-    .filter((x) => qatorlar.every((q) => q.slice(0, -1).some((p) => Math.abs(p.x2 - x) <= TIK_FARQ)));
+    .filter((x) => qatorlar.every((q) => q.slice(0, -1).some((p) => Math.abs(p.x2 - x) <= tol)));
   if (!chegara.length) return b;
   // farqli joylarni tepa qatorga tekislash
   let farq = 0;
   for (const q of qatorlar.slice(1)) for (const p of q) for (const x of chegara) {
-    if (Math.abs(p.x2 - x) <= TIK_FARQ && p.x2 !== x) { farq = Math.max(farq, Math.abs(p.x2 - x)); p.x2 = x; }
-    if (Math.abs(p.x1 - x) <= TIK_FARQ && p.x1 !== x) p.x1 = x;
+    if (Math.abs(p.x2 - x) <= tol && p.x2 !== x) { farq = Math.max(farq, Math.abs(p.x2 - x)); p.x2 = x; }
+    if (Math.abs(p.x1 - x) <= tol && p.x1 !== x) p.x1 = x;
   }
   if (farq) izoh.push(`Tik impost butun boʻyga qoʻyildi; pastki qatordagi joyi tepadagidan ${Math.round(farq * 10) / 10} sm farq qilgan — tepadagisi olindi, tekshiring.`);
   const chet = [0, ...chegara, W], yx = (x) => Math.round(x * 10) / 10;

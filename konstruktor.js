@@ -1711,6 +1711,15 @@ function qalamQolla(r) {
       const ol = node.olchamlar.slice(), q = bl && ikkiBolak(ol, bl.s, i, d - bl.s[i]);
       if (q) { node.olchamlar = ol; xabar(`✏️ ${v ? "Tik" : "Yotiq"} impost: ${v ? "chap" : "tepa"} ${yx(q[0])} · ${v ? "oʻng" : "past"} ${yx(q[1])} sm`); }
       tanlangan = bolaYoli(yol, i);
+      // avval tik impost (foydalanuvchi qoidasi): qatorlarda bir joydagi tik impostlar — butun boʻyga
+      if (typeof tikBirinchi === "function") {
+        const eski = JSON.stringify(tahrir.bolak), iz = [];
+        tahrir.bolak = tikBirinchi(tahrir.bolak, Number(tahrir.L), iz);
+        if (JSON.stringify(tahrir.bolak) !== eski) {
+          tanlangan = geometriya(tahrir).barglar[0].p;
+          xabar("✏️ Tik impost butun boʻyga qoʻyildi (avval tik, keyin yotiq)" + (iz.length ? " — pastdagi joyi tepadagiga tekislandi" : ""));
+        }
+      }
     });
     yangila();
     return;
