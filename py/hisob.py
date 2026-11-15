@@ -174,9 +174,15 @@ def hivich_metr(kalit, standart):
     return 6 if k.startswith(("ENG ", "ALD ")) or k.split(" ")[-1] in HIVICH_6 else standart
 
 
+RANG_SINONIM = {"Svetnoy (kraska)": "Svetnoy", "Svetnoy": "Svetnoy (kraska)"}
+
+
 def profil_narxi(narxlar, artikul, rang):
     """Hivich narxi: rang boʻyicha; armatura (metall) rangga bogʻliq emas — "*" kaliti."""
     d = narxlar["profil_hivich"].get(artikul, {})
+    if rang not in d:
+        # Sheetsʼda Aldoks kraska turkumi "Svetnoy", Termoda "Svetnoy (kraska)" — bitta turkum (foydalanuvchi, 2026-11-15)
+        rang = RANG_SINONIM.get(rang, rang)
     return d.get(rang, d.get("*"))
 
 
