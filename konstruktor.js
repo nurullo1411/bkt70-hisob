@@ -1627,7 +1627,7 @@ function svgNuqta(e) {
 // ---------- qoʻlda chizish (foydalanuvchi, 2026-11-15): chiziq tanilib, tekis konstruksiyaga aylanadi (qalam.js) ----------
 let qalam = false, qalamYutish = false;
 const QALAM_MASLAHAT = "✏️ Qoʻlda chizing: tik / yotiq chiziq — impost (chizilgan joyida), > < — tabaqa (uchi — ruchka tomoni), " +
-  "Λ — fortochka, V — fortochka (petlya tepada), O — oddiy oyna. Toʻxtatish — ✏️ ni yana bosing.";
+  "Λ — fortochka, V — fortochka (petlya tepada), > (yoki <) va V (yoki Λ) bitta boʻlakka — dvaynoy, O — oddiy oyna. Toʻxtatish — ✏️ ni yana bosing.";
 $("k-chizma").addEventListener("pointerdown", (e) => {
   if (!qalam || e.button > 0) return;
   const svg = $("k-chizma").querySelector("svg"), n0 = svgNuqta(e);
@@ -1687,12 +1687,19 @@ function qalamQolla(r) {
     yangila();
     return;
   }
-  if (!asbobBor(r.tur)) { xabar("✏️ Bu seriyada fortochka yoʻq"); return; }
+  // dvaynoy = yon uchburchak + Λ (yoki V) bir boʻlakda, istalgan tartibda (foydalanuvchi chizish qoidasi)
+  let tur = r.tur;
+  const yon = r.tur === "tab_chap" || r.tur === "tab_ong", tepa = r.tur.startsWith("fortochka");
+  if (b.tur === "tabaqa" && ((tepa && !b.fortochka) || (yon && (b.fortochka || b.dvaynoy)))) {
+    tur = yon ? (r.tur === "tab_chap" ? "dv_chap" : "dv_ong") : (b.petlya_tomoni === "ong" ? "dv_ong" : "dv_chap");
+    if (!asbobBor(tur)) { xabar("✏️ Bu seriyada dvaynoy yoʻq"); return; }
+  }
+  if (!asbobBor(tur)) { xabar("✏️ Bu seriyada fortochka yoʻq"); return; }
   const eski = asbob;
-  asbob = r.tur;
+  asbob = tur;
   try { tekshirib(() => asbobniQollaIchki(o.p)); } finally { asbob = eski; }
   xabar(`✏️ ${{ tab_chap: "Tabaqa, petlya chapda", tab_ong: "Tabaqa, petlya oʻngda", fortochka: "Fortochka (petlya pastda)",
-    fortochka_tepa: "Fortochka (petlya tepada)", gluxoy: "Oddiy oyna (gluxoy)" }[r.tur]}`);
+    fortochka_tepa: "Fortochka (petlya tepada)", gluxoy: "Oddiy oyna (gluxoy)", dv_chap: "Dvaynoy, petlya chapda", dv_ong: "Dvaynoy, petlya oʻngda" }[tur]}`);
 }
 
 function ikkiBolak(olchamlar, s, i, d) {
