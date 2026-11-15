@@ -1037,3 +1037,14 @@ header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: 
 .kv-kon td:last-child { line-height: 1.4; }
 .kv-kon tr { break-inside: avoid; }
 @media print { .kv-raqamlar, .kv-bosh-royxat { display: none !important; } .kv-kon th { color: #444 !important; } .kv-kon-sar { color: #000 !important; } }
+
+/* ===== Kesildi — zangori (foydalanuvchi, 2026-11-16, docs/dizayn.md "Kesish varoqlari") ===== */
+:root { --kesildi-fon: #E0F2FE; --kesildi: #0369A1; }
+.kv-raqamlar button.toliq { background: var(--kesildi-fon); border-color: var(--kesildi); color: var(--kesildi); }
+.kv-raqamlar button.qisman { border-color: var(--kesildi); background: linear-gradient(to top, var(--kesildi-fon) 50%, var(--karta) 50%); }
+.kv-raqamlar button.qisman small { color: var(--kesildi); }
+.kk.toliq { background: var(--kesildi-fon); color: var(--kesildi); border-color: var(--kesildi); }
+.kk.toliq .kk-sar, .kk.toliq .kk-sar small, .kk.toliq .kk-belgi, .kk.toliq .kk-katak-s { color: var(--kesildi); }
+.kk-katak button[aria-pressed="true"] { background: var(--kesildi-fon); border-color: var(--kesildi); color: var(--kesildi); font-weight: 800; }
+.kv-tablar button.kesildi:not(.on) { color: var(--kesildi); border-color: var(--kesildi); background: var(--kesildi-fon); }
+.kv-bosh-royxat, .kv-tayyor { background: var(--kesildi-fon); color: var(--kesildi); }

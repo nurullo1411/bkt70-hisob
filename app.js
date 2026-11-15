@@ -708,7 +708,7 @@ function varoqHtml(v, pdf) {
       <div class="kk-sar"${toliq ? ` data-ochkarta="${i}"` : ""}>${sar} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
       ${k.bolaklar.map(([d, c, rq]) => { const b = kb(d); return `<div class="kk-b"><span><i class="kk-belgi">${b.belgi}</i> ${kkSon(d)} × ${c}</span>${b.qiya ? `<span class="kk-qiya">${esc(b.qiya)}</span>` : ""}</div>`; }).join("")}
       <div class="kk-q">qoldiq: ${qoldiqSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}</div>
-      <div class="kk-katak">${Array.from({ length: k.soni }, (_, x) => pdf ? "<span>▢</span>" : `<button data-katak="${i}:${x}" aria-pressed="${x < n}" aria-label="${x + 1}-hivich kesildi">${x < n ? "■" : "▢"}</button>`).join("")}${pdf ? "" : `<span class="kk-katak-s">Kesildi ${n} / ${k.soni}</span>`}</div></div>`;
+      <div class="kk-katak">${Array.from({ length: k.soni }, (_, x) => pdf ? "<span>▢</span>" : `<button data-katak="${i}:${x}" aria-pressed="${x < n}" aria-label="${x + 1}-hivich kesildi">${x < n ? "✓" : "▢"}</button>`).join("")}${pdf ? "" : `<span class="kk-katak-s">Kesildi ${n} / ${k.soni}</span>`}</div></div>`;
   };
   // "Konstruksiyalar boʻyicha" (foydalanuvchi, 2026-11-16): № (rang doirachasi) | nom | boʻlaklar kattadan kichikka
   const kb2 = konstruksiyaBolaklar(v.kartalar);
