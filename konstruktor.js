@@ -711,6 +711,14 @@ function chizmaSVG(k, opts = {}) {
       ichkiImpBos.push(taxta(xo, y + h - (i + ic) / 2, tt.en, `${k_}|en`) +
         (fortochka ? "" : taxta(yon, y + ic + (h - 2 * ic) * 0.3, tt.boy, `${k_}|boy`)));
     }
+    // mijoz PDF i (foydalanuvchi, 2026-11-16): tabaqa ichida qanot oʻlchami (hisob.py belgilangan) — kichik, kulrang, xira
+    const qy = opts.qanotYoz && ii && ii.p != null ? opts.qanotYoz[ii.p] : null;
+    if (qy && qy.length) {
+      const tt = (ii.l && qy.find((z) => z.joy.endsWith(ii.l))) || qy[0];
+      const yoz = `${String(yx(tt.en)).replace(".", ",")} × ${String(yx(tt.boy)).replace(".", ",")}`;
+      const kat = Math.min(0.8, ((x2 - x1) * 0.8) / (shrift * 0.55 * yoz.length));
+      q += matn(xo, (tepa(xo) + past(xo)) / 2, yoz, kat, "yoz qanot-ol");
+    }
     if (!opts.kichik) {
       const pt = (px, py, pw, ph) => rect(px, py, pw, ph, "pt", `rx="${f(Math.min(pw, ph) * 0.3)}"`);
       const a = t * 0.32, b = t * 1.5;  // petlya qalinligi va uzunligi

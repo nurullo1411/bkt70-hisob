@@ -51,9 +51,16 @@ async function zakazlarniYubor() {
         const birga = r.server && r.server.zakaz && (z.kesildi || r.server.zakaz.kesildi) ? kesildiBirlashtir(r.server.zakaz.kesildi, z.kesildi) : null;
         const qayta = birga && JSON.stringify(birga) !== JSON.stringify(r.server.zakaz.kesildi || {});
         if (birga) r.server.zakaz.kesildi = birga;
+        // Dillerga roʻyxat tahriri: keyinroq qilingani qoladi (foydalanuvchi, 2026-11-16)
+        let dt = null, dtQayta = false;
+        if (r.server && r.server.zakaz && typeof dtBirlashtir === "function" && (z.diller_tahrir || r.server.zakaz.diller_tahrir)) {
+          dt = dtBirlashtir(r.server.zakaz.diller_tahrir, z.diller_tahrir);
+          dtQayta = JSON.stringify(dt || null) !== JSON.stringify(r.server.zakaz.diller_tahrir || null);
+          if (dt) r.server.zakaz.diller_tahrir = dt;
+        }
         bazadanQoy(r.server, true);
         zNavbatYoz(zNavbat().filter((x) => x !== id));
-        if (qayta) { zakazgaYoz(id, { kesildi: birga }); zakazNavbatga(id); }
+        if (qayta || dtQayta) { zakazgaYoz(id, { ...(qayta ? { kesildi: birga } : {}), ...(dtQayta ? { diller_tahrir: dt } : {}) }); zakazNavbatga(id); }
         continue;
       }
       else zakazgaYoz(id, { versiya: r.versiya, baza_id: r.id, holat: r.holat });

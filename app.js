@@ -1259,7 +1259,7 @@ $("arxiv").addEventListener("click", async (e) => {
     if (z) zakazniOch(JSON.stringify(z));
   } else if (d.dub) {
     const z = JSON.parse(JSON.stringify(a.find((x) => x.id === d.dub)));
-    for (const k of ["id", "raqam", "sana", "holat", "hisob_kitob", "narx_som", "versiya", "baza_id", "tolangan", "shartnoma", "montaj", "ochirilgan", "ish", "kesildi"]) delete z[k];
+    for (const k of ["id", "raqam", "sana", "holat", "hisob_kitob", "narx_som", "versiya", "baza_id", "tolangan", "shartnoma", "montaj", "ochirilgan", "ish", "kesildi", "diller_tahrir"]) delete z[k];
     arxivTab = "yangi";
     zakazniOch(JSON.stringify(z));
   } else if (d.arxOchir) {
@@ -1295,39 +1295,98 @@ $("pdf-ber").addEventListener("click", () => {
   setTimeout(() => { window.print(); document.title = eski; }, 100);
 });
 
+// Seriya nomi (hisob natijasidan; zaxira — rama boʻyicha): "Termo 70", "Aldoks", "Engelberg 7000"
+const SERIYA_NOMI = { F702: "Termo 70", F703: "Termo 70", 7051: "Engelberg 7000", 183: "Aldoks" };
+const kSeriya = (k, x) => (x && x.seriya) || SERIYA_NOMI[k.rama || zakaz.umumiy.rama] || "";
+function zakazSeriyalari(n = natija) {
+  const hm = n ? hisobMos(n) : new Map();
+  return [...new Set(zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) > 0).map((k) => kSeriya(k, hm.get(k))).filter(Boolean))];
+}
+// Konstruksiyadagi oyna turlari (boʻlakka berilgani ham)
+function kOynaTurlari(k) {
+  const t = { ...(zakaz.umumiy.tanlov || {}), ...(k.tanlov || {}) }, r = [];
+  const yur = (b, tur) => {
+    if (!b) return;
+    const tt = b.oyna_turi || tur;
+    if (b.tur === "bolinish" || b.bolaklar) (b.bolaklar || []).forEach((c) => yur(c, tt));
+    else if (!r.includes(tt)) r.push(tt);
+  };
+  yur(k.bolak, t.oyna_turi || "");
+  return r.filter(Boolean);
+}
+// Eshik qatorlari (mijoz PDF): Ruchka, Zamok, Petlya — ⚙ dagi yorliq; Ochilishi — chizma ochilish tomonidan koʻrinishda
+function eshikMalumot(k) {
+  const esh = eshiklar(k.bolak);
+  if (!esh.length) return null;
+  const t = { ...(zakaz.umumiy.tanlov || {}), ...(k.tanlov || {}) }, rama = String(k.rama || zakaz.umumiy.rama);
+  const yorliq = (royxat, v) => { const f = royxat.find((x) => x[0] === v); return f ? f[1] : v; };
+  let ruchka, zamok, petlya;
+  if (rama === "7051") {
+    ruchka = yorliq(ENG_ESHIK_RUCHKALAR, t.eng_eshik_ruchka || ENG_ESHIK_RUCHKALAR[0][0]);
+    zamok = { fornax: "Fornax", roto: "Roto", gu: "GU" }[t.eng_eshik_zamok || "fornax"] || t.eng_eshik_zamok;
+    petlya = yorliq(ENG_ESHIK_PETLYALAR, t.eng_eshik_petlya || ENG_ESHIK_PETLYALAR[0][0]);
+  } else if (rama === "183") {
+    ruchka = yorliq(ALD_ESHIK_RUCHKALAR, t.ald_eshik_ruchka || ALD_ESHIK_RUCHKALAR[0][0]);
+    zamok = yorliq(ALD_ESHIK_ZAMOKLAR, t.ald_eshik_zamok || ALD_ESHIK_ZAMOKLAR[t.eshik_tur === "yengil" ? 1 : 0][0]);
+    petlya = { rom: "Rom petlyasi (Aldoks)", dvernaya: "Dvernaya alyumin" }[t.ald_eshik_petlya || "rom"] || t.ald_eshik_petlya;
+  } else {
+    ruchka = t.ruchka || ESHIK_RUCHKA[0]; zamok = t.zamok || ZAMOKLAR[0]; petlya = t.petlya || PETLYALAR[0];
+  }
+  const ochilish = esh.map((e) => {
+    const tash = e.ochilish === "tashqariga", yon = tash ? "tashqaridan" : "ichkaridan";
+    const tomon = (v) => (v === "ong" ? "oʻngda" : "chapda");
+    return e.tabaqa_soni === 2 ? `${tash ? "Tashqariga" : "Ichkariga"} · 2 tabaqali, asosiy tabaqa ${tomon(e.aktiv || "ong")} (${yon} qaraganda)`
+      : `${tash ? "Tashqariga" : "Ichkariga"} · petlya ${tomon(e.petlya_tomoni || "chap")} (${yon} qaraganda)`;
+  });
+  return { ruchka, zamok, petlya, ochilish: [...new Set(ochilish)] };
+}
+
 function pdfHtml(o) {
-  // Oʻz uslubimiz (Romchidan farqli): hisob-faktura jadvali + 2 ustunli chizma kartalari
+  // Umumiy jadval + har konstruksiya toʻliq enli blok, A4 ga 3 ta (foydalanuvchi, 2026-11-16)
   const n = natija, m = zakaz.mijoz || {}, h = hk();
   const avans = Number(h.avans_som) || 0;
-  const { boshlang, chegirma, kelish, qator } = mijozNarx(n);  // qulf: kelishilgan eski narx
+  const { boshlang, chegirma, kelish, qulf, qator } = mijozNarx(n);  // qulf: kelishilgan eski narx
+  // Kelishilgan narx qatorlarga narxiga mutanosib, soʻmga, Σ = kelishilgan (foydalanuvchi, 2026-11-16)
+  const kq = qoldiqBilan(n, (x) => (boshlang ? qator(x) * kelish / boshlang : qator(x)), kelish, 1);
   const hm = hisobMos(n);
   const u = zakaz.umumiy;
   const faol = zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) > 0);
   const jamiSoni = faol.reduce((a, k) => a + (k.soni ?? 1), 0);
   const jamiM2 = faol.reduce((a, k) => a + yuza(k) * (k.soni ?? 1), 0);
-  const kHisob = (k) => hm.get(k);
   const malumot = (y, v) => (v ? `<div><span>${esc(y)}</span><b>${esc(v)}</b></div>` : "");
+  const qator2 = (y, v) => (v ? `<tr><th>${esc(y)}</th><td>${esc(v)}</td></tr>` : "");
+  const seriyalar = zakazSeriyalari(n);
   let s = `<div class="p-bosh"><div><div class="p-sarlavha">BUYURTMA №${esc(zakaz.raqam ?? "")}</div>
-      <div>${esc(zakaz.sana || new Date().toISOString().slice(0, 10))} · TERMO 70 (BKT 70)</div></div>
+      <div>${esc(zakaz.sana || new Date().toISOString().slice(0, 10))}${seriyalar.length ? " · " + esc(seriyalar.join(", ")) : ""}</div></div>
       ${ol("bajaruvchi") ? `<div class="p-baj"><b>${esc(ol("bajaruvchi"))}</b>${ol("bajaruvchi_tel") ? `<span>${esc(ol("bajaruvchi_tel"))}</span>` : ""}</div>` : ""}</div>
     <div class="p-mijoz">${malumot("Buyurtmachi", m.ism)}${malumot("Telefon", m.telefon)}${malumot("Manzil", m.manzil)}${malumot("Muddat", m.muddat)}</div>
-    <table class="p-faktura"><thead><tr><th>№</th><th>Nomi</th><th>Oʻlchami, sm</th><th>Soni</th><th>Yuzasi</th>${o.narx ? "<th>Narxi</th>" : ""}</tr></thead><tbody>
-    ${faol.map((k) => { const x = kHisob(k); return `<tr><td>${kRaqamHtml(k)}</td><td>${esc(k.nom)}</td><td>${esc(k.L)} × ${esc(k.H)}</td><td>${k.soni ?? 1}</td><td>${son(yuza(k) * (k.soni ?? 1), 2)} m²</td>${o.narx ? `<td>${x ? som(qator(x)) : "—"}</td>` : ""}</tr>`; }).join("")}
-    </tbody><tfoot><tr><td></td><td>Jami</td><td></td><td>${jamiSoni}</td><td>${son(jamiM2, 2)} m²</td>${o.narx ? `<td>${som(boshlang)}</td>` : ""}</tr></tfoot></table>`;
+    <table class="p-faktura${o.narx ? " narxli" : ""}"><thead><tr><th>№</th><th>Nomi</th><th>Oʻlchami, sm</th><th>Soni</th><th>Yuzasi</th>${o.narx ? "<th>Narxi</th><th>Jami</th><th>Kelishilgan narx</th>" : ""}</tr></thead><tbody>
+    ${faol.map((k) => { const x = hm.get(k), soni = k.soni ?? 1; return `<tr><td>${kRaqamHtml(k)}</td><td>${esc(k.nom)}</td><td>${esc(k.L)} × ${esc(k.H)}</td><td>${soni}</td><td>${son(yuza(k) * soni, 2)} m²</td>${o.narx ? (x ? `<td>${som(Math.round(qator(x) / soni))}</td><td>${som(qator(x))}</td><td>${som(kq.get(x))}</td>` : "<td>—</td><td>—</td><td>—</td>") : ""}</tr>`; }).join("")}
+    </tbody><tfoot><tr><td></td><td>Jami</td><td></td><td>${jamiSoni}</td><td>${son(jamiM2, 2)} m²</td>${o.narx ? `<td></td><td>${som(boshlang)}</td><td>${som(kelish)}</td>` : ""}</tr></tfoot></table>`;
   if (o.narx) {
     s += `<div class="p-jami">${chegirma ? `<div><span>Chegirma</span><b>− ${som(chegirma)}</b></div>` : ""}
       <div class="p-asosiy"><span>Kelishilgan narx</span><b>${som(kelish)}</b></div>
       ${avans ? `<div><span>Avans</span><b>${som(avans)}</b></div><div class="p-qoldiq"><span>Qoldiq</span><b>${som(kelish - avans)}</b></div>` : ""}</div>`;
   }
-  s += `<div class="p-kartalar">`;
+  s += `<div class="p-bloklar">`;
   faol.forEach((k) => {
     const t = { ...(u.tanlov || {}), ...(k.tanlov || {}) };
-    const x = kHisob(k);
-    s += `<div class="p-k"><div class="p-k-bosh">${kRaqamHtml(k, true)}<b>${esc(k.nom)}</b><span>${esc(k.L)} × ${esc(k.H)} sm · ${k.soni ?? 1} dona</span></div>
-      <div class="p-rasm">${chizmaSVG(k, { kichik: !o.olcham })}</div>
-      <div class="p-xus">${malumot("Rama", k.rama || u.rama)}${malumot("Rang", t.rang_nomi ? `${t.rang} (${t.rang_nomi})` : t.rang)}
-        ${malumot("Oyna", `${t.oyna_turi || ""} ${k.oyna_qalinligi || u.oyna_qalinligi || 24} mm`)}${malumot("Yuzasi", son(yuza(k), 2) + " m²")}
-        ${malumot("Izoh", k.eslatma)}${o.narx && x ? malumot("Narxi", som(qator(x))) : ""}</div></div>`;
+    const x = hm.get(k), soni = k.soni ?? 1;
+    const esh = eshikMalumot(k);
+    const turlar = kOynaTurlari(k);
+    const narxQuti = o.narx && x ? `<div class="p-narx-quti">${soni > 1
+      ? `<span>1 dona</span><b>${som(Math.round(kq.get(x) / soni))}</b><span class="p-nq-jami">jami (${soni} dona): <b>${som(kq.get(x))}</b></span>`
+      : `<span>Narxi</span><b>${som(kq.get(x))}</b>`}</div>` : "";
+    let qanot = null;
+    if (o.olcham) { try { qanot = tabaqaOlchamlari(k); } catch (e) { qanot = null; } }
+    s += `<div class="p-blok"><div class="p-blok-bosh">${kRaqamHtml(k, true)}<b>${esc(k.nom)}</b><span>${esc(k.L)} × ${esc(k.H)} sm</span></div>
+      <div class="p-blok-ich"><div class="p-rasm">${chizmaSVG(k, { kichik: !o.olcham, qanotYoz: qanot })}</div>
+      <div class="p-param"><div class="p-param-jad"><table>${qator2("Oʻlchami", `${k.L} × ${k.H} sm`)}${qator2("Seriya", kSeriya(k, x))}
+        ${qator2("Rangi", t.rang_nomi ? `${t.rang} (${t.rang_nomi})` : t.rang)}
+        ${qator2("Oynasi", `${turlar.join(", ")}${turlar.length ? " · " : ""}${k.oyna_qalinligi || u.oyna_qalinligi || 24} mm`)}
+        ${qator2("Yuzasi", son(yuza(k), 2) + " m²")}${qator2("Soni", `${soni} dona`)}
+        ${esh ? qator2("Ruchka", esh.ruchka) + qator2("Zamok", esh.zamok) + qator2("Petlya", esh.petlya) + qator2("Ochilishi", esh.ochilish.join("; ")) : ""}
+        ${k.eslatma ? `<tr class="p-izoh-q"><th>Izoh</th><td>${esc(k.eslatma)}</td></tr>` : ""}</table></div>${narxQuti}</div></div></div>`;
   });
   s += `</div>`;
   if (o.mat) {
@@ -1462,7 +1521,7 @@ function dillerOl(nima, sklad) {
     return JSON.parse(py.runPython(`
 import diller
 try:
-    _dl = json.dumps({"ok": diller.${nima}(json.loads(_zakaz)${nima === "diller_royxati" ? ", sklad=json.loads(_dsk)" : ""})}, ensure_ascii=False)
+    _dl = json.dumps({"ok": diller.${nima}(json.loads(_zakaz)${nima === "diller_royxati" || nima === "diller_jadvali" ? ", sklad=json.loads(_dsk)" : ""})}, ensure_ascii=False)
 except (hisob.HisobXato, KeyError, ValueError, TypeError) as _e:
     _dl = json.dumps({"xato": str(_e)}, ensure_ascii=False)
 _dl`));
@@ -1475,40 +1534,115 @@ function chopEt(html, sarlavha) {
   document.title = sarlavha;
   setTimeout(() => { window.print(); document.title = eski; }, 100);
 }
+// Dillerga roʻyxat (foydalanuvchi, 2026-11-16): bitta jadval, avval tahrirlash oynasi; qoʻlda oʻzgarishlar zakaz.diller_tahrir da
+let dlHisob = [], dlIzoh = [];
+const dlTahrir = () => zakaz.diller_tahrir || dtYangi();
+function dlSaqla(t) {
+  (t.qosh || []).forEach((q) => { q.nomi = String(q.nomi || "").trim(); });
+  // boʻsh tahrir ham vaqt bilan qoladi: baza ziddiyatida eski tahrir qaytib kelmasin (tekshiruvchi, 2026-11-16)
+  zakaz.diller_tahrir = dtBoshmi(t) ? { ...dtYangi(), vaqt: Date.now() } : t;
+  saqla("oxirgi_zakaz", JSON.stringify(zakaz));
+}
+function dlOyna(html) { $("dl-quti").innerHTML = html; $("dl-oyna").hidden = false; }
+function dlOgohChiz() {
+  const r = dtOzgarishlar(dlTahrir(), dlHisob);
+  dlOyna(`<h2>Konstruksiya oʻzgargan</h2>
+    <p>Dillerga roʻyxat qayta hisoblandi. Qoʻlda oʻzgartirilgan qatorlar:</p>
+    <ul class="dlt-ozgar">${r.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+    <div class="tugmalar dlt-tanlov"><button id="dlt-tashla" class="tugma">Tashlab yuborish</button><button id="dlt-saqla" class="tugma asosiy">Qoʻlda oʻzgarishlarni saqlash</button></div>`);
+}
+function dlTahrirChiz(fokus) {
+  const qatorlar = dtQolla(dlHisob, dlTahrir());
+  dlOyna(`<h2>Dillerga roʻyxat</h2>
+    <p class="xira">Sonini oʻzgartiring yoki 🗑 bilan oʻchiring. Qoʻlda oʻzgargan qator belgilanadi (PDF da belgisiz).</p>
+    <div class="dlt-royxat">${qatorlar.map((q, i) => q.qoshilgan
+      ? `<div class="dlt-q qolda qoshilgan"><span class="dlt-i">${i + 1}</span><span class="dlt-nom"><input data-dt-qnom="${q.qi}" value="${esc(q.nomi)}" placeholder="Nomi" autocomplete="off"><em class="dlt-belgi">qoʻlda</em></span>
+          <span class="dlt-son"><input data-dt-qson="${q.qi}" inputmode="decimal" value="${dtSon(q.soni)}" aria-label="Soni"><input class="dlt-bir" data-dt-qbir="${q.qi}" value="${esc(q.birlik)}" placeholder="dona" aria-label="Birlik"></span>
+          <button class="dlt-t" data-dt-qochir="${q.qi}" aria-label="Oʻchirish">🗑</button></div>`
+      : `<div class="dlt-q${q.qolda ? " qolda" : ""}${q.ochirilgan ? " ochir" : ""}"><span class="dlt-i">${i + 1}</span>
+          <span class="dlt-nom">${materialRasm(q.nomi)}<span>${esc(q.nomi)}${q.izoh ? ` <span class="dl-izoh">(${esc(q.izoh)})</span>` : ""}
+            ${q.qolda ? `<em class="dlt-belgi">${q.ochirilgan ? "oʻchirilgan" : `qoʻlda · hisob: ${dtSon(q.asl_soni)}`}</em>` : ""}</span></span>
+          <span class="dlt-son"><input data-dt-son="${esc(q.kalit)}" inputmode="decimal" value="${dtSon(q.soni)}" aria-label="Soni"${q.ochirilgan ? " disabled" : ""}><span class="dlt-bir">${esc(q.birlik)}</span></span>
+          ${q.qolda ? `<button class="dlt-t" data-dt-qaytar="${esc(q.kalit)}" aria-label="Hisobdagiga qaytarish" title="Hisobdagiga qaytarish">↶</button>`
+            : `<button class="dlt-t" data-dt-ochir="${esc(q.kalit)}" aria-label="Oʻchirish">🗑</button>`}</div>`).join("")}</div>
+    <button id="dlt-qosh" class="tugma keng">+ Qator qoʻshish</button>
+    ${dlIzoh.length ? `<p class="xira">${dlIzoh.map(esc).join("<br>")}</p>` : ""}
+    <div class="tugmalar"><button id="dlt-yop" class="tugma">Yopish</button><button id="dlt-pdf" class="tugma asosiy">📄 PDF</button></div>`);
+  if (fokus) { const el = $("dl-quti").querySelector(fokus); if (el) el.focus(); }
+}
+const dlSon = (v) => { const x = Number(String(v).replace(/\s/g, "").replace(",", ".")); return Number.isFinite(x) && x >= 0 ? x : null; };
 $("diller-pdf").addEventListener("click", async () => {
-  const b = $("diller-pdf"), eskiMatn = b.textContent;
+  const b = $("diller-pdf"), eskiMatn = b.innerHTML;
   b.disabled = true; b.textContent = "Sklad yuklanmoqda…";
   let sk = null, skIzoh = "";
   try { sk = await skladYukla(); } catch (e) {
     sk = skladSaqlangan();
     skIzoh = sk ? "Internet yoʻq: oxirgi yuklangan sklad ishlatildi" : "Sklad yuklanmadi: profil hammasi yangi hivichda";
   }
-  b.disabled = false; b.textContent = eskiMatn;
-  const r = dillerOl("diller_royxati", sk ? sk.qatorlar : null);
+  b.disabled = false; b.innerHTML = eskiMatn;
+  const r = dillerOl("diller_jadvali", sk ? sk.qatorlar : null);
   if (r.xato) { alert("Roʻyxat chiqmadi: " + r.xato); return; }
-  const d = r.ok;
-  const qator = d.qatorlar.map((q, i) => `<tr><td>${i + 1}</td><td class="m-nom">${materialRasm(q.nomi)}<span>${esc(q.nomi)}${q.izoh ? ` <span class="dl-izoh">(${esc(q.izoh)})</span>` : ""}</span></td><td class="son">${son(q.soni, 2)} ${esc(q.birlik)}</td></tr>`).join("");
-  const izoh = [...(skIzoh ? [skIzoh] : []), ...d.izohlar];
-  chopEt(`<div class="dl">
-    <div class="p-sarlavha">Dillerga roʻyxat — ${esc(zakazNomi())}</div>
-    <div>Sana: ${new Date().toISOString().slice(0, 10)} · BKT 70 · profil sklad qoldigʻidan keyin, 6,5 m hivich</div>
-    <table class="dl-jadval"><tr><th>№</th><th>Nomi</th><th>Soni</th></tr>${qator}</table>
-    ${d.eslatmalar.length ? `<div class="dl-eslatma"><b>Eslatma: bularni ham olishingiz kerak (dillerdan olinmaydi):</b><ul>${d.eslatmalar.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>` : ""}
-    ${d.rezina && d.rezina.length ? `<div class="dl-eslatma"><b>Eslatma: rezina kilosi (jami ${son(d.rezina_jami, 2)} kg) — diller karobka (5 / 10 / 15 kg) bilan beradi, skladdagi qoldiqqa qarab oling:</b><ul>${d.rezina.map((x) => `<li>${esc(x.nomi)} — ${son(x.kg, 2)} kg (${son(x.metr, 1)} m)</li>`).join("")}</ul></div>` : ""}
-    ${izoh.length ? `<div class="xira">${izoh.map(esc).join("<br>")}</div>` : ""}</div>`,
-  `Diller ${zakazNomi()}`);
+  dlHisob = r.ok.qatorlar;
+  dlIzoh = [...(skIzoh ? [skIzoh] : []), ...r.ok.izohlar];
+  if (dtEskirdimi(dtKImzo(zakaz), dlTahrir())) dlOgohChiz(); else dlTahrirChiz();
 });
+// Son yozilib darrov tugma bosilsa: change (blur) oynani qayta chizsa, bosilgan tugma yoʻqolib click tushib qoladi.
+// Bosish boshlangan boʻlsa, qayta chizish click ga qoldiriladi (tekshiruvchi, 2026-11-16).
+let dlBosilmoqda = false, dlChizKerak = false;
+$("dl-oyna").addEventListener("pointerdown", () => { dlBosilmoqda = true; }, true);
+const dlChizKeyin = () => { if (dlBosilmoqda) dlChizKerak = true; else dlTahrirChiz(); };
+$("dl-oyna").addEventListener("click", (e) => {
+  const el = e.target.closest("button");
+  const kerak = dlChizKerak;
+  dlBosilmoqda = false; dlChizKerak = false;
+  if (e.target === $("dl-oyna")) { $("dl-oyna").hidden = true; return; }
+  if (!el) { if (kerak) dlTahrirChiz(); return; }
+  const t = dlTahrir(), imzo = dtKImzo(zakaz);
+  if (el.id === "dlt-saqla") { dlSaqla(dtSaqla(t, dlHisob, imzo)); dlTahrirChiz(); }
+  else if (el.id === "dlt-tashla") { dlSaqla(dtYangi()); dlTahrirChiz(); }
+  else if (el.id === "dlt-yop") { dlSaqla(t); $("dl-oyna").hidden = true; }
+  else if (el.id === "dlt-qosh") { dlSaqla(dtQosh(t, dlHisob, { nomi: "", soni: 1, birlik: "dona" }, imzo)); dlTahrirChiz(`[data-dt-qnom="${t.qosh.length - 1}"]`); }
+  else if (el.dataset.dtOchir != null) { dlSaqla(dtOchir(t, dlHisob, el.dataset.dtOchir, imzo)); dlTahrirChiz(); }
+  else if (el.dataset.dtQaytar != null) { dlSaqla(dtQaytar(t, el.dataset.dtQaytar)); dlTahrirChiz(); }
+  else if (el.dataset.dtQochir != null) { dlSaqla(dtQoshOchir(t, Number(el.dataset.dtQochir))); dlTahrirChiz(); }
+  else if (el.id === "dlt-pdf") {
+    dlSaqla(t);
+    $("dl-oyna").hidden = true;
+    const qator = dtPdf(dlHisob, zakaz.diller_tahrir).map((q, i) => `<tr><td>${i + 1}</td><td class="m-nom">${materialRasm(q.nomi)}<span>${esc(q.nomi)}</span></td><td class="son">${esc(dtSoniMatn(q))}</td></tr>`).join("");
+    const ser = zakazSeriyalari();
+    chopEt(`<div class="dl">
+      <div class="p-sarlavha">Dillerga roʻyxat — ${esc(zakazNomi())}</div>
+      <div>Sana: ${new Date().toISOString().slice(0, 10)}${ser.length ? " · " + esc(ser.join(", ")) : ""} · profil sklad qoldigʻidan keyin, 6,5 m hivich</div>
+      <table class="dl-jadval"><tr><th>№</th><th>Nomi</th><th>Soni</th></tr>${qator}</table>
+      ${dlIzoh.length ? `<div class="xira">${dlIzoh.map(esc).join("<br>")}</div>` : ""}</div>`,
+    `Diller ${zakazNomi()}`);
+  }
+});
+$("dl-oyna").addEventListener("change", (e) => {
+  const el = e.target, t = dlTahrir(), imzo = dtKImzo(zakaz);
+  if (el.dataset.dtSon != null) {
+    const v = dlSon(el.value);
+    if (v != null) dlSaqla(dtSoniYoz(t, dlHisob, el.dataset.dtSon, v, imzo));
+    dlChizKeyin();
+  } else if (el.dataset.dtQnom != null) dlSaqla(dtQoshYoz(t, Number(el.dataset.dtQnom), { nomi: el.value.trim() }));
+  else if (el.dataset.dtQson != null) { const v = dlSon(el.value); if (v != null) dlSaqla(dtQoshYoz(t, Number(el.dataset.dtQson), { soni: v })); }
+  else if (el.dataset.dtQbir != null) dlSaqla(dtQoshYoz(t, Number(el.dataset.dtQbir), { birlik: el.value.trim() }));
+});
+
+// Oyna roʻyxati (foydalanuvchi, 2026-11-16): har "tur + qalinlik" alohida jadval, oʻz jami; oxirida umumiy jami
 $("oyna-pdf").addEventListener("click", () => {
   const r = dillerOl("oyna_royxati");
   if (r.xato) { alert("Oyna roʻyxati chiqmadi: " + r.xato); return; }
-  const o = r.ok;
-  const jSoni = o.reduce((s, x) => s + x.soni, 0), jM2 = o.reduce((s, x) => s + x.m2, 0);
-  chopEt(`<div class="dl">
+  py.globals.set("_or", JSON.stringify(r.ok));
+  const g = JSON.parse(py.runPython("import diller\njson.dumps(diller.oyna_guruhlari(json.loads(_or)), ensure_ascii=False)"));
+  chopEt(`<div class="dl ol">
     <div class="p-sarlavha">Oyna (steklopaket) — ${esc(zakazNomi())}</div>
     <div>Sana: ${new Date().toISOString().slice(0, 10)} · oʻlcham sm, 0,5 sm ga yaxlitlangan</div>
-    <table class="dl-jadval"><tr><th>№</th><th>Turi</th><th>Eni × Boʻyi</th><th>Soni</th><th>m²</th></tr>
-    ${o.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.tur)} ${x.qalinlik} mm</td><td class="son"><b>${son(x.en, 1)} × ${son(x.boy, 1)}</b></td><td class="son">${x.soni}</td><td class="son">${son(x.m2, 3)}</td></tr>`).join("")}
-    <tr><td></td><td><b>Jami</b></td><td></td><td class="son"><b>${jSoni}</b></td><td class="son"><b>${son(jM2, 3)}</b></td></tr></table></div>`,
+    ${g.guruhlar.map((x) => `<div class="ol-guruh"><h3>${esc(x.tur || "Turi yoʻq")} · ${x.qalinlik} mm</h3>
+      <table class="dl-jadval"><tr><th>№</th><th>Eni × Boʻyi</th><th>Soni</th><th>m²</th></tr>
+      ${x.qatorlar.map((q, i) => `<tr><td>${i + 1}</td><td class="son"><b>${son(q.en, 1)} × ${son(q.boy, 1)}</b></td><td class="son">${q.soni}</td><td class="son">${son(q.m2, 3)}</td></tr>`).join("")}
+      <tr class="ol-jami"><td></td><td><b>Jami</b></td><td class="son"><b>${x.soni}</b></td><td class="son"><b>${son(x.m2, 3)}</b></td></tr></table></div>`).join("")}
+    <div class="ol-umumiy"><span>Hammasi${g.guruhlar.length > 1 ? ` (${g.guruhlar.length} tur)` : ""}</span><b>${g.soni} dona · ${son(g.m2, 3)} m²</b></div></div>`,
   `Oyna ${zakazNomi()}`);
 });
 

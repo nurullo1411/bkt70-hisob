@@ -232,6 +232,43 @@ def diller_royxati(zakaz, narxlar=None, sklad=None):
             "rezina_jami": round(sum(r["kg"] for r in rezina), 2)}
 
 
+# Pachkada sotiladigan rezina: nomi → pachkadagi metr (foydalanuvchi, 2026-11-16)
+PACHKA_M = {"Rezina Profil P (Bosma) (Qishki)": 100}
+
+
+def diller_jadvali(zakaz, narxlar=None, sklad=None):
+    """Dillerga PDF — hammasi bitta jadvalda (foydalanuvchi, 2026-11-16).
+
+    {"qatorlar": [{nomi, soni, birlik, izoh?}], "izohlar": [matn]}: diller_royxati qatorlari, rezina bitta qatorda
+    (soni kg, izoh "31,7 m"), pachkadagi rezina (soni = pachka yuqoriga, izoh "31,7 m kerak"), oxirida eslatmalar
+    (samorez, zaklepka, kley, pena, podokonnik) oddiy qator. Bir xil nomli qatorlar qoʻshiladi.
+    """
+    d = diller_royxati(zakaz, narxlar, sklad)
+    metr = {r["nomi"]: r["metr"] for r in d["rezina"]}
+    qatorlar = []
+    for q in d["qatorlar"]:
+        q = {k: v for k, v in q.items() if k in ("nomi", "soni", "birlik", "izoh")}
+        nomi = q["nomi"]
+        if nomi in PACHKA_M and q["birlik"] == "m":
+            m = q["soni"]
+            q = {"nomi": nomi, "soni": ceil(m / PACHKA_M[nomi] - 1e-9), "birlik": "pachka", "izoh": f"{_son(round(m, 1))} m kerak"}
+        elif nomi in metr and q["birlik"] == "kg":
+            q["izoh"] = f"{_son(metr[nomi])} m"
+        qatorlar.append(q)
+    for e in d["eslatmalar"]:
+        nom, qiymat = e.rsplit(" — ", 1)
+        son, birlik = qiymat.split(" ", 1)
+        qatorlar.append({"nomi": nom, "soni": float(son.replace(",", ".")), "birlik": birlik})
+    birlashgan = []
+    for q in qatorlar:
+        bor = next((b for b in birlashgan if b["nomi"] == q["nomi"] and b["birlik"] == q["birlik"]), None)
+        if bor and not bor.get("izoh") and not q.get("izoh"):
+            bor["soni"] = round(bor["soni"] + q["soni"], 2)
+        else:
+            birlashgan.append(q)
+    return {"qatorlar": birlashgan, "izohlar": d["izohlar"]}
+
+
 # ---------- oyna ----------
 OYNA_CHEGARA_TABAQA = 2.0    # rom va eshik tabaqasi: oyna ichki razmerdan koʻpi bilan shuncha kichik
 OYNA_CHEGARA_GLUXOY = 1.5    # gluxoy va fortochka
@@ -276,6 +313,20 @@ def oyna_royxati(zakaz, narxlar=None):
     for g in royxat:
         g["m2"] = round(g["en"] * g["boy"] * g["soni"] / 10000, 3)
     return royxat
+
+
+def oyna_guruhlari(royxat):
+    """Oyna PDF i (foydalanuvchi, 2026-11-16): har "tur + qalinlik" alohida jadval, tartib qalinlik → tur;
+    ichida eni ↓, keyin boʻyi ↓. {"guruhlar": [{tur, qalinlik, qatorlar, soni, m2}], "soni", "m2"}."""
+    guruh = {}
+    for g in royxat:
+        guruh.setdefault((g["qalinlik"], g["tur"]), []).append(g)
+    natija = []
+    for (qal, tur), q in sorted(guruh.items(), key=lambda x: (x[0][0], x[0][1])):
+        q = sorted(q, key=lambda g: (-g["en"], -g["boy"]))
+        natija.append({"tur": tur, "qalinlik": qal, "qatorlar": q, "soni": sum(g["soni"] for g in q),
+                       "m2": round(sum(g["m2"] for g in q), 3)})
+    return {"guruhlar": natija, "soni": sum(g["soni"] for g in natija), "m2": round(sum(g["m2"] for g in natija), 3)}
 
 
 if __name__ == "__main__":
