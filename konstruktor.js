@@ -548,6 +548,7 @@ function bargOynaTuri(k, p) {
 // ---------- SVG ----------
 let svgSanoq = 0;  // har chizmaga alohida gradient id (yashirin chizmadagi gradient boshqasida ishlamaydi)
 function chizmaSVG(k, opts = {}) {
+  if (opts.mini) opts = { ...opts, kichik: true };  // mini — kichik + qalin chiziqlar (zakaz qatori)
   const gid = "g" + ++svgSanoq;
   const L = Number(k.L) || 1, H = Number(k.H) || 1;
   const M = Math.max(L, H);
@@ -1010,7 +1011,9 @@ function chizmaSVG(k, opts = {}) {
   }
   const chap = opts.kichik ? t : qadam * (1.6 + chapQator), tepa = opts.kichik ? t : qadam * 0.6;
   const vb = `${f(-chap)} ${f(-tepa)} ${f(L + chap + (opts.kichik ? t : qadam * (ongQator + 0.7)))} ${f(H + tepa + (opts.kichik ? t : qadam * (pastQator + 0.7)))}`;
-  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" class="chizma${opts.kichik ? " kichik" : ""}" style="--g-ra:url(#${gid}-ra);--g-oy:url(#${gid}-oy)${prUslub}" preserveAspectRatio="xMidYMid meet">${s}</svg>`;
+  // zakaz qatori kichik rasmi (foydalanuvchi, 2026-11-16): tashqi toʻq kulrang kontur — oq rom oq fonda ham aniq
+  if (opts.mini) s += `<path d="${shakl(0, 0, L, H, 0, ark)}" class="kontur"/>`;
+  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" class="chizma${opts.kichik ? " kichik" : ""}${opts.mini ? " mini" : ""}" style="--g-ra:url(#${gid}-ra);--g-oy:url(#${gid}-oy)${prUslub}" preserveAspectRatio="xMidYMid meet">${s}</svg>`;
 }
 const yx = (v) => Math.round(v * 10) / 10;
 

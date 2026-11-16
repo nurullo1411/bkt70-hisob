@@ -170,6 +170,7 @@ function ekran(nom, push = true) {
 let ichkiOrqaga = false, chiqishTasdiq = false;
 window.addEventListener("popstate", (e) => {
   if (ichkiOrqaga) { ichkiOrqaga = false; return; }
+  if (!$("katta-chizma").hidden) { $("katta-chizma").hidden = true; return; }  // katta koʻrinish ← bilan yopiladi
   if (!$("konstruktor").hidden) {
     // Konstruktorda ← : chizma oʻzgargan boʻlsa ikkinchi bosishda chiqadi
     if (orqaga.length && !chiqishTasdiq) {
@@ -441,15 +442,18 @@ function royxatniChiz() {
     const farq = teglar[i].filter((t) => !umumiy.includes(t));
     let narx;
     if (!h) narx = `<span class="xira">${soni === 0 ? "hisobga kirmaydi" : "—"}</span>`;
-    else if (mn) { const q = mn.qator(h); narx = `<b data-qator-som="${q}">${som(q)}</b>${soni > 1 ? `<small>1 dona ${som(q / soni)}</small>` : ""}`; }
-    else { const q = qt.get(h); narx = `<b data-qator-usd="${q.toFixed(2)}">${usd(q)}</b><small>${soni > 1 ? `1 dona ${usd(q / soni)}` : "tannarx"}</small>`; }
+    // izoh har doim (foydalanuvchi, 2026-11-16): "tannarx" / "mijozga narx", soni ≥ 2 da " · 1 dona …"
+    else {
+      const q = mn ? mn.qator(h) : qt.get(h), pul = mn ? som : usd;
+      const b = mn ? `<b data-qator-som="${q}">${som(q)}</b>` : `<b data-qator-usd="${q.toFixed(2)}">${usd(q)}</b>`;
+      narx = `${b}<small class="kq-izohn"><span>${mn ? "mijozga narx" : "tannarx"}${soni > 1 ? " ·" : ""}</span>${soni > 1 ? ` <span>1 dona ${pul(q / soni)}</span>` : ""}</small>`;
+    }
     const izoh = izohOchiq === i
       ? `<input class="eslatma" data-eslatma="${i}" value="${esc(k.eslatma || "")}" placeholder="Izoh (masalan: 2-qavat, oshxona)" autocomplete="off">`
       : k.eslatma ? `<button class="kq-izoh" data-izoh="${i}">📝 ${esc(k.eslatma)}</button>` : "";
     return `<div class="kq${soni === 0 ? " nol" : ""}" style="--kr:${fon}">
       <div class="kq-ich" data-tahrir="${i}" role="button" tabindex="0" aria-label="${esc(nom)} — tahrirlash">
-        ${kRaqamHtml(k)}
-        <div class="kq-rasm">${chizmaSVG(k, { kichik: true })}</div>
+        <div class="kq-rasm" data-kchizma="${i}" role="button" tabindex="0" aria-label="${esc(nom)} — katta koʻrinish">${kRaqamHtml(k)}${chizmaSVG(k, { mini: true })}</div>
         <div class="kq-matn"><b>${esc(nom)}</b><span class="kq-olcham">${esc(k.L)} × ${esc(k.H)}</span>
           ${farq.length ? `<span class="kq-teg">${farq.map(esc).join(" · ")}</span>` : ""}</div>
       </div>
@@ -998,13 +1002,69 @@ $("konstruksiyalar").addEventListener("click", (e) => {
     return;
   }
   if (b || e.target.closest("input")) return;
+  const r = e.target.closest("[data-kchizma]");
+  if (r) { kattaOch(Number(r.dataset.kchizma)); return; }
   const q = e.target.closest("[data-tahrir]");
   if (q) konstruktorniOch(Number(q.dataset.tahrir));
 });
 $("konstruksiyalar").addEventListener("keydown", (e) => {
+  const r = e.target.closest("[data-kchizma]");
+  if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.stopPropagation(); kattaOch(Number(r.dataset.kchizma)); return; }
   const q = e.target.closest("[data-tahrir]");
   if (q && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); konstruktorniOch(Number(q.dataset.tahrir)); }
 });
+// ---------- kichik rasm bosilsa — katta koʻrinish (foydalanuvchi, 2026-11-16) ----------
+// Butun ekranda, oʻlchamlari bilan; ✕ yoki telefonning ← bilan yopiladi; ikki barmoq bilan kattalashadi, bitta barmoq bilan suriladi
+// (kattalashganda); ikki marta bosish — asl holatiga. Mijoz rejimida ham (faqat chizma va oʻlcham).
+const katta = { s: 1, x: 0, y: 0, nuq: new Map(), bosh: null };
+function kattaQoy() { $("katta-chizma").querySelector(".kc-ich").style.transform = `translate(${katta.x}px, ${katta.y}px) scale(${katta.s})`; }
+function kattaOch(i) {
+  const k = zakaz.konstruksiyalar[i];
+  if (!k) return;
+  const o = $("katta-chizma"), soni = k.soni ?? 1;
+  o.querySelector(".kc-sarlavha").innerHTML = `${kRaqamHtml(k, true)}<b>${esc(k.nom || "K" + (i + 1))}</b><span>${esc(k.L)} × ${esc(k.H)}${soni > 1 ? ` · ${soni} dona` : ""}</span>`;
+  o.querySelector(".kc-ich").innerHTML = chizmaSVG(k);
+  Object.assign(katta, { s: 1, x: 0, y: 0, bosh: null }); katta.nuq.clear(); kattaQoy();
+  if (o.hidden) history.pushState({ ekran: "zakaz", katta: 1 }, "");
+  o.hidden = false;
+  $("katta-yop").focus();
+}
+function kattaYop() { if (!$("katta-chizma").hidden) history.back(); }
+$("katta-yop").addEventListener("click", kattaYop);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("katta-chizma").hidden) kattaYop(); });
+{
+  const m = $("katta-chizma").querySelector(".kc-maydon");
+  const boshla = () => {
+    const p = [...katta.nuq.values()];
+    const mid = p.length > 1 ? { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 } : p[0];
+    katta.bosh = { s: katta.s, x: katta.x, y: katta.y, mid, d: p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0 };
+  };
+  const nisbiy = (e) => { const r = m.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  m.addEventListener("pointerdown", (e) => { m.setPointerCapture(e.pointerId); katta.nuq.set(e.pointerId, nisbiy(e)); boshla(); });
+  m.addEventListener("pointermove", (e) => {
+    if (!katta.nuq.has(e.pointerId) || !katta.bosh) return;
+    katta.nuq.set(e.pointerId, nisbiy(e));
+    const p = [...katta.nuq.values()], b = katta.bosh;
+    if (p.length > 1 && b.d > 0) {
+      const mid = { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 };
+      const s = Math.min(8, Math.max(1, (b.s * Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y)) / b.d));
+      // barmoqlar orasidagi nuqta joyida qoladi
+      katta.x = mid.x - ((b.mid.x - b.x) / b.s) * s; katta.y = mid.y - ((b.mid.y - b.y) / b.s) * s; katta.s = s;
+    } else if (katta.s > 1) { katta.x = b.x + p[0].x - b.mid.x; katta.y = b.y + p[0].y - b.mid.y; }
+    else return;
+    kattaQoy();
+  });
+  const tugat = (e) => { katta.nuq.delete(e.pointerId); if (katta.nuq.size) boshla(); else { katta.bosh = null; if (katta.s <= 1.01) { katta.x = katta.y = 0; katta.s = 1; kattaQoy(); } } };
+  m.addEventListener("pointerup", tugat); m.addEventListener("pointercancel", tugat);
+  m.addEventListener("dblclick", () => { Object.assign(katta, { s: 1, x: 0, y: 0 }); kattaQoy(); });
+  m.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const q = nisbiy(e), s = Math.min(8, Math.max(1, katta.s * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+    katta.x = q.x - ((q.x - katta.x) / katta.s) * s; katta.y = q.y - ((q.y - katta.y) / katta.s) * s; katta.s = s;
+    if (s === 1) katta.x = katta.y = 0;
+    kattaQoy();
+  }, { passive: false });
+}
 // "⋯" menyu: Xarajat (oddiy rejimda), Nusxa, Izoh, Oʻchirish (tasdiq bilan)
 let menyuK = null;
 function menyuYop() { $("k-menyu").hidden = true; menyuK = null; }
