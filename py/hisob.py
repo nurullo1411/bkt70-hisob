@@ -63,11 +63,16 @@ IMPOST_YARMI["109"] = D("2.125")
 TABAQA_AYIRMA["181"] = 2 * D("5.95")
 # Tabaqa ichidagi impost 182 = qanot ichki = qanot − 5,95 − 5,95 (qanot yuzasi 5,95; foydalanuvchi, 2026-11-14);
 # laminatda yana − 0,16. 182 qanot (yengil eshik tashqariga) ichiga impost hali yoʻq.
-for _p in ("181", "185", "198"):
-    TABAQA_IMPOST_AYIRMA[_p] = 2 * D("5.95")
-# Eshik (foydalanuvchi, 2026-11-14): ichkariga 198 Balkon Qanot, tashqariga 185 Balkon Urta; qanot ichki = kesim − 5,95 − 5,95
-for _p in ("198", "185", "182"):  # 182 — yengil eshik qanoti tashqariga (foydalanuvchi, 2026-11-14)
-    TABAQA_AYIRMA[_p] = 2 * D("5.95")
+TABAQA_IMPOST_AYIRMA["181"] = 2 * D("5.95")
+# Eshik (foydalanuvchi, 2026-11-14): ichkariga 198 Balkon Qanot, tashqariga 185 Balkon Urta.
+# Balkon profillari keng (foydalanuvchi, 2026-11-18; katalog ALDOX 1-3): tashqi chetdan oyna tokchasigacha 93 mm
+# (181/182 da 59,5) → qanot ichki = kesim − 9,3 − 9,3; ichidagi impost 182 ham − 9,3 × 2. Misol: 198 eni 65 → ichki 46,4,
+# shtapik 46,4, oyna 45,4. 2026-11-18 gacha 5,95 edi (xato) — docs/tarix.md
+BALKON_YUZA = D("9.3")
+for _p in ("198", "185"):
+    TABAQA_AYIRMA[_p] = 2 * BALKON_YUZA
+    TABAQA_IMPOST_AYIRMA[_p] = 2 * BALKON_YUZA
+TABAQA_AYIRMA["182"] = 2 * D("5.95")  # 182 — yengil eshik qanoti tashqariga (foydalanuvchi, 2026-11-14; katalog 1-1: 59,5)
 
 
 @dataclass(frozen=True)
