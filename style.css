@@ -1003,7 +1003,7 @@ header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: 
 .kk { scroll-margin-top: calc(var(--bosh-h, 50px) + 64px); }
 .kk-belgi { display: inline-block; min-width: 1.2em; font-style: normal; font-weight: 700; color: var(--matn); }
 .kk-qiya { color: #B00020; font-weight: 800; font-size: 16px; }
-.kk-uch { color: #4f5b67; font-size: 15px; }
+.kk-uch { color: #1d3b55; font-size: 16px; font-weight: 700; }
 .kk-q { color: #B00020 !important; font-weight: 600; }
 .kk-katak { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .kk-katak button { width: 48px; height: 48px; border-radius: 10px; border: 2px solid var(--matn); background: var(--karta); color: var(--matn);

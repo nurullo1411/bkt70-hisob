@@ -355,21 +355,25 @@ class Hisob:
         # bir xil uzunlikdagi detallar burchagi har xil boʻlsa ikkalasi yoziladi (masalan yoy ostidagi shtapiklar)
         self.burchaklar[k] = matn if not eski or matn in eski.split(" | ") else f"{eski} | {matn}"
 
+    # Kesish turi (foydalanuvchi, 2026-11-18, dizayn/kosa_chap_ong.png): boʻlak stolda tashqi cheti (devor tomoni) tepada,
+    # ichkaridan (shtapik tomonidan) qaraladi — 45° chapda boʻlsa "chap", oʻngda "oʻng". Chizma ichkaridan; past kosa 180°,
+    # yon kosalar 90° aylanadi: (kosa, 45° li uchi chizmada) → tur.
+    UCH_TURI = {("tepa", "chap"): "chap", ("tepa", "oʻng"): "oʻng", ("past", "chap"): "oʻng", ("past", "oʻng"): "chap",
+                ("chap", "tepa"): "oʻng", ("chap", "past"): "chap", ("oʻng", "tepa"): "chap", ("oʻng", "past"): "oʻng"}
+
     def uch(self, nomi, profil, uzunlik, kosa, boshi90, oxiri90, boshi, oxiri, soni, tashqi=False):
-        """Chift Quloq kesgan kosa boʻlagi uchlari (foydalanuvchi, 2026-11-18): kosaga (burchakka) tegadigan uchi 45°,
-        chiftga tegadigan uchi 90°. kosa — qaysi kosa ("tepa", "past", "chap", "oʻng"; tepa va past boʻlaklar koʻzgu aksi —
-        bir xil kesilmaydi, tekshiruvchi), boshi/oxiri — uch nomi chizma boʻyicha. tashqi — bir uchi tashqi chetigacha
-        impostga tegadi (burchagi tasdiqlanmagan): "uchi tekshirilsin"."""
+        """Chift Quloq kesgan kosa boʻlagi (foydalanuvchi, 2026-11-18): kosaga (burchakka) tegadigan uchi 45°, chiftga
+        tegadigan uchi 90°. Yoziladi: "chap" / "oʻng" (UCH_TURI), "ikki uchi 90°", tashqi chetigacha impostga tegsa —
+        "uchi tekshirilsin (tashqi impost)" (burchagi tasdiqlanmagan). kosa — "tepa", "past", "chap", "oʻng";
+        boshi/oxiri — uchlar nomi chizma boʻyicha."""
         if tashqi:
-            m = f"{kosa} kosa, uchi tekshirilsin (tashqi impost)"
+            m = "uchi tekshirilsin (tashqi impost)"
         elif not (boshi90 or oxiri90):
             return
         elif boshi90 and oxiri90:
             m = "ikki uchi 90°"
-        elif oxiri90:
-            m = f"{kosa} kosa, {boshi} uchi 45°, {oxiri} uchi 90°"
         else:
-            m = f"{kosa} kosa, {oxiri} uchi 45°, {boshi} uchi 90°"
+            m = self.UCH_TURI[(kosa, boshi if oxiri90 else oxiri)]
         d = self.uchlar.setdefault((nomi, profil, uzunlik), {})
         d[m] = d.get(m, 0) + soni
 
