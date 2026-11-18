@@ -720,14 +720,18 @@ function chizmaSVG(k, opts = {}) {
       q += matn(xo, (tepa(xo) + past(xo)) / 2, yoz, kat, "yoz qanot-ol");
     }
     if (!opts.kichik) {
+      const ptL = ii && ii.p != null ? (opts.tabOl && opts.tabOl[ii.p]) || (opts.qanotYoz && opts.qanotYoz[ii.p]) : null;
+      const ptT = ptL && ptL.length ? (ii.l && ptL.find((z) => z.joy.endsWith(ii.l))) || ptL[0] : null;
+      const ptN = ptT && ptT.petlya > 0 ? ptT.petlya : 0;
       const pt = (px, py, pw, ph) => rect(px, py, pw, ph, "pt", `rx="${f(Math.min(pw, ph) * 0.3)}"`);
       const a = t * 0.32, b = t * 1.5;  // petlya qalinligi va uzunligi
       const joylar = (n, u1, u2) => Array.from({ length: n }, (_, j) => u1 + ((u2 - u1) * (n === 1 ? 0.5 : 0.1 + (0.8 * j) / (n - 1))));
       if (fortochka) {
-        const n = w > 100 ? 3 : 2, yy = petlya === "tepa" ? tepa(xo) - ic + i - a / 2 : past(xo) + ic - i - a / 2;
+        const n = ptN || (w > 100 ? 3 : 2), yy = petlya === "tepa" ? tepa(xo) - ic + i - a / 2 : past(xo) + ic - i - a / 2;
         for (const px of joylar(n, x1, x2)) q += pt(px - b / 2, yy, b, a);
       } else {
-        const n = eshik ? (h > 260 ? 4 : 3) : h < 90 ? 2 : 3;
+        // soni hisobdan (hisobot.tabaqa_petlya, pyChizma → tabOl / qanotYoz; foydalanuvchi, 2026-11-19); yoʻq boʻlsa — taxminiy
+        const n = ptN || (eshik ? (h > 260 ? 4 : 3) : h < 90 ? 2 : 3);
         const xx = petlya === "ong" ? x + w - i - a / 2 : x + i - a / 2, ex = petlya === "ong" ? x2 : x1;
         for (const py of joylar(n, tepa(ex), past(ex))) q += pt(xx, py - b / 2, a, b);
       }

@@ -331,11 +331,14 @@ function pyChizma(k) {
   py.globals.set("_u", JSON.stringify(zakaz.umumiy));
   try {
     return JSON.parse(py.runPython(`
-import zakaz as _zm
+import zakaz as _zm, hisobot as _hb
 try:
     _kk = json.loads(_k)
     _n = hisob.hisobla(_zm._birlashtir(json.loads(_u), {a: b for a, b in _kk.items() if a not in ("nom", "soni")}))
-    _t = json.dumps({"belgilangan": _n.get("belgilangan") or [], "yozuvlar": _n.get("yozuvlar") or []})
+    _bl = _n.get("belgilangan") or []
+    for _b, _bt in zip(_bl, _n.get("belgilangan_tur") or []):  # petlya soni hisobdagidek (foydalanuvchi, 2026-11-19)
+        _b["petlya"] = _hb.tabaqa_petlya(_n["seriya"], _bt, _b["en"], _b["boy"])
+    _t = json.dumps({"belgilangan": _bl, "yozuvlar": _n.get("yozuvlar") or []})
 except (hisob.HisobXato, KeyError, ValueError, TypeError, AttributeError):
     _t = '{"belgilangan": [], "yozuvlar": []}'
 _t`));

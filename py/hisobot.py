@@ -7,7 +7,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import (ARMATURA_SAMOREZ, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
+from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
                    oyna_qalinligi, profil_narxi)
 
 PETLYA_CHEGARA = 260
@@ -616,6 +616,31 @@ def _dvaynoy_furnitura(s, r):
         if boy > DVAYNOY_BALAND_BOY:
             tij += boy / 2 - 40  # Master 3400F.32: H/2 − 400 mm (foydalanuvchi, 2026-11-09)
     r.qosh("Furnitura", ROM_TIJ, tij / 100, "m")
+
+
+def tabaqa_petlya(seriya, tur, en, boy):
+    """Bitta tabaqaning petlya soni — furnitura hisobidagi qoida bilan bir xil (chizma uchun; foydalanuvchi, 2026-11-19:
+    chizmada hisobdagidan koʻp petlya koʻrinardi). Komplekt boʻlib sanaladigan (Engelberg rom, dvaynoy) — None."""
+    en, boy = D(str(en)), D(str(boy))
+    if seriya == ALDOKS.nomi:
+        if tur == "eshik":
+            return 3 + (75 <= en <= 110) + (200 <= boy <= 240)
+        if tur == "rom":
+            return _ald_petlya(boy)
+        if tur == "fortochka":
+            return _ald_petlya(en)
+        return None
+    if seriya == ENGELBERG.nomi:
+        if tur == "eshik":
+            return 4 if 200 <= boy - D("0.5") <= 235 and 70 <= en - D("0.5") <= 105 else 3
+        return None
+    if tur == "eshik":
+        return 4 if boy > PETLYA_CHEGARA else 3
+    if tur == "rom":
+        return 3 if boy >= 90 else 2
+    if tur == "fortochka":
+        return 3 if en > FORTOCHKA_PETLYA_EN else 2
+    return None
 
 
 def _furnitura(s, tanlov, r):

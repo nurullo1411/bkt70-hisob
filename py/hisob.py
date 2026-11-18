@@ -308,6 +308,7 @@ class Hisob:
         self.joriy_oyna = None  # boʻlakka berilgan oyna turi (None — konstruksiyaniki)
         self.belgi = None       # "_belgi" li boʻlak ichida — uning qiymati (ilova uchun)
         self.belgilangan = []   # shu boʻlakdagi tabaqalar: (joy, en, boy) — kesish oʻlchami
+        self.belgilangan_tur = []  # har biriga: "rom" / "eshik" / "fortochka" / "dvaynoy"
         # chizmada profil ustidagi kesish uzunligi (foydalanuvchi, 2026-11-15): "_yol" li tugunlar detallari
         self.yozuv_belgi = None
         self.yozuvlar = []
@@ -562,6 +563,8 @@ class Hisob:
                ichki_impost=None, geo=None):
         if self.belgi is not None:
             self.belgilangan.append((self.belgi, joy, en, boy))
+            # petlya soni chizmada (hisobot.tabaqa_petlya; foydalanuvchi, 2026-11-19)
+            self.belgilangan_tur.append("fortochka" if fortochka is not None else "dvaynoy" if dvaynoy else "rom" if rom else "eshik")
         self.tabaqa_soni += 1
         self.tabaqalar[profil] = self.tabaqalar.get(profil, 0) + 1
         if fortochka is not None:
@@ -1432,7 +1435,8 @@ def hisobla(k):
         "qoida_yoq": h.qoida_yoq,
         **({"yozuvlar": [{"belgi": list(g), "nomi": n, "uzunlik": float(u)} for g, n, u in h.yozuvlar]}
            if h.yozuvlar else {}),
-        **({"belgilangan": [{"belgi": g, "joy": j, "en": float(e), "boy": float(b)} for g, j, e, b in h.belgilangan]}
+        **({"belgilangan": [{"belgi": g, "joy": j, "en": float(e), "boy": float(b)} for g, j, e, b in h.belgilangan],
+            "belgilangan_tur": h.belgilangan_tur}
            if h.belgilangan else {}),
         "sanoq": {
             "ramalar": h.ramalar,
