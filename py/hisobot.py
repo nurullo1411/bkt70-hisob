@@ -624,7 +624,7 @@ def tabaqa_petlya(seriya, tur, en, boy):
     en, boy = D(str(en)), D(str(boy))
     if seriya == ALDOKS.nomi:
         if tur == "eshik":
-            return 3 + (75 <= en <= 110) + (200 <= boy <= 240)
+            return _ald_eshik_petlya(boy)
         if tur == "rom":
             return _ald_petlya(boy)
         if tur == "fortochka":
@@ -741,6 +741,12 @@ ALD_DVERNAYA = {"Oq": "Petlya Dvernaya Alyumin. (Oq) (Uz)", "9005": "(9005) Petl
 ALD_SHPINGALET = {"Oq": "Shpingalet ALD (Oq) (300sht) (Uz)", "9005": "(9005) Shpingalet ALD (Uz)",
                   "SW306G": "(SW306G) Shpingalet ALD (Uz)"}
 ALD_ESHIK_MAX = (D(110), D(240))  # qanot eni, boʻyi
+# Eshik petlyasi (foydalanuvchi, 2026-11-19): qanot boʻyi 255 gacha 3 ta, balandi 4 ta (eski: 3 + eni 75–110 + boʻyi 200–240)
+ALD_ESHIK_PETLYA_CHEGARA = D(255)
+
+
+def _ald_eshik_petlya(boy):
+    return 3 if D(str(boy)) <= ALD_ESHIK_PETLYA_CHEGARA else 4
 ALD_BALKON_CHOVUSH = "190 Balkon Chovush (Nekr) (Adt) Metr"
 
 
@@ -775,7 +781,7 @@ def _ald_eshik(s, tanlov, rang, r):
     petlya_tur = tanlov.get("ald_eshik_petlya") or "rom"
     if petlya_tur not in ALD_ESHIK_PETLYALAR:
         raise HisobXato(f"Aldoks eshik petlyasi faqat rom yoki dvernaya: {petlya_tur}")
-    petlya = sum(3 + (75 <= e <= 110) + (200 <= b <= 240) for e, b in qanotlar)
+    petlya = sum(_ald_eshik_petlya(b) for _, b in qanotlar)
     pr = "Oq" if petlya_tur == "rom" else rk  # Petlya Aldoks faqat oq
     r.qosh("Furnitura", ALD_PETLYA if petlya_tur == "rom" else ALD_DVERNAYA[pr], petlya, "dona")
     r.qosh("Furnitura", ALD_PETLYA_SAMOREZ[0], petlya * ALD_PETLYA_SAMOREZ[1], "dona")
