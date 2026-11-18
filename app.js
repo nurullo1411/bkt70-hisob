@@ -1305,8 +1305,9 @@ $("pdf-ber").addEventListener("click", () => {
 const SERIYA_NOMI = { F702: "Termo 70", F703: "Termo 70", 7051: "Engelberg 7000", 183: "Aldoks" };
 const kSeriya = (k, x) => (x && x.seriya) || SERIYA_NOMI[k.rama || zakaz.umumiy.rama] || "";
 // Mijoz PDF: rama qanday (foydalanuvchi, 2026-11-19)
-const RAMA_NOMI = { F702: "F702 (sredniy)", F703: "F703 (shirokiy)", 7051: "Kosa 7051", 183: "Kosa 183" };
-const kRama = (k) => { const r = k.rama || zakaz.umumiy.rama; return RAMA_NOMI[r] || (r ? `Kosa ${r}` : ""); };
+// faqat Termo 70 da: 2 xil kosa (foydalanuvchi, 2026-11-19); boshqa seriyada qator yoʻq
+const RAMA_NOMI = { F702: "F702 (sredniy)", F703: "F703 (shirokiy)" };
+const kRama = (k) => RAMA_NOMI[k.rama || zakaz.umumiy.rama] || "";
 function zakazSeriyalari(n = natija) {
   const hm = n ? hisobMos(n) : new Map();
   return [...new Set(zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) > 0).map((k) => kSeriya(k, hm.get(k))).filter(Boolean))];
