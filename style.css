@@ -1061,14 +1061,14 @@ header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: 
 .kq-rasm svg, .kq-rasm .chizma { max-width: 84px; max-height: 84px; width: auto; height: auto; }
 .kq-rasm > .k-raqam { position: absolute; left: -2px; top: -2px; z-index: 1; width: 24px; height: 24px; box-shadow: 0 0 0 2px var(--karta); }
 .chizma.mini { --oyna-1: #c6e3f7; --oyna-2: #6fa8d6; --oyna-chiziq: #2f6a99; --mini-ch: #2b3138; }
-.chizma.mini .ra, .chizma.mini .tb { stroke: var(--mini-ch); stroke-width: 1.1px; vector-effect: non-scaling-stroke; }
-.chizma.mini .oy { stroke: var(--oyna-chiziq); stroke-width: .8px; vector-effect: non-scaling-stroke; }
-.chizma.mini .kontur { fill: none; stroke: var(--mini-ch); stroke-width: 1.8px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
-.chizma.mini .ch { stroke: #1b2027; stroke-width: 1.6px; vector-effect: non-scaling-stroke; }
+.chizma.mini .ra, .chizma.mini .tb { stroke: var(--mini-ch); stroke-width: .6px; vector-effect: non-scaling-stroke; }
+.chizma.mini .oy { stroke: var(--oyna-chiziq); stroke-width: .5px; vector-effect: non-scaling-stroke; }
+.chizma.mini .kontur { fill: none; stroke: var(--mini-ch); stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.chizma.mini .ch { stroke: #1b2027; stroke-width: 1.1px; vector-effect: non-scaling-stroke; }
 .chizma.mini .uz { stroke-dasharray: 3 2; }
 .chizma.mini .ru { fill: #1b2027; }
-.chizma.mini .lap { stroke: var(--mini-ch); stroke-width: 1px; vector-effect: non-scaling-stroke; }
-.chizma.mini .lb, .chizma.mini .lb-ch { stroke: var(--mini-ch); stroke-width: .8px; vector-effect: non-scaling-stroke; }
+.chizma.mini .lap { stroke: var(--mini-ch); stroke-width: .6px; vector-effect: non-scaling-stroke; }
+.chizma.mini .lb, .chizma.mini .lb-ch { stroke: var(--mini-ch); stroke-width: .5px; vector-effect: non-scaling-stroke; }
 @media (prefers-color-scheme: dark) {
   .chizma.mini { --oyna-1: #4a7ea6; --oyna-2: #24496a; --oyna-chiziq: #8fbbe0; --mini-ch: #c9d1da; }
   .chizma.mini .ch, .chizma.mini .ru { stroke: #e8edf2; fill: #e8edf2; }
