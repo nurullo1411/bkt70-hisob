@@ -1304,6 +1304,9 @@ $("pdf-ber").addEventListener("click", () => {
 // Seriya nomi (hisob natijasidan; zaxira — rama boʻyicha): "Termo 70", "Aldoks", "Engelberg 7000"
 const SERIYA_NOMI = { F702: "Termo 70", F703: "Termo 70", 7051: "Engelberg 7000", 183: "Aldoks" };
 const kSeriya = (k, x) => (x && x.seriya) || SERIYA_NOMI[k.rama || zakaz.umumiy.rama] || "";
+// Mijoz PDF: rama qanday (foydalanuvchi, 2026-11-19)
+const RAMA_NOMI = { F702: "Kosa F702 (oʻrta)", F703: "Kosa F703 (keng)", 7051: "Kosa 7051", 183: "Kosa 183" };
+const kRama = (k) => { const r = k.rama || zakaz.umumiy.rama; return RAMA_NOMI[r] || (r ? `Kosa ${r}` : ""); };
 function zakazSeriyalari(n = natija) {
   const hm = n ? hisobMos(n) : new Map();
   return [...new Set(zakaz.konstruksiyalar.filter((k) => (k.soni ?? 1) > 0).map((k) => kSeriya(k, hm.get(k))).filter(Boolean))];
@@ -1387,7 +1390,7 @@ function pdfHtml(o) {
     if (o.olcham) { try { qanot = tabaqaOlchamlari(k); } catch (e) { qanot = null; } }
     s += `<div class="p-blok"><div class="p-blok-bosh">${kRaqamHtml(k, true)}<b>${esc(k.nom)}</b><span>${esc(k.L)} × ${esc(k.H)} sm</span></div>
       <div class="p-blok-ich"><div class="p-rasm">${chizmaSVG(k, { kichik: !o.olcham, qanotYoz: qanot })}</div>
-      <div class="p-param"><div class="p-param-jad"><table>${qator2("Oʻlchami", `${k.L} × ${k.H} sm`)}${qator2("Seriya", kSeriya(k, x))}
+      <div class="p-param"><div class="p-param-jad"><table>${qator2("Oʻlchami", `${k.L} × ${k.H} sm`)}${qator2("Seriya", kSeriya(k, x))}${qator2("Rama", kRama(k))}
         ${qator2("Rangi", t.rang_nomi ? `${t.rang} (${t.rang_nomi})` : t.rang)}
         ${qator2("Oynasi", `${turlar.join(", ")}${turlar.length ? " · " : ""}${k.oyna_qalinligi || u.oyna_qalinligi || 24} mm`)}
         ${qator2("Yuzasi", son(yuza(k), 2) + " m²")}${qator2("Soni", `${soni} dona`)}
