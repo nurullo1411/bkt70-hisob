@@ -125,6 +125,9 @@ function uchlar(m, asos) {
   if (r) return [s(r[1]), s(r[1])];
   r = m.match(/^(?:bir|tepa) uchi ([\d,]+)°, (?:ikkinchisi|past uchi) ([\d,]+)°$/);
   if (r) return [s(r[1]), s(r[2])];
+  // chiftga tegadigan kosa (hisob.uch, 2026-11-18): "chap uchi 45°, oʻng uchi 90°", "past uchi 45°, tepa uchi 90°"
+  r = m.match(/^(?:(?:chap|oʻng|tepa|past) kosa, )?(?:chap|oʻng|tepa|past) uchi ([\d,]+)°, (?:chap|oʻng|tepa|past) uchi ([\d,]+)°$/);
+  if (r) return [s(r[1]), s(r[2])];
   r = m.match(/^(?:bir|tepa|past) uchi ([\d,]+)°$/);
   if (r) return [s(r[1]), asos];
   return null;
@@ -141,11 +144,30 @@ function kesimBelgilari(kesim, xarita) {
   return (d) => {
     const e = xarita && xarita[mm(d)];
     const q = e ? Object.entries(e.qiya || {}) : [];
+    const u = e ? Object.entries(e.uch || {}) : [];
+    if (!q.length && u.length) return uchNatija(u, e.jami, asos, oddiy);
     if (!q.length) return { belgi: oddiy, qiya: null };
     const matn = q.map(([m]) => m).join("; "), n = q.reduce((a, [, x]) => a + x, 0);
     const belgi = uchBelgi(uchlar(q[0][0].split(" | ")[0], asos), asos);
-    return { belgi, qiya: n < e.jami ? `${n} tasi (${e.jami} tadan): ${matn}` : matn };
+    const r = { belgi, qiya: n < e.jami ? `${n} tasi (${e.jami} tadan): ${matn}` : matn };
+    if (u.length) r.uch = u.map(([m, x]) => `${x} tasi ${uchYozuv(m)}`).join(" · ");  // arka + chift bir uzunlikda
+    return r;
   };
+}
+// Chiftga tegadigan kosa uchlari (kulrang yozuv, qiya emas; hisob.uch, 2026-11-18): "1 tasi tepa kosa chap uchi 45° · 1 tasi past kosa chap uchi 45°"
+// (tepa va past boʻlak koʻzgu aksi — joyi bilan yoziladi); "ikki uchi 90°" — □, yolgʻiz boʻlsa yozuvsiz. Shu uzunlikdagi qolgan detallar
+// (boshqa konstruksiya) — "2 tasi ikki uchi 45°". Belgi: ◿ bor boʻlsa ◿, hammasi 90° boʻlsa □, aks holda ⏢ (tekshiruvchi, 2026-11-18).
+const uchYozuv = (m) => (m === "ikki uchi 90°" ? m : m.replace(/^(\S+) kosa, /, "$1 kosa ").split(", ")[0]);
+function uchNatija(u, jami, asos, oddiy) {
+  const bel = u.map(([m]) => uchBelgi(uchlar(m, asos), asos));
+  const n = u.reduce((a, [, x]) => a + x, 0), qolgan = jami - n;
+  const hammasi = [...bel, ...(qolgan > 0 ? [oddiy] : [])];
+  const belgi = hammasi.includes("◿") ? "◿" : hammasi.every((x) => x === "□") ? "□" : "⏢";
+  const qism = u.map(([m, x]) => `${x} tasi ${uchYozuv(m)}`);
+  if (qolgan > 0) qism.push(`${qolgan} tasi ${oddiy === "□" ? "ikki uchi 90°" : "ikki uchi 45°"}`);
+  const r = { belgi, qiya: null };
+  if (!(u.length === 1 && qolgan <= 0 && bel[0] === "□")) r.uch = qism.join(" · ");
+  return r;
 }
 const KESIM_IZOH = "□ 90° · ◿ bir uchi 45° · ⏢ 45°";
 // Qiya kesim belgilari — kichik inline SVG (matn balandligida, hamma telefonda bir xil; foydalanuvchi, 2026-11-16).

@@ -689,6 +689,9 @@ try:
             _be = _bx.setdefault(_bd["profil"], {}).setdefault(str(int(round(float(_bd["uzunlik"]) * 10 + 1e-7))), {"jami": 0, "qiya": {}})
             _bn = _bd["soni"] * _bk["soni"]
             _be["jami"] += _bn
+            for _bm, _bs in (_bd.get("uch") or {}).items():
+                _bu = _be.setdefault("uch", {})
+                _bu[_bm] = _bu.get(_bm, 0) + _bs * _bk["soni"]
             if _bd.get("burchak"):
                 _be["qiya"][_bd["burchak"]] = _be["qiya"].get(_bd["burchak"], 0) + _bn
 except Exception:
@@ -710,7 +713,7 @@ function varoqHtml(v, pdf) {
     if (toliq && !ochiqKartalar.has(kal)) return "";
     return `<div class="kk${k.manba === "SKLAD" ? " sklad" : ""}${toliq ? " toliq" : ""}" data-karta="${i}">
       <div class="kk-sar"${toliq ? ` data-ochkarta="${i}"` : ""}>${sar} × ${k.soni} dona${k.soni > 1 ? ' <small>(har birida)</small>' : ""}</div>
-      ${k.bolaklar.map(([d, c, rq]) => { const b = kb(d); return `<div class="kk-b"><span><i class="kk-belgi" data-belgi="${b.belgi}">${belgiHtml(b.belgi)}</i> ${kkSon(d)} × ${c}</span>${b.qiya ? `<span class="kk-qiya">${esc(b.qiya)}</span>` : ""}</div>`; }).join("")}
+      ${k.bolaklar.map(([d, c, rq]) => { const b = kb(d); return `<div class="kk-b"><span><i class="kk-belgi" data-belgi="${b.belgi}">${belgiHtml(b.belgi)}</i> ${kkSon(d)} × ${c}</span>${b.qiya ? `<span class="kk-qiya">${esc(b.qiya)}</span>` : ""}${b.uch ? `<span class="kk-uch">${esc(b.uch)}</span>` : ""}</div>`; }).join("")}
       ${qoldiqMm(k.qoldiq) > 0 ? `<div class="kk-q">qoldiq: ${qoldiqSon(k.qoldiq)} sm${uzun ? " (uzun tomonidan)" : ""}</div>` : ""}
       <div class="kk-katak">${Array.from({ length: k.soni }, (_, x) => pdf ? "<span>▢</span>" : `<button data-katak="${i}:${x}" aria-pressed="${x < n}" aria-label="${x + 1}-hivich kesildi">${x < n ? "✓" : "▢"}</button>`).join("")}${pdf ? "" : `<span class="kk-katak-s">Kesildi ${n} / ${k.soni}</span>`}</div></div>`;
   };

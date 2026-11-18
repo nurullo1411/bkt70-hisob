@@ -340,6 +340,7 @@ class Hisob:
         self.segment_ramalar = 0
         self.arka_metr = D(0)      # egiladigan profil (egish xizmati), sm
         self.burchaklar = {}       # (nomi, profil, uzunlik) → "tepa uchi 74,05°" (45/90 dan boshqasi)
+        self.uchlar = {}           # (nomi, profil, uzunlik) → {"chap uchi 45°, oʻng uchi 90°": soni} (chiftga tegadigan kosa)
         self.arka_oyna_m2 = D(0)   # arkali oyna yuzasi (ustama uchun)
 
     @staticmethod
@@ -353,6 +354,24 @@ class Hisob:
         eski = self.burchaklar.get(k)
         # bir xil uzunlikdagi detallar burchagi har xil boʻlsa ikkalasi yoziladi (masalan yoy ostidagi shtapiklar)
         self.burchaklar[k] = matn if not eski or matn in eski.split(" | ") else f"{eski} | {matn}"
+
+    def uch(self, nomi, profil, uzunlik, kosa, boshi90, oxiri90, boshi, oxiri, soni, tashqi=False):
+        """Chift Quloq kesgan kosa boʻlagi uchlari (foydalanuvchi, 2026-11-18): kosaga (burchakka) tegadigan uchi 45°,
+        chiftga tegadigan uchi 90°. kosa — qaysi kosa ("tepa", "past", "chap", "oʻng"; tepa va past boʻlaklar koʻzgu aksi —
+        bir xil kesilmaydi, tekshiruvchi), boshi/oxiri — uch nomi chizma boʻyicha. tashqi — bir uchi tashqi chetigacha
+        impostga tegadi (burchagi tasdiqlanmagan): "uchi tekshirilsin"."""
+        if tashqi:
+            m = f"{kosa} kosa, uchi tekshirilsin (tashqi impost)"
+        elif not (boshi90 or oxiri90):
+            return
+        elif boshi90 and oxiri90:
+            m = "ikki uchi 90°"
+        elif oxiri90:
+            m = f"{kosa} kosa, {boshi} uchi 45°, {oxiri} uchi 90°"
+        else:
+            m = f"{kosa} kosa, {oxiri} uchi 45°, {boshi} uchi 90°"
+        d = self.uchlar.setdefault((nomi, profil, uzunlik), {})
+        d[m] = d.get(m, 0) + soni
 
     def rama_burchaklari(self):
         """Arka bilan yon devor (yoki yarim aylanada past) tutashgan uchdagi kesish burchagi, tashqi chet boʻyicha.
@@ -815,9 +834,18 @@ def _chift_bolinish(b, z, h, ctx, vertikal):
             chap_y = (cy if chift[oldingi] else iy) if oldingi is not None else 0
             ong_y = (cy if chift[i] else iy) if i < oxirgi else 0
             uz = joy - bosh + zapas - chap_y - ong_y
+            # tashqi chetigacha impostga tegadigan uch — tasdiqlanmagan, faqat chift (foydalanuvchi, 2026-11-18)
+            b90 = oldingi is not None and chift[oldingi]
+            o90 = i < oxirgi and chift[i]
+            b_t = oldingi is not None and not chift[oldingi]
+            o_t = i < oxirgi and not chift[i]
             oldingi = i if i < oxirgi else None
             with _yozuv(h, ("kosa", b["_yol"], i) if "_yol" in b else None):
                 h.detal(kalit[0], rama, uz, 2)
+            if any(chift):
+                for kosa in (("tepa", "past") if vertikal else ("chap", "oʻng")):
+                    h.uch(kalit[0], rama, uz, kosa, b90, o90, *(("chap", "oʻng") if vertikal else ("tepa", "past")), 1,
+                          tashqi=b_t or o_t)
             bosh = joy
         if i == oxirgi:
             break
@@ -914,7 +942,10 @@ def _kosa_kesimlari(profil, en, boy, h, kesim, cy, yol=None):
         for a, c in zip(nuqta, nuqta[1:]):
             # chizmada shu kosa boʻlagi ustida yoziladi: belgi ("kesik", rama yoʻli, "tomon:oʻrtasi")
             with _yozuv(h, ("kesik", yol, f"{tomon}:{float((a + c) / 2)}") if yol is not None else None):
-                h.detal(nomi, profil, c - a - (cy if a > 0 else 0) - (cy if c < jami else 0) + zapas, 1)
+                u = c - a - (cy if a > 0 else 0) - (cy if c < jami else 0) + zapas
+                h.detal(nomi, profil, u, 1)
+                h.uch(nomi, profil, u, {"ong": "oʻng"}.get(tomon, tomon), a > 0, c < jami,
+                      *(("tepa", "past") if tomon in ("chap", "ong") else ("chap", "oʻng")), 1)
 
 
 def _egilgan_bolinish(b, z, h, ctx):
@@ -1390,7 +1421,8 @@ def hisobla(k):
         "seriya": seriya.nomi,
         "profillar": [
             {"nomi": n, "profil": p, "uzunlik": float(u), "soni": s,
-             **({"burchak": h.burchaklar[(n, p, u)]} if (n, p, u) in h.burchaklar else {})}
+             **({"burchak": h.burchaklar[(n, p, u)]} if (n, p, u) in h.burchaklar else {}),
+             **({"uch": dict(h.uchlar[(n, p, u)])} if (n, p, u) in h.uchlar else {})}
             for (n, p, u), s in h.profillar.items()
         ],
         "oynalar": [
