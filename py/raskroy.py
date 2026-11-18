@@ -35,7 +35,9 @@ QOLDIQ_CHEGARA = 10
 AYLANTIRISH = {"181": 7.6, "185": 11, "198": 11}
 AYLANTIRISH_BELGI = "◣"
 # 182 Urtaning qiya uchli qoldigʻidan 90° detal olinsa 5,95 ayriladi (foydalanuvchi; sklad bilan ishlashda)
-QIYA_AYIRMA = {"182": 5.95}
+# Kosa 183: qoldiq odatda 90° — faqat "Kosa #>" (bir uchi qiya) dan 4,25 (foydalanuvchi, 2026-11-18: 4,25 kesilsa
+# lab kertigi chiqib ketadi).
+QIYA_AYIRMA = {"182": 5.95, "183": 4.25}
 # Bu profillarda sklad boʻlagi qoldigʻi 10 sm dan oshsa ham olinadi:
 # A701 ning 190 sm dan kichigi baribir ishlatilmaydi (foydalanuvchi, 2026-11-03).
 CHEGARASIZ = {"A701", "7058"}  # Engelberg shtulpi ham (200 sm dan kichigi otxod)
@@ -107,6 +109,7 @@ def _sklad_nom(nom):
 
 # Aldoks sklad varagʻi (Apps Script nomga "ALD|" qoʻshib beradi): "kosa /306g", "qanot /306g",
 # "Oʻrta ## /306g" (ikki uchi toʻgʻri), "Oʻrta #> /306g" (bir uchi qiya — 90° detal uchun − 5,95). Balkon — eshik bosqichida.
+# Kosa: "kosa" yoki "Kosa ##" — uchlari toʻgʻri, "Kosa #>" — bir uchi qiya (− 4,25; foydalanuvchi, 2026-11-18).
 ALD_SKLAD_PREFIKS = "ALD|"
 
 
@@ -116,8 +119,8 @@ def _ald_sklad(nom):
     if not nom.startswith(ALD_SKLAD_PREFIKS):
         return None
     n = " ".join(nom[len(ALD_SKLAD_PREFIKS):].split("/")[0].lower().split())
-    if n == "kosa":
-        return "183", False
+    if n == "kosa" or n.startswith(("kosa ##", "kosa #>")):
+        return "183", "#>" in n
     if n == "qanot":
         return "181", False
     if n.startswith(("balkon oʻrta", "balkon o'rta", "balkon o‘rta", "balkon orta", "balkon urta")):
@@ -150,7 +153,7 @@ def _ald_sklad_bolaklari(qatorlar, profil, rang):
             izoh.append(f"{nom} ({q[1]}) × {soni}: {matn} m hivichdan uzun, xato boʻlishi mumkin, olinmadi")
             continue
         if t[1]:
-            sm -= QIYA_AYIRMA[profil]  # qiya uchli Urtadan impost (90°) olinadi
+            sm -= QIYA_AYIRMA[profil]  # qiya uchli Urta / Kosa qoldigʻi
         if sm > 0:
             bolak.extend([_b(sm)] * soni)
     return sorted(bolak), izoh

@@ -361,14 +361,11 @@ class Hisob:
     UCH_TURI = {("tepa", "chap"): "chap", ("tepa", "oʻng"): "oʻng", ("past", "chap"): "oʻng", ("past", "oʻng"): "chap",
                 ("chap", "tepa"): "oʻng", ("chap", "past"): "chap", ("oʻng", "tepa"): "chap", ("oʻng", "past"): "oʻng"}
 
-    def uch(self, nomi, profil, uzunlik, kosa, boshi90, oxiri90, boshi, oxiri, soni, tashqi=False):
-        """Chift Quloq kesgan kosa boʻlagi (foydalanuvchi, 2026-11-18): kosaga (burchakka) tegadigan uchi 45°, chiftga
-        tegadigan uchi 90°. Yoziladi: "chap" / "oʻng" (UCH_TURI), "ikki uchi 90°", tashqi chetigacha impostga tegsa —
-        "uchi tekshirilsin (tashqi impost)" (burchagi tasdiqlanmagan). kosa — "tepa", "past", "chap", "oʻng";
-        boshi/oxiri — uchlar nomi chizma boʻyicha."""
-        if tashqi:
-            m = "uchi tekshirilsin (tashqi impost)"
-        elif not (boshi90 or oxiri90):
+    def uch(self, nomi, profil, uzunlik, kosa, boshi90, oxiri90, boshi, oxiri, soni):
+        """Chift Quloq yoki tashqi chetigacha impost kesgan kosa boʻlagi (foydalanuvchi, 2026-11-18): kosaga (burchakka)
+        tegadigan uchi 45°, chift/impostga tegadigan uchi 90°. Yoziladi: "chap" / "oʻng" (UCH_TURI), "ikki uchi 90°".
+        kosa — "tepa", "past", "chap", "oʻng"; boshi/oxiri — uchlar nomi chizma boʻyicha."""
+        if not (boshi90 or oxiri90):
             return
         elif boshi90 and oxiri90:
             m = "ikki uchi 90°"
@@ -838,18 +835,14 @@ def _chift_bolinish(b, z, h, ctx, vertikal):
             chap_y = (cy if chift[oldingi] else iy) if oldingi is not None else 0
             ong_y = (cy if chift[i] else iy) if i < oxirgi else 0
             uz = joy - bosh + zapas - chap_y - ong_y
-            # tashqi chetigacha impostga tegadigan uch — tasdiqlanmagan, faqat chift (foydalanuvchi, 2026-11-18)
-            b90 = oldingi is not None and chift[oldingi]
-            o90 = i < oxirgi and chift[i]
-            b_t = oldingi is not None and not chift[oldingi]
-            o_t = i < oxirgi and not chift[i]
+            # chiftga ham, tashqi chetigacha impostga ham tegadigan uchi 90° (foydalanuvchi, 2026-11-18)
+            b90 = oldingi is not None
+            o90 = i < oxirgi
             oldingi = i if i < oxirgi else None
             with _yozuv(h, ("kosa", b["_yol"], i) if "_yol" in b else None):
                 h.detal(kalit[0], rama, uz, 2)
-            if any(chift):
-                for kosa in (("tepa", "past") if vertikal else ("chap", "oʻng")):
-                    h.uch(kalit[0], rama, uz, kosa, b90, o90, *(("chap", "oʻng") if vertikal else ("tepa", "past")), 1,
-                          tashqi=b_t or o_t)
+            for kosa in (("tepa", "past") if vertikal else ("chap", "oʻng")):
+                h.uch(kalit[0], rama, uz, kosa, b90, o90, *(("chap", "oʻng") if vertikal else ("tepa", "past")), 1)
             bosh = joy
         if i == oxirgi:
             break
