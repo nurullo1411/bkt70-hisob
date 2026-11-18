@@ -800,7 +800,11 @@ function chizmaSVG(k, opts = {}) {
       s += `<path d="${shakl(0, 0, L, H, 0, ark)} ${shakl(t + eF, t + eF, L - 2 * (t + eF), H - 2 * (t + eF), t + eF, ark)}" class="ra" fill-rule="evenodd"/>`;
       continue;
     }
-    s += rect(r.x, r.y, r.w, r.h, "ra");
+    // kosa ichki cheti ham chiziladi (halqa; foydalanuvchi, 2026-11-18 — impost kosaga taqalgani koʻrinsin)
+    const ki = t + eF;
+    s += r.w > 2 * ki && r.h > 2 * ki
+      ? `<path d="M${f(r.x)} ${f(r.y)}h${f(r.w)}v${f(r.h)}h${f(-r.w)}Z M${f(r.x + ki)} ${f(r.y + ki)}h${f(r.w - 2 * ki)}v${f(r.h - 2 * ki)}h${f(-(r.w - 2 * ki))}Z" class="ra" fill-rule="evenodd"/>`
+      : rect(r.x, r.y, r.w, r.h, "ra");
   }
   // Lapsha (H702): ramalar orasida alohida koʻrinadigan tasma, oʻrtasida uzuq chiziq (foydalanuvchi, 2026-11-09)
   for (const l of g.lapshalar) {
@@ -811,6 +815,11 @@ function chizmaSVG(k, opts = {}) {
   // impostlar tabaqadan oldin: tabaqa impost ustiga kirib turadi, petlya koʻrinadi
   // impost uchi: rama yoyidan t, impost yoyidan t/2 ichkarida
   const ichOf = (yo) => (yo ? (yo.rama ? t : t / 2) : t);
+  // Haqiqatdagidek (foydalanuvchi, 2026-11-18): impost uchi kosaga tegsa kosa ichki chetidan (t), boshqa impostga tegsa
+  // uning chetidan (t/2) boshlanadi — oldin har doim t edi, impostlar orasida boʻshliq qolardi
+  const yaqin = (a, b) => Math.abs(a - b) < 0.01;
+  const ramasi = (x, y) => { let r = null; for (const q of g.ramalar) if (x >= q.x - 0.01 && x <= q.x + q.w + 0.01 && y >= q.y - 0.01 && y <= q.y + q.h + 0.01) r = q; return r; };
+  const uchOf = (yo, ramada) => (yo ? ichOf(yo) : ramada ? t + eF : t / 2);
   for (const c of g.impostlar) {
     if (c.portalTepa) { s += rect(c.x - t / 2, c.y1 + t, t, c.y2 - c.y1 - t - t / 2, "ra im"); continue; }
     if (c.portalTik) { s += rect(c.x - t / 2, c.y1, t, c.y2 - t - c.y1, "ra im"); continue; }
@@ -837,9 +846,14 @@ function chizmaSVG(k, opts = {}) {
         : rect(c.x1, c.y1 - t / 2, c.x2 - c.x1, t, "ra") + rect(c.x1, c.y1 - q / 2, c.x2 - c.x1, q, "chift-ch");
       continue;
     }
-    s += c.x1 === c.x2
-      ? yuza(c.x1 - t / 2, c.y1 + t, t, c.y2 - c.y1 - 2 * t, ichOf(c.tY), "ra im", "", c.tY, c.pY, ichOf(c.pY))
-      : yuza(c.x1 + t, c.y1 - t / 2, c.x2 - c.x1 - 2 * t, t, ichOf(c.tY), "ra im", "", c.tY, null);
+    const rr = ramasi((c.x1 + c.x2) / 2, (c.y1 + c.y2) / 2);
+    if (c.x1 === c.x2) {
+      const a = uchOf(c.tY, !rr || yaqin(c.y1, rr.y)), b2 = uchOf(c.pY, !rr || yaqin(c.y2, rr.y + rr.h));
+      s += yuza(c.x1 - t / 2, c.y1 + a, t, c.y2 - c.y1 - a - b2, a, "ra im", "", c.tY, c.pY, b2);
+    } else {
+      const a = !rr || yaqin(c.x1, rr.x) ? t + eF : t / 2, b2 = !rr || yaqin(c.x2, rr.x + rr.w) ? t + eF : t / 2;
+      s += yuza(c.x1 + a, c.y1 - t / 2, c.x2 - c.x1 - a - b2, t, ichOf(c.tY), "ra im", "", c.tY, null);
+    }
   }
   for (const o of g.barglar) {
     const d = t * 0.5;
@@ -852,7 +866,15 @@ function chizmaSVG(k, opts = {}) {
       if (oynaGul) s += `<path d="${uYol(o, d + t * 0.3)}" class="gul" style="fill:url(#${gid}-gul)"/>`;
       continue;
     }
-    if (b.tur === "gluxoy") s += oyna(x + t * 0.3, y + t * 0.3, w - t * 0.6, h - t * 0.6, d + t * 0.3, tY, pY);
+    if (b.tur === "gluxoy") {
+      // gluxoy oyna kosa ichki chetidan boshlanadi (kosa ustiga chiqmaydi; foydalanuvchi, 2026-11-18); impost yonida — t/2, yoyda — oldingidek
+      // keng kosada (eF) barg allaqachon eF ichkariga surilgan
+      const r = o.rama, yq = (a, b, ich) => r && (yaqin(a, b) || (eF && yaqin(a, b + ich * eF)));
+      const ch = yq(o.x, r.x, 1) ? t : d, on = yq(o.x + o.w, r.x + r.w, -1) ? t : d;
+      const tp = !tY && yq(o.y, r.y, 1) ? t : d, ps = !pY && yq(o.y + o.h, r.y + r.h, -1) ? t : d;
+      const gx = o.x + ch, gy = o.y + tp, gw = o.w - ch - on, gh = o.h - tp - ps;
+      s += oyna(gx + t * 0.3, gy + t * 0.3, gw - t * 0.6, gh - t * 0.6, d + t * 0.3, tY, pY);
+    }
     else if (b.tur === "tabaqa") s += tabaqa(x, y, w, h, b.petlya_tomoni || (b.fortochka ? "past" : "chap"), b.dvaynoy, true, b.fortochka, d, tY, pY, false, { ii: b.tabaqa_impost, p: o.p });
     else if (b.tur === "eshik") {
       if (b.tabaqa_soni === 2) {
