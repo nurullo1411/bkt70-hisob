@@ -1,6 +1,6 @@
 // Oflayn ishlash: ilova fayllari va Pyodide kesh qilinadi.
 // Ilova fayllari: avval tarmoq (yangilanish keladi), boʻlmasa kesh. Pyodide: avval kesh.
-const KESH = "bkt70-c1b518a3";
+const KESH = "bkt70-18ebcfd0";
 const ASOS = ["./", "index.html", "style.css", "ranglar.js", "kesish_karta.js", "diller_tahrir.js", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "qalam.js", "fasonlar.js", "konstruktor.js", "kassa.js", "zakaz_baza.js", "hisobot.js", "hisobot_ekran.js", "katalog.js", "namuna_z002.json", "py/versiya.txt", "py/hisob.py", "py/hisobot.py", "py/zakaz.py", "py/raskroy.py",
   "py/tannarx.py", "py/narx_sheets.py", "py/diller.py", "narxlar.enc",

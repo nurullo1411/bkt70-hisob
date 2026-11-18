@@ -1147,6 +1147,21 @@ def _portal(b, z, h, ctx):
         h.joriy_oyna = eski
 
 
+# Aldoks eshik qanoti katalog chegarasi (eni 110, boʻyi 240): oshsa hisob toʻxtamaydi, faqat ogohlantirish
+# (foydalanuvchi, 2026-11-19; 2026-11-14 … 2026-11-19 xato edi)
+ALD_ESHIK_OGOH = (D(110), D(240))
+
+
+def _eshik_ogoh(h, qanotlar):
+    if h.seriya is not ALDOKS:
+        return
+    for e, b in qanotlar:
+        if e > ALD_ESHIK_OGOH[0] or b > ALD_ESHIK_OGOH[1]:
+            m = f"Aldoks eshik qanoti {format(float(e), 'g').replace('.', ',')} × {format(float(b), 'g').replace('.', ',')} — katalog chegarasidan katta (eni 110, boʻyi 240 gacha), tekshiring"
+            if m not in h.ogohlantirishlar:
+                h.ogohlantirishlar.append(m)
+
+
 def _eshik(b, z, h, arka=D(0)):
     ochilish = b.get("ochilish")
     sr = h.seriya
@@ -1170,6 +1185,7 @@ def _eshik(b, z, h, arka=D(0)):
         L1 = z.ichki_en + (sr.eshik_en_jami if sr.eshik_en_jami is not None else ustma(z.chap, z.ong))
         h.tabaqa("Eshik tabaqasi", profil, L1, H1, arka=arka, ichki_impost=ii)
         h.eshik_qanotlari.append((L1, H1))
+        _eshik_ogoh(h, [(L1, H1)])
         h.eshiklar.append(1)
     elif soni == 2:
         jami = z.ichki_en + sr.eshik_2_qoshimcha
@@ -1191,6 +1207,7 @@ def _eshik(b, z, h, arka=D(0)):
         h.tabaqa("Eshik tabaqasi L1", profil, L1, H1, shtulp_yonida=True, arka=ch1, ichki_impost=ii)
         h.tabaqa("Eshik tabaqasi L2", profil, L2, H1, shtulp_yonida=True, arka=ch2, ichki_impost=ii)
         h.eshik_qanotlari.extend([(L1, H1), (L2, H1)])
+        _eshik_ogoh(h, [(L1, H1), (L2, H1)])
         h.markaziy_rezina += H1  # shtulp boʻyi bir marta
         with _yozuv(h, ("shtulp", b["_yol"]) if "_yol" in b else None):
             h.detal("Shtulp", sr.shtulp, H1 - sr.shtulp_ayirma, 1)

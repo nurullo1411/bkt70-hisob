@@ -740,7 +740,6 @@ ALD_DVERNAYA = {"Oq": "Petlya Dvernaya Alyumin. (Oq) (Uz)", "9005": "(9005) Petl
                 "SW306G": "(SW306G) Petlya Dvernaya Alyumin (Uz)"}
 ALD_SHPINGALET = {"Oq": "Shpingalet ALD (Oq) (300sht) (Uz)", "9005": "(9005) Shpingalet ALD (Uz)",
                   "SW306G": "(SW306G) Shpingalet ALD (Uz)"}
-ALD_ESHIK_MAX = (D(110), D(240))  # qanot eni, boʻyi
 # Eshik petlyasi (foydalanuvchi, 2026-11-19): qanot boʻyi 255 gacha 3 ta, balandi 4 ta (eski: 3 + eni 75–110 + boʻyi 200–240)
 ALD_ESHIK_PETLYA_CHEGARA = D(255)
 
@@ -760,9 +759,6 @@ def _ald_eshik(s, tanlov, rang, r):
     if not eshiklar:
         return
     qanotlar = [(D(str(e)), D(str(b))) for e, b in s.get("eshik_qanotlari", [])]
-    for e, b in qanotlar:
-        if e > ALD_ESHIK_MAX[0] or b > ALD_ESHIK_MAX[1]:
-            raise HisobXato(f"Aldoks eshik qanoti eni 110 dan, boʻyi 240 dan oshmaydi: {e} × {b}")
     rk = _ald_rang(rang)
     # yengil eshik (Qanot/Urtadan) standart zamogʻi 153/23/25 (foydalanuvchi, 2026-11-14)
     zamok = tanlov.get("ald_eshik_zamok") or ALD_ESHIK_ZAMOKLAR[1 if tanlov.get("eshik_tur") == "yengil" else 0]
