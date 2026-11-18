@@ -7,13 +7,13 @@ Dillerga roʻyxat — AKFA nakladnoyiga oʻxshash: diller nomi + soni, vazn va n
 - Yozilmaydi, pastda qizil eslatma: samorez, K188 kley, podokonnik (qopqogʻi bilan), pena.
 - Steklopaket alohida: oyna_royxati.
 
-Oyna oʻlchami 0,5 sm ga pastga yaxlitlanadi (55,2 → 55; 55,6 → 55,5). Yaxlitlangan oyna ichki razmerdan
-tabaqada 2 sm dan, gluxoy va fortochkada 1,5 sm dan koʻp kichik boʻlsa — yuqoriga (foydalanuvchi, 2026-11-07).
+Oyna oʻlchami 0,5 sm ga: yuqoriga faqat 2 mm gacha kattalashsa (79,9 → 80), aks holda pastga (200,1 → 200; 55,2 → 55)
+— zazor meʼyoridan 0,2 sm dan koʻp kamaymaydi (foydalanuvchi, 2026-11-18, hamma seriya).
 """
 
 from math import ceil, floor
 
-from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG, ENGELBERG_PROFILLARI, SERIYA_RAMA, HisobXato, asl_profil, oyna_qalinligi
+from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG_PROFILLARI, HisobXato, asl_profil, oyna_qalinligi
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
@@ -270,24 +270,20 @@ def diller_jadvali(zakaz, narxlar=None, sklad=None):
 
 
 # ---------- oyna ----------
-OYNA_CHEGARA_TABAQA = 2.0    # rom va eshik tabaqasi: oyna ichki razmerdan koʻpi bilan shuncha kichik
-OYNA_CHEGARA_GLUXOY = 1.5    # gluxoy va fortochka
+# Yuqoriga yaxlitlash chegarasi (foydalanuvchi, 2026-11-18, hamma seriya): oyna 0,5 sm ga yuqoriga faqat 2 mm gacha
+# kattalashsa — profil bilan zazor meʼyoridan 0,2 sm dan koʻp kamaymasin (Termo gluxoy 1,5 → kamida 1,3; tabaqa 2 → 1,8;
+# Aldoks 1 → 0,8). Aks holda pastga. Eski qoida (2026-11-07) — docs/tarix.md.
+OYNA_TEPAGA = 0.2
 
 
-def _ayirma_chegara(joy, pvx=False):
-    if pvx or joy.startswith("Gluxoy") or joy.startswith("Fortochka"):  # Engelberg: hamma oyna ichki − 1,5
-        return 1.5, OYNA_CHEGARA_GLUXOY
-    return 2.0, OYNA_CHEGARA_TABAQA
+def oyna_yaxlit(x, joy=None, pvx=False):
+    """Oyna oʻlchami 0,5 sm ga: yuqoridagi 0,5 gacha ≤ 0,2 sm boʻlsa — yuqoriga, aks holda pastga.
 
-
-def oyna_yaxlit(x, joy, pvx=False):
-    """Oyna oʻlchami 0,5 sm ga: avval pastga; ichki razmerdan farq chegaradan oshsa — yuqoriga."""
-    ayirma, chegara = _ayirma_chegara(joy, pvx)
-    ichki = x + ayirma
-    past = floor(x * 2 + 1e-9) / 2
-    if ichki - past <= chegara + 1e-9:
-        return past
-    return ceil(x * 2 - 1e-9) / 2
+    joy, pvx — eski chaqiruvlar uchun (qoida seriya va joyga bogʻliq emas)."""
+    tepa = ceil(x * 2 - 1e-9) / 2
+    if tepa - x <= OYNA_TEPAGA + 1e-9:
+        return tepa
+    return floor(x * 2 + 1e-9) / 2
 
 
 def oyna_royxati(zakaz, narxlar=None):
@@ -301,8 +297,7 @@ def oyna_royxati(zakaz, narxlar=None):
     for o in t["oynalar"]:
         k = t["konstruksiyalar"][o["i"]]
         qal = oyna_qalinligi(faol[o["i"]], umumiy)
-        pvx = SERIYA_RAMA.get(faol[o["i"]].get("rama") or umumiy.get("rama")) is ENGELBERG
-        en, boy = oyna_yaxlit(o["en"], o["joy"], pvx), oyna_yaxlit(o["boy"], o["joy"], pvx)
+        en, boy = oyna_yaxlit(o["en"]), oyna_yaxlit(o["boy"])
         kalit = (o.get("tur") or "", qal, en, boy)
         g = guruh.setdefault(kalit, {"tur": kalit[0], "qalinlik": qal, "en": en, "boy": boy, "soni": 0,
                                      "konstruksiyalar": []})
