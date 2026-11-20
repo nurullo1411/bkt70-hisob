@@ -305,6 +305,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       return r ?? true;
     } catch (e) {
       if (tikla) { const t = await tikla(e); if (t) { if (typeof xato === "function") xato(""); return t; } }
+      if (e.kod === "ziddiyat" && SB.ziddiyatlar().length) { och({ t: "ziddiyat" }); return null; }
       skXato(e.message);
       if (e.st === 401) yop();  // oyna qayta chizilmaydi — yozilgan qiymatlar qolsin
       chiz();
@@ -317,6 +318,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     srvHolat = SB.nusxa() ? "" : "yuklanmoqda";
     chiz();
     try {
+      await SB.sinxron().catch(() => {});
       const n = await SB.torting(); srvHolat = "";
       if (n.firma && n.firma.kochirildi && okk(SKLAD_KALIT) && n.men && n.men.rol === "ega") { ozk("sklad_baza_eski", okk(SKLAD_KALIT)); ozk(SKLAD_KALIT, null); }
     }
@@ -342,7 +344,8 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     }
     if (srvHolat === "firmasiz" || !n || !n.firma) {
       const tel = SB.sessiya() && SB.sessiya().tel;
-      el("sklad-ich").innerHTML = `<section class="karta sk-firma"><h2>Firma</h2><p class="xira">${h(typeof sbChiroyli === "function" ? sbChiroyli(tel) : tel)} bilan kirdingiz. Firma oching yoki ega bergan kodni kiriting.</p>
+      const yb = SB.yuborilmadi().length;
+      el("sklad-ich").innerHTML = (yb ? `<button class="sk-navbat-t" data-sk="navbat">⚠ ${yb} ta amal yuborilmadi (firmadan chiqarilgansiz) — faylga saqlang</button>` : "") + `<section class="karta sk-firma"><h2>Firma</h2><p class="xira">${h(typeof sbChiroyli === "function" ? sbChiroyli(tel) : tel)} bilan kirdingiz. Firma oching yoki ega bergan kodni kiriting.</p>
         <div class="sk-forma"><label class="keng">Ismingiz<input id="skf-ism" type="text" maxlength="40" autocomplete="name"></label></div>
         <h3>Yangi firma (siz — ega)</h3>
         <div class="sk-forma"><label class="keng">Firma nomi<input id="skf-nom" type="text" maxlength="60" placeholder="masalan Dodorom"></label>
@@ -362,8 +365,12 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
   const srvSatr = () => {
     const n = nus();
     if (!n || !n.firma) return "";
-    return `<div class="sk-hisob"><span>☁ <b>${h(n.firma.nom)}</b> · ${h(n.men.ism)}${n.men.rol === "ega" ? " (ega)" : ""}</span>
-      <button class="sk-ikon" data-sk="hisob" aria-label="Firma va ishchilar">⚙</button></div>`;
+    const nb = SB.navbat().length, zd = SB.ziddiyatlar().length, yb = SB.yuborilmadi().length;
+    const oflayn = !SB.onlayn() || SB.holat() === "oflayn";
+    return `<div class="sk-hisob"><span>${oflayn ? "📵" : "☁"} <b>${h(n.firma.nom)}</b> · ${h(n.men.ism)}${n.men.rol === "ega" ? " (ega)" : ""}</span>
+      <button class="sk-ikon" data-sk="hisob" aria-label="Firma va ishchilar">⚙</button></div>
+      ${zd ? `<button class="sk-ogoh-t" data-sk="ziddiyat">⚠ ${zd} ta ziddiyat — hal qilish</button>` : ""}
+      ${nb || yb ? `<button class="sk-navbat-t" data-sk="navbat">⏳ ${nb} ta amal serverga yetmagan${yb ? ` · ${yb} ta yuborilmadi` : ""}${oflayn ? " (internet yoʻq)" : ""}</button>` : ""}`;
   };
 
   // Qidiruv: bosilganda "S-" oʻzi yoziladi (foydalanuvchi, 2026-11-20) — faqat raqam terish kifoya.
@@ -373,6 +380,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
   // ---------- asosiy roʻyxat ----------
   function chiz() {
     if (chizSrvBosh()) return;
+    if (srv() && seriya && SB.id(seriya) !== seriya) { seriya = SB.id(seriya); ozk("sk_seriya", seriya); }  // birlashgan seriya
     const b = baza();
     if (srv() && (!b || !b.seriyalar.length)) {
       el("sklad-ich").innerHTML = srvSatr() + (ega() ? `<section class="karta sk-bosh"><div class="sk-bosh-ikon">📦</div><h2>Firma skladi boʻsh</h2>
@@ -421,7 +429,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
           <button data-sk="butun" data-p="${x.profil.id}" data-r="${h(x.rang)}" data-d="-1" aria-label="Bitta kamaytirish">−</button><b>${x.butun}</b>
           <button data-sk="butun" data-p="${x.profil.id}" data-r="${h(x.rang)}" data-d="1" aria-label="Bitta qoʻshish">+</button></div>` : ""}
         ${x.bolaklar.length ? `<div class="sk-bolaklar">${x.bolaklar.map((q) => `<button class="sk-b" data-sk="bolak" data-n="${q.raqam}" style="--u:${Math.min(100, q.sm / s.hivich_sm * 100).toFixed(1)}%">
-          <b>${smM(q.sm)}</b><small>S-${q.raqam}</small></button>`).join("")}</div>` : ""}</section>`;
+          <b>${smM(q.sm)}</b><small>S-${q.raqam}${q.kutish ? " ⏳" : ""}</small></button>`).join("")}</div>` : ""}</section>`;
     }
     t += `<details class="karta sk-boshqa"><summary>Boshqa</summary><div class="tugmalar">
         <button class="tugma" data-sk="zaxira">💾 Zaxira faylga</button>
@@ -440,6 +448,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     if (!oyna) return;
     if (oyna.t === "qosh") {
       const pr = b.profillar.filter((p) => p.seriya === seriya);
+      if (srv() && qosh.profil) qosh.profil = SB.id(qosh.profil);  // birlashgan profil
       if (!pr.some((p) => p.id === qosh.profil)) qosh.profil = pr.length ? pr[0].id : null;
       if (!pr.length && ega()) qosh.yangiProfil = true;
       if (!ega()) qosh.yangiProfil = false;
@@ -501,7 +510,8 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       return;
     }
     if (oyna.t === "kirish") {
-      const yangi = oyna.yangi;
+      const yangi = oyna.yangi, eT = el("skk-tel"), eP = el("skk-parol"), parol = eP ? eP.value : "";
+      if (eT) oyna.tel = eT.value;  // qayta chizishda terilgani yoʻqolmasin
       q.innerHTML = `<div class="sarlavha-katta">${yangi ? "Roʻyxatdan oʻtish" : "Kirish"}</div>
         <div class="seg sk-tur"><button data-q="krejim" data-v="" class="${yangi ? "" : "faol"}">Kirish</button><button data-q="krejim" data-v="1" class="${yangi ? "faol" : ""}">Roʻyxatdan oʻtish</button></div>
         <div class="sk-forma"><label class="keng">Telefon<input id="skk-tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67" value="${h(oyna.tel || "")}"></label>
@@ -509,7 +519,8 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
         ${oyna.xato ? `<p class="ogoh">${h(oyna.xato)}</p>` : ""}
         ${yangi ? "" : `<p class="xira">Parolni unutdingizmi? Ilova egasiga yozing${typeof SB_YORDAM_TEL !== "undefined" && SB_YORDAM_TEL ? `: <a href="tel:${h(SB_YORDAM_TEL.replace(/\s/g, ""))}">${h(SB_YORDAM_TEL)}</a>` : ""} — parolni u tiklaydi.</p>`}
         <div class="tugmalar"><button class="tugma" data-q="yop">Yopish</button><button class="tugma asosiy" data-q="kirish">${yangi ? "Roʻyxatdan oʻtish" : "Kirish"}</button></div>`;
-      setTimeout(() => el("skk-tel") && el("skk-tel").focus(), 50);
+      if (parol) el("skk-parol").value = parol;
+      if (!eT) setTimeout(() => el("skk-tel") && el("skk-tel").focus(), 50);
       return;
     }
     if (oyna.t === "hisob") {
@@ -524,8 +535,29 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
         ${e ? `<h3>Ishchi qoʻshish</h3><p class="xira">Kod 48 soat amal qiladi, bir marta ishlatiladi. Ishchi ilovada roʻyxatdan oʻtib, shu kodni kiritadi.</p>
           ${oyna.kod ? `<p class="sk-kod">${h(oyna.kod)}</p><p class="xira">${oyna.kodRol === "ega" ? "Bu kod bilan kirgan odam — ikkinchi ega" : "Bu kod — ishchi uchun"}</p>` : ""}
           <div class="tugmalar"><button class="tugma asosiy" data-q="taklif" data-v="ishchi">Ishchi uchun kod</button><button class="tugma" data-q="taklif" data-v="ega">Ikkinchi ega uchun kod</button></div>` : ""}
-        ${tasdiq === "chiq2" ? `<p class="ogoh">Internet yoʻq: bitta amal serverga yetmagan. Chiqsangiz u yoʻqoladi.</p>` : ""}
+        ${tasdiq === "chiq2" ? `<p class="ogoh">Internet yoʻq: ${SB.navbat().length} ta amal serverga yetmagan. Telefonda saqlanadi — shu raqam bilan qayta kirsangiz yuboriladi.</p>` : ""}
+        ${SB.boshqaNavbat().length ? `<p class="ogoh">Bu telefonda boshqa hisobning ${SB.boshqaNavbat().length} ta yuborilmagan amali bor (oʻsha raqam bilan kirsa yuboriladi). <button class="tugma" data-q="boshqa-fayl">Faylga saqlash</button></p>` : ""}
         <div class="tugmalar"><button class="tugma${tasdiq === "chiq" || tasdiq === "chiq2" ? " xavf" : ""}" data-q="chiq">${tasdiq === "chiq2" ? "Baribir chiqish" : tasdiq === "chiq" ? "Rostdan chiqilsinmi?" : "Hisobdan chiqish"}</button><button class="tugma" data-q="yop">Yopish</button></div>`;
+      return;
+    }
+    if (oyna.t === "ziddiyat") {
+      const z = SB.ziddiyatlar()[0];
+      if (!z) { yop(); return; }
+      const v = zidOyna(z), jami = SB.ziddiyatlar().length;
+      q.innerHTML = `<div class="sarlavha-katta">${v.sarlavha}${jami > 1 ? ` <small class="xira">(1 / ${jami})</small>` : ""}</div>
+        <p class="sk-zid">${v.matn}</p>
+        ${z.bogliq && z.bogliq.length ? `<p class="xira">Shu bilan bogʻliq yana ${z.bogliq.length} ta amalingiz: ${z.bogliq.map((x) => h(SB.amalMatn(x, baza()))).join("; ")}${v.bogliqMatn ? " — " + v.bogliqMatn : ""}</p>` : ""}
+        <div class="tugmalar">${v.tugmalar.map(([t, m, asosiy]) => `<button class="tugma${asosiy ? " asosiy" : ""}" data-q="hal" data-v="${t}" data-op="${z.op}">${m}</button>`).join("")}</div>`;
+      return;
+    }
+    if (oyna.t === "navbat") {
+      const nb = SB.navbat(), yb = SB.yuborilmadi(), b = baza();
+      q.innerHTML = `<div class="sarlavha-katta">Serverga yetmagan amallar</div>
+        ${nb.length ? `<p class="xira">Internet kelganda oʻzi yuboriladi (shu tartibda).</p><ol class="sk-navbat">${nb.map((x) => `<li>${h(SB.amalMatn(x, b))}</li>`).join("")}</ol>` : `<p>Hammasi yuborilgan.</p>`}
+        ${yb.length ? `<p class="ogoh">Yuborilmadi (${yb.length} ta) — siz firmadan chiqarilgansiz. Faylga saqlab, egaga yuboring:</p>
+          <ol class="sk-navbat">${yb.map((x) => `<li>${h(SB.amalMatn(x, b))}</li>`).join("")}</ol>
+          <div class="tugmalar"><button class="tugma asosiy" data-q="yb-fayl">Faylga saqlash</button><button class="tugma${tasdiq === "yb-tozala" ? " xavf" : ""}" data-q="yb-tozala">${tasdiq === "yb-tozala" ? "Rostdan oʻchirilsinmi?" : "Roʻyxatni oʻchirish"}</button></div>` : ""}
+        <div class="tugmalar">${nb.length ? `<button class="tugma asosiy" data-q="yubor">Hozir yuborish</button>` : ""}<button class="tugma" data-q="yop">Yopish</button></div>`;
       return;
     }
     if (oyna.t === "tiklash") {
@@ -535,6 +567,44 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
         ${eski ? `<p class="ogoh">Hozirgi sklad (${eski.bolaklar.length} boʻlak) shu fayl bilan almashtiriladi.</p>` : ""}
         <div class="tugmalar"><button class="tugma" data-q="yop">Bekor</button><button class="tugma asosiy" data-q="tiklash">Tiklash</button></div>`;
     }
+  }
+
+  // Ziddiyat oynasi matni va tugmalari (docs/server.md "Ziddiyatlar")
+  function zidOyna(z) {
+    const j = z.javob || {}, zd = j.ziddiyat || {}, a = z.args || {}, b = baza();
+    const bol = zd.bolak, S = bol ? `S-${bol.raqam}` : "";
+    const kim = zd.oxirgi && zd.oxirgi.kim ? h(zd.oxirgi.kim) : "Boshqa odam";
+    const qachon = zd.oxirgi && zd.oxirgi.qachon ? ` (${new Date(zd.oxirgi.qachon).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })})` : "";
+    const ok = [["ok", "Tushunarli", true]];
+    if (j.malumot) return { sarlavha: "Maʼlumot", matn: h(j.malumot), tugmalar: ok };
+    if (j.xato) return { sarlavha: "Yozilmadi", matn: `${h(SB.amalMatn(z, b))}: ${h(j.xato)}`, tugmalar: ok, bogliqMatn: "ular ham yozilmaydi" };
+    if (zd.tur === "versiya" && bol) {
+      if (z.nom === "bolak_ochir") return { sarlavha: `${S} oʻzgargan`, matn: `${kim}${qachon} ${S} ni ${smM(bol.sm)} sm · ${h(bol.rang)} qilgan. Siz uni oʻchirmoqchi edingiz.`,
+        tugmalar: [["uniki", "Oʻchirmaslik"], ["meniki", "Baribir oʻchirish", true]] };
+      return { sarlavha: `${S}: qaysi toʻgʻri?`, matn: `${kim}${qachon} ${S} ni <b>${smM(bol.sm)} sm · ${h(bol.rang)}</b> qilgan, siz — <b>${smM(a.p_sm)} sm · ${h(a.p_rang)}</b>.`,
+        tugmalar: [["uniki", `${kim}niki qolsin`], ["meniki", "Meniki toʻgʻri", true]], bogliqMatn: "“Meniki”da ular ham yoziladi" };
+    }
+    if (zd.tur === "holat" && bol) {
+      const hol = bol.holat === "ochirildi" ? "oʻchirgan" : bol.holat === "ishlatildi" ? "kesishga ishlatgan" : "qaytargan";
+      if (bol.holat === "ochirildi" && z.nom === "bolak_tahrir")
+        return { sarlavha: `${S} oʻchirilgan`, matn: `${kim}${qachon} ${S} ni oʻchirgan. Siz uni ${smM(a.p_sm)} sm · ${h(a.p_rang)} qilmoqchi edingiz.`,
+          tugmalar: [["bekor", "Oʻchgani qolsin"], ["qaytar", "Qaytarib, meniki yozilsin", true]] };
+      return { sarlavha: `${S} oʻzgargan`, matn: `${kim}${qachon} ${S} ni ${hol}. ${h(SB.amalMatn(z, b))} — yozilmadi.`, tugmalar: ok };
+    }
+    if (zd.tur === "versiya" && zd.narx !== undefined)
+      return { sarlavha: "Narx: qaysi toʻgʻri?", matn: `${h(zd.nom)}: boshqa odam narxni <b>${zd.narx == null ? "narxsiz" : h(zd.narx) + " $"}</b> qilgan, siz — <b>${a.p_narx == null ? "narxsiz" : h(a.p_narx) + " $"}</b>.`,
+        tugmalar: [["uniki", "Uning narxi"], ["meniki", "Mening narxim", true]] };
+    if (zd.tur === "versiya" && zd.hivich_sm !== undefined)
+      return { sarlavha: "Seriya: qaysi toʻgʻri?", matn: `${h(zd.nom)}: boshqa odam hivichni <b>${smM(zd.hivich_sm)} sm</b> qilgan, siz — <b>${smM(a.p_hivich)} sm</b>.`,
+        tugmalar: [["uniki", "Uniki"], ["meniki", "Meniki", true]] };
+    return { sarlavha: "Yozilmadi", matn: `${h(SB.amalMatn(z, b))}: ${h(sbZiddiyatMatn(zd))}`, tugmalar: ok, bogliqMatn: "ular ham yozilmaydi" };
+  }
+  function faylSaqla(nom, d) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: "application/json" }));
+    a.download = nom;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
 
   // ---------- amallar ----------
@@ -568,7 +638,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     }
     const b = kochirManba; tasdiqB = null;
     const r = await ishla(null, async () => {
-      try { return await SB.yoz("kochir", { p: skKochirYuk(b, () => crypto.randomUUID()) }); }
+      try { return await SB.togri("kochir", { p: skKochirYuk(b, () => crypto.randomUUID()) }); }
       catch (e) {  // qayta bosilgan: server allaqachon koʻchirgan boʻlsa — muvaffaqiyat
         if (/allaqachon koʻchirilgan/.test(e.message)) { const n = await SB.torting(); if (n.firma && n.firma.kochirildi) return { ok: true, bolak: n.bolaklar.length, keyingi_raqam: n.firma.keyingi_raqam }; }
         throw e;
@@ -584,7 +654,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
   async function namuna() {
     if (tasdiqB !== "namuna") { tasdiqB = "namuna"; xabarMatn = ""; chiz(); return; }
     tasdiqB = null;
-    const r = await ishla(null, () => SB.yoz("namuna_ol", {}));
+    const r = await ishla(null, () => SB.togri("namuna_ol", {}));
     if (r) { seriya = null; xabarMatn = `✓ Namunadan ${r.profil} profil olindi — narxlarni tekshiring (✏️)`; chiz(); }
   }
   function zaxira() {
@@ -624,17 +694,17 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
         let pid = qosh.profil;
         if (yp) {
           const s = skSeriya(baza(), seriya);
-          const j = await SB.yoz("profil_qosh", { p_id: crypto.randomUUID(), p_seriya: seriya, p_nom: skNom(yp.nom), p_narx: sonV(yp.narx), p_kod: skRaskroyKod(s.nom, yp.nom) || "" });
-          pid = j.id;
+          pid = crypto.randomUUID();
+          await SB.yoz("profil_qosh", { p_id: pid, p_seriya: seriya, p_nom: skNom(yp.nom), p_narx: sonV(yp.narx), p_kod: skRaskroyKod(s.nom, yp.nom) || "" });
         }
         const p = skProfil(baza(), pid) || { nom: "" };
         if (qosh.tur === "butun") {
-          await SB.yoz("butun", { p_profil: pid, p_rang: skRang(qosh.rang), p_delta: qosh.soni });
-          return { pid, matn: `✓ ${p.nom} · ${skRang(qosh.rang)}: butun hivich +${qosh.soni}` };
+          const j = await SB.yoz("butun", { p_profil: pid, p_rang: skRang(qosh.rang), p_delta: qosh.soni });
+          return { pid, matn: `${j.navbatda ? "⏳" : "✓"} ${p.nom} · ${skRang(qosh.rang)}: butun hivich +${qosh.soni}` };
         }
         const u = Math.round(Number(String(sm).replace(",", ".")) * 10) / 10;
         const n = await SB.bolakQosh(pid, skRang(qosh.rang), u, qosh.soni);
-        return { pid, matn: `✓ ${raqMatn(n)} · ${p.nom} · ${skRang(qosh.rang)} · ${smM(u)} sm — boʻlakka markerda yozing` };
+        return { pid, matn: `${n.navbatda ? "⏳" : "✓"} ${raqMatn(n.raqamlar)} · ${p.nom} · ${skRang(qosh.rang)} · ${smM(u)} sm — boʻlakka markerda yozing${n.navbatda ? " (internet kelganda serverga ketadi)" : ""}` };
       });
     }
     if (!r) return;
@@ -661,7 +731,9 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
         if (j && j.xato) throw new Error(j.xato);
       }
       SB.tozala();
-      return SB.torting();
+      await SB.torting();
+      await SB.sinxron().catch(() => {});  // oxirida raqam bloki olinadi — keyin internetsiz ham qoʻshadi
+      return SB.nusxa();
     }, async (e) => {  // javob yoʻqolgan yoki qayta bosilgan: server yozgan boʻlsa — muvaffaqiyat
       if (e.st && !/allaqachon firmadasiz|Kod notoʻgʻri/.test(e.message)) return null;
       try { SB.tozala(); const n = await SB.torting(); return n.firma ? n : null; } catch (x) { return null; }
@@ -693,20 +765,19 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     else if (a === "zaxira") zaxira();
     else if (a === "kirish") och({ t: "kirish", yangi: false });
     else if (a === "hisob") och({ t: "hisob" });
+    else if (a === "ziddiyat") och({ t: "ziddiyat" });
+    else if (a === "navbat") och({ t: "navbat" });
     else if (a === "yangila") { xabarMatn = ""; kutganiYangila(); }
     else if (a === "chiq") {
-      if (SB.kutish() && tasdiqB !== "chiq") { tasdiqB = "chiq"; xabarMatn = "Bitta amal serverga yetmagan — chiqsangiz yoʻqoladi. Yana bir bosing"; chiz(); return; }
+      if (SB.navbat().length && tasdiqB !== "chiq") { tasdiqB = "chiq"; xabarMatn = `${SB.navbat().length} ta amal serverga yetmagan — shu raqam bilan qayta kirsangiz yuboriladi. Yana bir bosing`; chiz(); return; }
       SB.chiq(); srvHolat = ""; xabarMatn = ""; tasdiqB = null; chiz();
     }
     else if (a === "firma-yarat" || a === "taklif-ol") firmaAmal(a);
   });
   // Javobsiz qolgan amal (internet uzilgan) — avval shu yuboriladi, keyin yangilanadi
   async function kutganiYangila() {
-    if (srv() && SB.kutish()) {
-      try { const k = await SB.kutganiniYubor(); if (k) xabarMatn = SB.kutishMatn(k); }
-      catch (e) { xabarMatn = e.message; }
-    }
     await yangila();
+    if (srv() && SB.ziddiyatlar().length && !oyna) och({ t: "ziddiyat" });
   }
   let qaytaChiz = false;  // yozish paytida qayta chizish — "S-" qoʻyilmaydi/olinmaydi (oʻchirgan boʻlsa qaytmasin)
   el("e-sklad").addEventListener("focusin", (e) => {
@@ -753,12 +824,32 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     yop(); seriya = null;
     await kutganiYangila();
   }
+  // Navbat oʻzgarsa (fonda yuborildi, ziddiyat keldi) — ekran yangilanadi; ochiq oyna va terilayotgan maydon tegilmaydi
+  if (typeof SB !== "undefined" && SB.kuzat) SB.kuzat(() => {
+    if (!srv()) return;
+    if (oyna) { if (oyna.t === "navbat") oynaChiz(); return; }
+    const f = document.activeElement;
+    if (f && f.tagName === "INPUT" && el("e-sklad").contains(f)) return;
+    chiz();
+  });
   el("sk-parda").addEventListener("click", (e) => {
     if (e.target === el("sk-parda")) { yop(); return; }
     const t = e.target.closest("[data-q]");
     if (!t) return;
     const a = t.dataset.q;
     if (a === "yop") yop();
+    else if (a === "hal") {
+      if (oyna.band) return;  // oldingi tanlov hali yuborilmoqda
+      oyna.band = true;
+      SB.hal(t.dataset.op, t.dataset.v).catch((x) => { xabarMatn = x.message; }).finally(() => {
+        if (oyna) oyna.band = false;
+        if (SB.ziddiyatlar().length) oynaChiz(); else { xabarMatn = xabarMatn || "✓ Ziddiyatlar hal qilindi"; yop(); }
+      });
+    }
+    else if (a === "yubor") SB.sinxron().finally(() => { if (oyna && oyna.t === "navbat") oynaChiz(); });
+    else if (a === "yb-fayl") faylSaqla(`Yuborilmagan_${skBugun()}.json`, SB.yuborilmadi());
+    else if (a === "yb-tozala") { if (tasdiq !== "yb-tozala") { tasdiq = "yb-tozala"; oynaChiz(); } else { SB.yuborilmadiTozala(); tasdiq = null; oynaChiz(); } }
+    else if (a === "boshqa-fayl") faylSaqla(`Boshqa_hisob_navbati_${skBugun()}.json`, SB.boshqaNavbat());
     else if (a === "tur") { qosh.tur = t.dataset.v; qosh.rang = el("skq-rang").value; oynaChiz(); }
     else if (a === "rang") { qosh.rang = t.dataset.v; el("skq-rang").value = qosh.rang; el("sk-oyna").querySelectorAll("[data-q=rang]").forEach((x) => x.classList.toggle("faol", x === t)); }
     else if (a === "soni") { const i = el("skq-soni"); i.value = Math.max(1, (Number(i.value) || 1) + Number(t.dataset.v)); }
@@ -768,16 +859,16 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       if (!srv()) { if (amal((b) => skBolakTahrir(b, n, { rang, sm }))) { xabarMatn = `✓ S-${n} saqlandi`; yop(); } return; }
       const x = baza().bolaklar.find((q) => q.raqam === n);
       ishla((b) => skBolakTahrir(b, n, { rang, sm }), () => SB.yoz("bolak_tahrir",
-        { p_id: x.id, p_versiya: x.versiya, p_sm: Math.round(Number(String(sm).replace(",", ".")) * 10) / 10, p_rang: skRang(rang) }, n))
-        .then((r) => { if (r) { xabarMatn = `✓ S-${n} saqlandi`; yop(); } });
+        { p_id: x.id, p_versiya: x.versiya, p_sm: Math.round(Number(String(sm).replace(",", ".")) * 10) / 10, p_rang: skRang(rang) }))
+        .then((r) => { if (r) { xabarMatn = `${r.navbatda ? "⏳" : "✓"} S-${n} saqlandi`; yop(); } });
     }
     else if (a === "ochir") {
       if (tasdiq !== "ochir") { tasdiq = "ochir"; oynaChiz(); return; }
       const n = oyna.n;
       if (!srv()) { if (amal((b) => skBolakOchir(b, n))) { xabarMatn = `✓ S-${n} oʻchirildi`; yop(); } return; }
       const x = baza().bolaklar.find((q) => q.raqam === n);
-      ishla(null, () => SB.yoz("bolak_ochir", { p_id: x.id, p_versiya: x.versiya }, n)).then((r) => {
-        if (r) { xabarMatn = r.allaqachon ? `S-${n} allaqachon oʻchirilgan` : `✓ S-${n} oʻchirildi`; yop(); }
+      ishla(null, () => SB.yoz("bolak_ochir", { p_id: x.id, p_versiya: x.versiya })).then((r) => {
+        if (r) { xabarMatn = `${r.navbatda ? "⏳" : "✓"} S-${n} oʻchirildi`; yop(); }
       });
     }
     else if (a === "psaqla") {
@@ -796,7 +887,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       }
       const id = crypto.randomUUID();
       ishla((b) => skSeriyaQosh(b, nom, hv), () => SB.yoz("seriya_qosh", { p_id: id, p_nom: skNom(nom), p_hivich: Number(hv) })).then((r) => {
-        if (r) { seriya = r.id; ozk("sk_seriya", seriya); xabarMatn = r.birlashdi ? `“${h(skNom(nom))}” seriyasi bor edi` : `✓ ${h(skNom(nom))} seriyasi qoʻshildi — endi profil va boʻlak qoʻshing`; yop(); }
+        if (r) { seriya = id; ozk("sk_seriya", seriya); xabarMatn = `${r.navbatda ? "⏳" : "✓"} ${h(skNom(nom))} seriyasi qoʻshildi — endi profil va boʻlak qoʻshing`; yop(); }
       });
     }
     else if (a === "stsaqla") {
@@ -830,8 +921,8 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     }
     else if (a === "chiq") {
       if (tasdiq !== "chiq" && tasdiq !== "chiq2") { tasdiq = "chiq"; oynaChiz(); return; }
-      if (tasdiq === "chiq" && SB.kutish()) {  // javobsiz amal — avval yuborishga urinish
-        SB.kutganiniYubor().then(() => { SB.chiq(); srvHolat = ""; xabarMatn = ""; yop(); },
+      if (tasdiq === "chiq" && SB.navbat().length) {  // yuborilmagan amal — avval yuborishga urinish
+        SB.sinxron().then(() => { if (SB.navbat().length) { tasdiq = "chiq2"; oynaChiz(); } else { SB.chiq(); srvHolat = ""; xabarMatn = ""; yop(); } },
           () => { tasdiq = "chiq2"; oynaChiz(); });
         return;
       }

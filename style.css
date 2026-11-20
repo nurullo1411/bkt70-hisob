@@ -1217,3 +1217,10 @@ body.sk-band #sk-oyna .tugma.asosiy, body.sk-band .sk-firma .tugma { opacity: .6
 .sk-bolak-sar > div { display: flex; flex-direction: column; }
 .sk-raqam { padding: 8px 12px; border-radius: 10px; border: 2px dashed var(--aks-s-t); color: var(--aks-s-t); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .tugma.xavf { background: #c62828; border-color: #c62828; color: #fff; }
+/* Server: navbat va ziddiyat (c-qadam) */
+.sk-ogoh-t, .sk-navbat-t { display: block; width: 100%; margin: 6px 0; padding: 10px 12px; border-radius: 10px; text-align: left; font: inherit; cursor: pointer; }
+.sk-ogoh-t { background: #fdecea; color: #a1281b; border: 1px solid #f3b7ae; font-weight: 600; }
+.sk-navbat-t { background: #fff6e0; color: #7a5300; border: 1px solid #f1d58c; }
+.sk-navbat { margin: 6px 0 10px; padding-left: 22px; max-height: 40vh; overflow: auto; }
+.sk-navbat li { padding: 3px 0; }
+.sk-zid { font-size: 1.05em; line-height: 1.45; }
