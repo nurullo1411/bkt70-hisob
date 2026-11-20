@@ -460,7 +460,7 @@ if (typeof window !== "undefined") (function () {
     const v = sbQollash(nusxa() || sbBoshNusxa(), navbat());
     let r = sbRaqamlar(v, qurilma(), soni, bandQosh());
     if (!r) {
-      if (!onlayn()) throw new SbXato("Raqam tugadi — internetga ulaning (yangi raqamlar serverdan olinadi)");
+      if (!onlayn()) throw new SbXato("Bu telefonda boʻsh S-raqam qolmagan — bir marta internetga ulaning (raqamlar oldindan olinadi, keyin internetsiz ham qoʻshasiz)");
       await rpc("raqam_zaxira", { p_n: Math.max(SB_BLOK, soni), p_qurilma: qurilma() });
       await torting();
       r = sbRaqamlar(sbQollash(nusxa(), navbat()), qurilma(), soni, bandQosh());
@@ -505,8 +505,11 @@ if (typeof window !== "undefined") (function () {
   function ziddiyatOchir(op) { royxatSaqla("sb_ziddiyat", ziddiyatlar().filter((x) => x.op !== op)); xabarla(); }
   function yuborilmadiTozala() { royxatSaqla("sb_yuborilmadi", []); xabarla(); }
   if (typeof window !== "undefined") {
+    // Raqam zaxirasi kam — internet borida oldindan olinadi (keyin internetsiz qoʻshish uchun)
+    const blokKam = () => { const n = nusxa(); return !!(n && n.firma && n.seriyalar.length && !sbRaqamlar(sbQollash(n, navbat()), qurilma(), 30, bandQosh())); };
     window.addEventListener("online", () => { if (sessiya()) sinxron().catch(() => {}); });
-    setInterval(() => { if (sessiya() && onlayn() && navbat().length && !document.hidden) sinxron().catch(() => {}); }, 30000);
+    setTimeout(() => { if (sessiya() && onlayn()) sinxron().catch(() => {}); }, 1500);  // ilova ochilganda (Sklad ochilmasa ham)
+    setInterval(() => { if (sessiya() && onlayn() && (navbat().length || blokKam()) && !document.hidden) sinxron().catch(() => {}); }, 30000);
   }
 
   window.SB = {
