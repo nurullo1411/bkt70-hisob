@@ -45,6 +45,8 @@ function skMetrSm(m) {
 // 87 → "0,87" (raskroy.py eski Sheets qiymati kabi oʻqiydi)
 const skSmMetr = (sm) => String(Math.round(sm * 10) / 1000).replace(".", ",");
 const skBugun = () => new Date().toISOString().slice(0, 10);
+// Telefon soatidagi sana (UTC emas — Qoʻqon UTC+5, yarim tundan 05:00 gacha farq qiladi); fayl nomlari uchun
+const skMahalliyBugun = () => { const d = new Date(), p = (x) => String(x).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
 const skUuid = () => (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID()
   : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 
@@ -160,6 +162,27 @@ function skBolakSumma(b, x) {
 function skButunSumma(b, x) { const p = skProfil(b, x.profil); return p && p.narx != null ? p.narx * x.soni : null; }
 const skYaxlit = (x) => Math.round(x * 100) / 100;
 
+// ---------- Excel (d-qadam, foydalanuvchi 2026-11-21) ----------
+// Bitta varaq, merged yoʻq; qiymat yaxlitlanmaydi (koʻrinishi 0.00) — Σ = skJami.summa. Narx $/m = hivich narxi ÷ hivich × 100.
+function skExcel(b) {
+  const sana = (x) => /^\d{4}-\d\d-\d\d/.test(x || "") ? `${x.slice(8, 10)}.${x.slice(5, 7)}.${x.slice(0, 4)}` : (x || "");
+  const sk = ["Seriya", "Profil", "Rang", "Uzunlik sm", "S-raqam", "Soni", "Sana", "Narx $/m", "Qiymat $"];
+  const q = [sk], jami = [["Seriya", "Boʻlak", "Butun hivich", "Qiymat $"]];
+  for (const s of b.seriyalar) {
+    for (const g of skGuruhlar(b, s.id)) {
+      const h = skHivich(b, g.profil.id), m = g.profil.narx != null && h ? g.profil.narx / h * 100 : "";
+      if (g.butun) q.push([s.nom, g.profil.nom, g.rang, h, "butun", g.butun, "", m, skButunSumma(b, { profil: g.profil.id, soni: g.butun }) ?? ""]);
+      for (const x of g.bolaklar) q.push([s.nom, g.profil.nom, g.rang, x.sm, "S-" + x.raqam, 1, sana(x.sana), m, skBolakSumma(b, x) ?? ""]);
+    }
+    const j = skJami(b, s.id);
+    jami.push([s.nom, j.bolak, j.butun, j.summa]);
+  }
+  const j = skJami(b);
+  jami.push(["Jami", j.bolak, j.butun, j.summa]);
+  return [{ nom: "Sklad", qatorlar: q, kenglik: [14, 24, 8, 11, 9, 6, 11, 10, 11], pul: [7, 8] },
+    { nom: "Jami", qatorlar: jami, kenglik: [16, 9, 13, 12], pul: [3] }];
+}
+
 // ---------- koʻrinish uchun guruhlar ----------
 // Seriya ichida profil + rang boʻyicha; profil tartibi — baza tartibi, rang — alifbo; boʻlaklar uzunidan kaltasiga
 function skGuruhlar(b, seriya, { rang = "", izla = "" } = {}) {
@@ -252,7 +275,7 @@ function skTekshir(b) {
   return b && b.versiya === 1 && Array.isArray(b.seriyalar) && Array.isArray(b.profillar) && Array.isArray(b.bolaklar) && Array.isArray(b.butunlar);
 }
 
-if (typeof module !== "undefined") module.exports = { skNom, skRang, skMetrSm, skSmMetr, skBoshBaza, skSeriyaQosh, skProfilQosh, skProfilTahrir,
+if (typeof module !== "undefined") module.exports = { skExcel, skNom, skRang, skMetrSm, skSmMetr, skBoshBaza, skSeriyaQosh, skProfilQosh, skProfilTahrir,
   skBolakQosh, skBolakTahrir, skBolakOchir, skButun, skBolakSumma, skButunSumma, skGuruhlar, skJami, skRanglar, skEskiKochir, skRaskroyQatorlari, skTekshir, skTiklash, skKesishda, skRaskroyKod, SK_KOD_NOM };
 
 // ======================= Ekran (faqat brauzerda) =======================
@@ -368,7 +391,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     const nb = SB.navbat().length, zd = SB.ziddiyatlar().length, yb = SB.yuborilmadi().length;
     const oflayn = !SB.onlayn() || SB.holat() === "oflayn";
     return `<div class="sk-hisob"><span>${oflayn ? "📵" : "☁"} <b>${h(n.firma.nom)}</b> · ${h(n.men.ism)}${n.men.rol === "ega" ? " (ega)" : ""}</span>
-      <button class="sk-ikon" data-sk="hisob" aria-label="Firma va ishchilar">⚙</button></div>
+      <span class="sk-ikonlar"><button class="sk-ikon" data-sk="tarix" aria-label="Tarix">🕘</button><button class="sk-ikon" data-sk="hisob" aria-label="Firma va ishchilar">⚙</button></span></div>
       ${zd ? `<button class="sk-ogoh-t" data-sk="ziddiyat">⚠ ${zd} ta ziddiyat — hal qilish</button>` : ""}
       ${nb || yb ? `<button class="sk-navbat-t" data-sk="navbat">⏳ ${nb} ta amal serverga yetmagan${yb ? ` · ${yb} ta yuborilmadi` : ""}${oflayn ? " (internet yoʻq)" : ""}</button>` : ""}`;
   };
@@ -433,6 +456,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     }
     t += `<details class="karta sk-boshqa"><summary>Boshqa</summary><div class="tugmalar">
         <button class="tugma" data-sk="zaxira">💾 Zaxira faylga</button>
+        <button class="tugma" data-sk="excel">⬇ Excel</button>
         ${srv() ? '<button class="tugma" data-sk="yangila">↻ Yangilash</button>' : '<label class="tugma">Fayldan tiklash<input data-sk-fayl type="file" accept=".json,application/json" hidden></label>'}
         ${ega() ? `<button class="tugma" data-sk="seriya-t" data-id="${s.id}">Seriya: ${h(s.nom)}</button>` : ""}
         ${!srv() && typeof SB !== "undefined" ? '<button class="tugma" data-sk="kirish">☁ Serverga kirish</button>' : ""}</div>
@@ -480,7 +504,8 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
         <div class="sk-forma"><label>Uzunlik, sm<input id="skb-sm" type="text" inputmode="decimal" value="${smM(x.sm)}"></label>
           <label>Rang<input id="skb-rang" type="text" maxlength="20" value="${h(x.rang)}"></label></div>
         <div class="tugmalar"><button class="tugma${tasdiq === "ochir" ? " xavf" : " tasdiq"}" data-q="ochir">${tasdiq === "ochir" ? "Rostdan oʻchirilsinmi?" : "Oʻchirish"}</button>
-          <button class="tugma" data-q="yop">Yopish</button><button class="tugma asosiy" data-q="bsaqla">Saqlash</button></div>`;
+          <button class="tugma" data-q="yop">Yopish</button><button class="tugma asosiy" data-q="bsaqla">Saqlash</button></div>
+        ${srv() ? `<button class="tugma keng sk-tarix-t" data-q="btarix">🕘 S-${x.raqam} tarixi</button>` : ""}`;
       return;
     }
     if (oyna.t === "profil") {
@@ -550,6 +575,15 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
         <div class="tugmalar">${v.tugmalar.map(([t, m, asosiy]) => `<button class="tugma${asosiy ? " asosiy" : ""}" data-q="hal" data-v="${t}" data-op="${z.op}">${m}</button>`).join("")}</div>`;
       return;
     }
+    if (oyna.t === "tarix") {
+      const T = oyna;
+      q.innerHTML = `<div class="sarlavha-katta">🕘 Tarix</div>
+        <div class="sk-forma"><label class="keng">Qidiruv<input id="skt-izla" type="search" placeholder="S-raqam yoki ism" value="${h(T.izla)}" autocomplete="off"></label></div>
+        <div class="seg sk-tur">${[["bugun", "Bugun"], ["7", "7 kun"], ["", "Hammasi"]].map(([v, m]) => `<button data-q="tkun" data-v="${v}" class="${T.kun === v ? "faol" : ""}">${m}</button>`).join("")}</div>
+        <div id="skt-royxat">${tarixRoyxat()}</div>
+        <div class="tugmalar"><button class="tugma" data-q="texcel">⬇ Excel</button><button class="tugma" data-q="yop">Yopish</button></div>`;
+      return;
+    }
     if (oyna.t === "navbat") {
       const nb = SB.navbat(), yb = SB.yuborilmadi(), b = baza();
       q.innerHTML = `<div class="sarlavha-katta">Serverga yetmagan amallar</div>
@@ -598,6 +632,70 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       return { sarlavha: "Seriya: qaysi toʻgʻri?", matn: `${h(zd.nom)}: boshqa odam hivichni <b>${smM(zd.hivich_sm)} sm</b> qilgan, siz — <b>${smM(a.p_hivich)} sm</b>.`,
         tugmalar: [["uniki", "Uniki"], ["meniki", "Meniki", true]] };
     return { sarlavha: "Yozilmadi", matn: `${h(SB.amalMatn(z, b))}: ${h(sbZiddiyatMatn(zd))}`, tugmalar: ok, bogliqMatn: "ular ham yozilmaydi" };
+  }
+  // ---------- Tarix (d-qadam) ----------
+  function tarixOch(izla) {
+    och({ t: "tarix", izla: izla || "", kun: "7", qatorlar: [], tugadi: false, band: false, xato: "" });
+    tarixYukla(true);
+  }
+  let tarixSorov = 0;
+  async function tarixYukla(boshidan) {
+    const T = oyna;
+    if (!T || T.t !== "tarix") return;
+    const n = ++tarixSorov;
+    if (boshidan) { T.qatorlar = []; T.tugadi = false; }
+    T.band = true; T.xato = ""; tarixYangila();
+    try {
+      const j = await SB.jurnal({ izla: T.izla, kun: T.kun, gacha: boshidan ? null : (T.qatorlar[T.qatorlar.length - 1] || {}).id, n: 50 });
+      if (n !== tarixSorov || oyna !== T) return;  // eskirgan javob
+      T.qatorlar.push(...j); T.tugadi = j.length < 50;
+    } catch (e) { if (n === tarixSorov) T.xato = e.message; }
+    if (n === tarixSorov) { T.band = false; tarixYangila(); }
+  }
+  function tarixYangila() { const r = el("skt-royxat"); if (r && oyna && oyna.t === "tarix") r.innerHTML = tarixRoyxat(); }
+  function tarixRoyxat() {
+    const T = oyna, xom = SB.xom ? SB.xom() : null, nb = SB.navbat();
+    const korildi = new Set();
+    const li = T.qatorlar.map((j) => {
+      const m = sbJurnalMatn(j);
+      let tug = "";
+      if (j.amal === "ochirdi" && j.bolak_id && !korildi.has(j.bolak_id)) {
+        const b = xom && xom.bolaklar.find((x) => x.id === j.bolak_id);
+        if (b && b.holat === "ochirildi" && !nb.some((o) => o.args.p_id === j.bolak_id)) tug = `<button class="tugma kichik" data-q="tqaytar" data-id="${j.bolak_id}" data-n="${j.raqam}">Qaytarish</button>`;
+      }
+      if (j.bolak_id) korildi.add(j.bolak_id);
+      return `<li><div><small class="xira">${h(m.vaqt)} · ${h(m.kim)}</small> <b>${h(m.amal)}</b> ${h(m.S)}</div>
+        <div>${[m.profil, m.rang, m.sm ? m.sm + " sm" : "", m.eski].filter(Boolean).map(h).join(" · ")}</div>${tug}</li>`;
+    }).join("");
+    let bosh = "";
+    if (!T.qatorlar.length && !T.band && !T.xato) {
+      const s = /^s?-?\s*(\d+)$/i.exec(T.izla.trim()), b = s && xom && xom.bolaklar.find((x) => x.raqam === Number(s[1]));
+      bosh = b && b.manba === "Sheets" ? `<p class="xira">S-${b.raqam} Sheetsʼdan koʻchirilgan (${h(b.sana || "")}), shundan beri oʻzgarmagan.</p>` : `<p class="xira">Hech narsa topilmadi.</p>`;
+    }
+    return `${T.xato ? `<p class="ogoh">${h(T.xato)}</p>` : ""}${bosh}${li ? `<ol class="sk-tarix">${li}</ol>` : ""}
+      ${T.band ? `<p class="xira">Yuklanmoqda…</p>` : !T.tugadi && T.qatorlar.length ? `<button class="tugma keng" data-q="tyana">Yana</button>` : ""}`;
+  }
+  async function tarixExcel() {
+    const T = oyna, hamma = [];
+    T.xato = ""; T.band = true; tarixYangila();
+    try {
+      for (let gacha = null, i = 0; i < 100; i++) {  // 1000 tadan sahifalab (Supabase bir soʻrovda 1000 dan koʻp bermaydi)
+        const j = await SB.jurnal({ izla: T.izla, kun: T.kun, gacha, n: 1000 });
+        hamma.push(...j);
+        if (j.length < 1000) break;
+        gacha = j[j.length - 1].id;
+      }
+      const q = [["Vaqt", "Kim", "Amal", "S-raqam", "Profil", "Rang", "sm", "Izoh"],
+        ...hamma.map((j) => { const m = sbJurnalMatn(j); return [m.sana, m.kim, m.amal, m.S, m.profil, m.rang, /→/.test(m.sm) ? m.sm : (j.sm == null ? "" : Number(j.sm)), m.eski]; })];
+      xlsxYukla(`Tarix_${firmaNom()}_${skMahalliyBugun()}.xlsx`, [{ nom: "Tarix", qatorlar: q, kenglik: [16, 14, 14, 9, 22, 8, 10, 30] }]);
+    } catch (e) { T.xato = e.message; }
+    T.band = false; tarixYangila();
+  }
+  const firmaNom = () => { const n = srv() && SB.nusxa(); return (n && n.firma && n.firma.nom) || "Sklad"; };
+  function excelYukla() {
+    const b = baza();
+    if (!b) { skXato("Sklad yuklanmagan — kiring yoki internetga ulaning"); return; }
+    xlsxYukla(`Sklad_${firmaNom()}_${skMahalliyBugun()}.xlsx`, skExcel(b));
   }
   function faylSaqla(nom, d) {
     const a = document.createElement("a");
@@ -763,6 +861,8 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     else if (a === "bolak") och({ t: "bolak", n: Number(t.dataset.n) });
     else if (a === "butun") butunPM(t.dataset.p, t.dataset.r, Number(t.dataset.d));
     else if (a === "zaxira") zaxira();
+    else if (a === "excel") excelYukla();
+    else if (a === "tarix") tarixOch("");
     else if (a === "kirish") och({ t: "kirish", yangi: false });
     else if (a === "hisob") och({ t: "hisob" });
     else if (a === "ziddiyat") och({ t: "ziddiyat" });
@@ -832,12 +932,28 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     if (f && f.tagName === "INPUT" && el("e-sklad").contains(f)) return;
     chiz();
   });
+  let tarixKut = null;
+  el("sk-parda").addEventListener("input", (e) => {
+    if (e.target.id !== "skt-izla" || !oyna || oyna.t !== "tarix") return;
+    oyna.izla = e.target.value;
+    clearTimeout(tarixKut); tarixKut = setTimeout(() => tarixYukla(true), 400);
+  });
   el("sk-parda").addEventListener("click", (e) => {
     if (e.target === el("sk-parda")) { yop(); return; }
     const t = e.target.closest("[data-q]");
     if (!t) return;
     const a = t.dataset.q;
     if (a === "yop") yop();
+    else if (a === "tkun") { oyna.kun = t.dataset.v; oyna.izla = el("skt-izla").value; el("sk-oyna").querySelectorAll("[data-q=tkun]").forEach((x) => x.classList.toggle("faol", x === t)); tarixYukla(true); }
+    else if (a === "tyana") tarixYukla(false);
+    else if (a === "texcel") tarixExcel();
+    else if (a === "btarix") tarixOch("S-" + oyna.n);
+    else if (a === "tqaytar") {
+      const T = oyna, id = t.dataset.id, n = t.dataset.n;
+      t.disabled = true;
+      SB.yoz("bolak_qaytar", { p_id: id }).then((r) => { xabarMatn = `${r.navbatda ? "⏳" : "✓"} S-${n} qaytarildi`; if (oyna === T) tarixYukla(true); },
+        (e) => { if (oyna === T) { T.xato = e.message; tarixYangila(); } });
+    }
     else if (a === "hal") {
       if (oyna.band) return;  // oldingi tanlov hali yuborilmoqda
       oyna.band = true;

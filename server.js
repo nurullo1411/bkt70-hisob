@@ -150,6 +150,50 @@ function sbZanjir(navbat, eski, yangi) {
   });
 }
 
+// Jurnal qatori → ekran/Excel matni (d-qadam). vaqt — telefon soatida.
+const SB_AMAL = { qoshdi: "qoʻshdi", tahrirladi: "tahrirladi", ochirdi: "oʻchirdi", qaytardi: "qaytardi", butun_qoshdi: "butun +", butun_oldi: "butun −",
+  seriya_qosh: "seriya qoʻshdi", seriya_tahrir: "seriya tahriri", profil_qosh: "profil qoʻshdi", profil_tahrir: "profil tahriri", kochirildi: "koʻchirildi",
+  namuna_ol: "namuna olindi", firma_sozla: "firma sozlamasi", taklif_ber: "kod berdi", qoshildi: "firmaga qoʻshildi", azo: "aʼzo" };
+function sbJurnalMatn(j) {
+  const n = (x) => x == null || x === "" ? "" : String(Math.round(Number(x) * 10) / 10).replace(".", ",");
+  const d = new Date(j.vaqt), p2 = (x) => String(x).padStart(2, "0");
+  const m = j.malumot || {};
+  let sm = n(j.sm), eski = "";
+  if (j.amal === "tahrirladi") {
+    sm = m.eski_sm != null && Number(m.eski_sm) !== Number(j.sm) ? `${n(m.eski_sm)} → ${n(j.sm)}` : n(j.sm);
+    if (m.eski_rang && m.eski_rang !== j.rang) eski = `rang ${m.eski_rang} → ${j.rang}`;
+  } else if (j.amal === "butun_qoshdi" || j.amal === "butun_oldi") eski = `${m.delta > 0 ? "+" : ""}${m.delta} → ${m.soni} ta`;
+  else if (j.amal === "seriya_tahrir") eski = `hivich ${n(m.eski)} → ${n(j.sm)}`;
+  else if (j.amal === "seriya_qosh") eski = `hivich ${n(j.sm)}`;
+  else if (j.amal === "profil_tahrir") eski = [m.eski_nom && m.eski_nom !== j.profil ? `nom ${m.eski_nom} → ${j.profil}` : "",
+    (m.eski_narx == null) !== (m.narx == null) || Number(m.eski_narx) !== Number(m.narx) ? `narx ${m.eski_narx == null ? "—" : n(m.eski_narx)} → ${m.narx == null ? "—" : n(m.narx)} $` : ""].filter(Boolean).join(", ");
+  else if (j.amal === "profil_qosh") eski = m.narx == null ? "" : `narx ${n(m.narx)} $`;
+  else if (j.amal === "kochirildi") eski = m.bolak != null ? `${m.bolak} boʻlak` : "";
+  else if (j.amal === "namuna_ol") eski = m.profil != null ? `${m.profil} profil` : "";
+  else if (j.amal === "firma_sozla") eski = m.sklad_ochiq == null ? "" : `ochiq sklad: ${m.sklad_ochiq ? "ha" : "yoʻq"}${m.sklad_ochiq ? `, narx: ${m.narx_ochiq ? "ha" : "yoʻq"}` : ""}`;
+  else if (j.amal === "azo") eski = m.rol ? `${m.kim || ""}: ${m.faol ? "faol" : "chiqarildi"}, ${m.rol}` : "";
+  else if (j.amal === "taklif_ber" || j.amal === "qoshildi") eski = m.rol || "";
+  if (j.amal === "seriya_qosh" || j.amal === "seriya_tahrir") sm = "";
+  return { vaqt: isNaN(d) ? "" : `${p2(d.getDate())}.${p2(d.getMonth() + 1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`,
+    sana: isNaN(d) ? "" : `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()} ${p2(d.getHours())}:${p2(d.getMinutes())}`,
+    kim: j.ism || "", amal: SB_AMAL[j.amal] || j.amal, S: j.raqam ? `S-${j.raqam}` : "", profil: j.profil || "", rang: j.rang || "", sm, eski };
+}
+// Tarix filtri → PostgREST soʻrovi. f: {gacha (id dan kichik), izla (S-raqam yoki ism), kun: "bugun"|"7"|"", n}
+function sbJurnalSorov(f, hozir) {
+  const q = ["select=id,vaqt,ism,amal,raqam,profil,rang,sm,bolak_id,malumot", "order=id.desc", `limit=${(f && f.n) || 50}`];
+  if (f && f.gacha) q.push(`id=lt.${f.gacha}`);
+  const iz = String((f && f.izla) || "").trim();
+  const mr = iz.match(/^s?-?\s*(\d+)$/i);
+  if (mr) q.push(`raqam=eq.${Number(mr[1])}`);
+  else if (iz && !/^s-?$/i.test(iz)) q.push(`ism=ilike.${encodeURIComponent("*" + iz.replace(/[*,()]/g, " ") + "*")}`);
+  if (f && (f.kun === "bugun" || f.kun === "7")) {
+    const d = new Date(hozir || Date.now()); d.setHours(0, 0, 0, 0);
+    if (f.kun === "7") d.setDate(d.getDate() - 6);
+    q.push(`vaqt=gte.${encodeURIComponent(d.toISOString())}`);
+  }
+  return "/rest/v1/jurnal?" + q.join("&");
+}
+
 // Lokal sklad (sklad.js shakli) → kochir() yuki. uuid — yangi id beruvchi funksiya.
 function skKochirYuk(b, uuid) {
   const sid = new Map(b.seriyalar.map((s) => [s.id, uuid()]));
@@ -178,7 +222,7 @@ function sbZiddiyatMatn(z, raqam) {
   }
 }
 
-if (typeof module !== "undefined") module.exports = { sbTelefon, sbEmail, sbChiroyli, sbBoshNusxa, sbBirlashtir, skServerBaza, sbRaqamlar, skKochirYuk, sbZiddiyatMatn, sbQollash, sbZanjir, sbBogliq, sbVersiyala };
+if (typeof module !== "undefined") module.exports = { sbTelefon, sbEmail, sbChiroyli, sbBoshNusxa, sbBirlashtir, skServerBaza, sbRaqamlar, skKochirYuk, sbZiddiyatMatn, sbQollash, sbZanjir, sbBogliq, sbVersiyala, sbJurnalMatn, sbJurnalSorov };
 
 // ======================= brauzerda =======================
 if (typeof window !== "undefined") (function () {
@@ -202,11 +246,11 @@ if (typeof window !== "undefined") (function () {
     return q;
   }
 
-  async function sorov(yol, body, token) {
+  async function sorov(yol, body, token, usul) {
     let r;
     try {
-      r = await fetch(URLB + yol, { method: "POST", headers: { apikey: ANON, "Content-Type": "application/json",
-        Authorization: "Bearer " + (token || ANON) }, body: JSON.stringify(body || {}) });
+      r = await fetch(URLB + yol, { method: usul || "POST", headers: { apikey: ANON, "Content-Type": "application/json",
+        Authorization: "Bearer " + (token || ANON) }, body: usul === "GET" ? undefined : JSON.stringify(body || {}) });
     } catch (e) { throw new SbXato("Internet yoʻq", 0, "tarmoq"); }
     let t;
     try { t = await r.text(); } catch (e) { throw new SbXato("Internet uzildi", 0, "tarmoq"); }  // javob yarmida uzildi
@@ -269,6 +313,19 @@ if (typeof window !== "undefined") (function () {
       return sorov("/rest/v1/rpc/" + nom, args, sessiya().access);
     }
   }
+  // Jadvalni oʻqish (RLS: faqat oʻz firmasi) — tarix
+  async function oqi(yol) {
+    let s = sessiya();
+    if (!s) throw new SbXato("Kirish kerak", 401);
+    if (s.tugash - 60 < Date.now() / 1000) { await yangila(); s = sessiya(); }
+    try { return await sorov(yol, null, s.access, "GET"); }
+    catch (e) { if (e.st !== 401) throw e; await yangila(); return sorov(yol, null, sessiya().access, "GET"); }
+  }
+  async function jurnal(f) {
+    if (!onlayn()) throw new SbXato("Tarix uchun internet kerak", 0, "tarmoq");
+    try { return await oqi(sbJurnalSorov(f)) || []; }
+    catch (e) { if (!e.st) throw new SbXato("Tarix uchun internet kerak", 0, "tarmoq"); throw e; }
+  }
   function chiq() {
     const s = sessiya();
     if (s) sorov("/auth/v1/logout", {}, s.access).catch(() => {});
@@ -286,7 +343,7 @@ if (typeof window !== "undefined") (function () {
   function tozala() { oz("sklad_server", null); }
   // Navbat yuborilayotganda serverdan tortish kutadi (javobi kelmagan amal ikki marta koʻrinmasin)
   async function torting() {
-    if (sinxronda) await sinxronda.catch(() => {});
+    while (sinxronda || keyingi) await (keyingi || sinxronda).catch(() => {});  // navbatdagi qayta yuborish ham tugasin
     return tortingQulfsiz();
   }
   async function tortingQulfsiz() {
@@ -369,7 +426,10 @@ if (typeof window !== "undefined") (function () {
   const onlayn = () => typeof navigator === "undefined" || navigator.onLine !== false;
   let sinxronda = null, holat = "";  // "" | "oflayn" | "kirish"
   // Navbatni ketma-ket yuboradi. Qaytaradi: {yuborildi, qoldi, ziddiyat}
+  let keyingi = null;
   function sinxron() {
+    // Yuborish ketayotgan boʻlsa — tugagach yana bir marta (shu orada qoʻshilgan yoki internet qaytgan boʻlishi mumkin)
+    if (sinxronda) { if (!keyingi) keyingi = sinxronda.catch(() => {}).then(() => { keyingi = null; return sinxron(); }); return keyingi; }
     if (!sinxronda) sinxronda = (async () => {
       let yuborildi = 0, ziddiyat = 0;
       try {
@@ -515,7 +575,8 @@ if (typeof window !== "undefined") (function () {
   window.SB = {
     SbXato, sessiya, kirish, chiq, rpc, torting, yoz, nusxa, tozala, bolakQosh, qurilma, authMatn,
     navbat, ziddiyatlar, yuborilmadi, sinxron, qosh, amalMatn, ziddiyatOchir, yuborilmadiTozala, togri, hal, boshqaNavbat,
-    holat: () => holat, onlayn, id: idX,
+    holat: () => holat, onlayn, id: idX, jurnal,
+    xom: () => { const n = nusxa(); return n && n.firma ? sbQollash(n, navbat()) : null; },  // holat bilan (oʻchirilganlari ham)
     kuzat: (fn) => { kuzatuvchi = fn; },
     baza: () => { const n = nusxa(); return n && n.firma ? skServerBaza(sbQollash(n, navbat())) : null; },
     kirgan: () => !!sessiya(),
