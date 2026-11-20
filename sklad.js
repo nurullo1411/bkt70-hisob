@@ -366,6 +366,10 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       <button class="sk-ikon" data-sk="hisob" aria-label="Firma va ishchilar">⚙</button></div>`;
   };
 
+  // Qidiruv: bosilganda "S-" oʻzi yoziladi (foydalanuvchi, 2026-11-20) — faqat raqam terish kifoya.
+  // "S-" yolgʻiz — filtr yoʻq; "S-" dan keyin harf boʻlsa — profil nomi ("S-kosa" → "kosa").
+  const izlaQiymat = (v) => { v = String(v || ""); if (/^\s*s-?\s*$/i.test(v)) return ""; return v.replace(/^\s*s-(?=\s*[^\d\s])/i, ""); };
+
   // ---------- asosiy roʻyxat ----------
   function chiz() {
     if (chizSrvBosh()) return;
@@ -399,7 +403,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     if (!skSeriya(b, seriya)) seriya = b.seriyalar[0].id;
     const s = skSeriya(b, seriya), jami = skJami(b, seriya), ranglar = skRanglar(b, seriya);
     if (rangF && !ranglar.includes(rangF)) rangF = "";
-    const g = skGuruhlar(b, seriya, { rang: rangF, izla });
+    const g = skGuruhlar(b, seriya, { rang: rangF, izla: izlaQiymat(izla) });
     const tab = (x) => { const j = skJami(b, x.id); return `<button data-sk-s="${x.id}" class="${x.id === seriya ? "faol" : ""}">${h(x.nom)}<small>${j.bolak + j.butun}</small></button>`; };
     let t = srvSatr() + `<div class="sk-tablar" role="tablist">${b.seriyalar.map(tab).join("")}${ega() ? '<button data-sk="seriya" aria-label="Seriya qoʻshish">＋</button>' : ""}</div>
       <section class="sk-tepa"><div><small>${h(s.nom)} · hivich ${smM(s.hivich_sm)} sm</small><b>${jami.bolak} boʻlak${jami.butun ? ` · ${jami.butun} butun` : ""}</b></div>
@@ -408,7 +412,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       ${xabarMatn ? `<p class="sk-xabar">${xabarMatn}</p>` : ""}
       <div class="sk-filtr"><input id="sk-izla" type="search" placeholder="Profil yoki S-raqam" value="${h(izla)}" autocomplete="off">
         ${ranglar.length > 1 ? `<div class="sk-ranglar"><button data-sk-r="" class="${rangF ? "" : "faol"}">Hammasi</button>${ranglar.map((r) => `<button data-sk-r="${h(r)}" class="${r === rangF ? "faol" : ""}">${h(r)}</button>`).join("")}</div>` : ""}</div>`;
-    if (!g.length) t += `<p class="xira sk-boshliq">${izla || rangF ? "Hech narsa topilmadi" : "Bu seriyada hali boʻlak yoʻq — “+ Qoʻshish” bosing"}</p>`;
+    if (!g.length) t += `<p class="xira sk-boshliq">${izlaQiymat(izla) || rangF ? "Hech narsa topilmadi" : "Bu seriyada hali boʻlak yoʻq — “+ Qoʻshish” bosing"}</p>`;
     for (const x of g) {
       t += `<section class="karta sk-karta"><div class="sk-sar"><div class="sk-nom"><b>${h(x.profil.nom)}</b><span class="sk-rang">${h(x.rang)}</span>${s.nom in SK_RASKROY && !x.profil.kod ? '<span class="sk-yoq" title="Kesish rejasi bu nomni tanimaydi">kesishda olinmaydi</span>' : ""}</div>
           ${ega() ? `<button class="sk-ikon" data-sk="profil" data-id="${x.profil.id}" aria-label="Profil narxi va nomi">✏️</button>` : ""}</div>
@@ -704,12 +708,22 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     }
     await yangila();
   }
+  let qaytaChiz = false;  // yozish paytida qayta chizish — "S-" qoʻyilmaydi/olinmaydi (oʻchirgan boʻlsa qaytmasin)
+  el("e-sklad").addEventListener("focusin", (e) => {
+    if (qaytaChiz || e.target.id !== "sk-izla" || e.target.value) return;
+    e.target.value = izla = "S-";
+    setTimeout(() => { try { e.target.setSelectionRange(2, 2); } catch (x) {} }, 0);
+  });
+  el("e-sklad").addEventListener("focusout", (e) => {
+    if (!qaytaChiz && e.target.id === "sk-izla" && /^\s*s-?\s*$/i.test(e.target.value)) { e.target.value = izla = ""; }
+  });
   el("e-sklad").addEventListener("input", (e) => {
     if (e.target.id !== "sk-izla") return;
     izla = e.target.value;
     const poz = e.target.selectionStart;
-    chiz();
-    const i = el("sk-izla"); i.focus(); try { i.setSelectionRange(poz, poz); } catch (x) {}
+    qaytaChiz = true;
+    try { chiz(); const i = el("sk-izla"); i.focus(); try { i.setSelectionRange(poz, poz); } catch (x) {} }
+    finally { qaytaChiz = false; }
   });
   document.addEventListener("change", (e) => {
     if (e.target.matches("[data-sk-fayl]")) {
