@@ -1145,3 +1145,75 @@ header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: 
   #chop .ol-umumiy { display: flex; justify-content: space-between; margin-top: 14px; padding: 8px 10px; border-radius: 6px;
     background: #0d47a1 !important; color: #fff; font-size: 14px; break-inside: avoid; }
 }
+
+/* Sklad (2026-11-20): seriya tablari, jami, profil+rang kartalari, boʻlak chiplari (uzunlik chizigʻi bilan) */
+#sklad-och { border-left-color: #7A3300 !important; }
+.sk-tablar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
+.sk-tablar::-webkit-scrollbar { display: none; }
+.sk-tablar button { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 14px; border-radius: 999px;
+  border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font: inherit; font-size: 14px; white-space: nowrap; }
+.sk-tablar button small { font-size: 12px; color: var(--xira); font-variant-numeric: tabular-nums; }
+.sk-tablar button.faol { background: var(--asosiy); border-color: var(--asosiy); color: var(--asosiy-matn); }
+.sk-tablar button.faol small { color: inherit; opacity: .8; }
+.sk-tepa { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; padding: 14px 16px; border-radius: 14px;
+  background: var(--aks-s-fon); color: var(--aks-s-t); }
+.sk-tepa > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sk-tepa small { font-size: 12px; opacity: .85; }
+.sk-tepa b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.sk-pul { text-align: right; }
+.sk-pul b { font-size: 20px; }
+.sk-qosh-t { min-height: 50px; font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+.sk-xabar { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; background: var(--aks-h-fon); color: var(--aks-h-t); font-size: 14px; }
+.sk-filtr { display: grid; gap: 8px; margin-bottom: 12px; }
+.sk-filtr input { width: 100%; min-height: 44px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font: inherit; font-size: 16px; box-sizing: border-box; }
+.sk-ranglar { display: flex; flex-wrap: wrap; gap: 6px; }
+.sk-ranglar button { min-height: 34px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font: inherit; font-size: 13px; }
+.sk-ranglar button.faol { background: var(--matn); border-color: var(--matn); color: var(--karta); }
+.sk-boshliq { text-align: center; padding: 24px 8px; }
+.sk-karta { padding: 12px 12px 14px; }
+.sk-sar { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.sk-nom { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.sk-nom b { font-size: 16px; }
+.sk-rang { padding: 2px 8px; border-radius: 999px; background: var(--fon); border: 1px solid var(--chiziq); font-size: 12px; }
+.sk-yoq { padding: 2px 8px; border-radius: 999px; background: var(--mijoz-fon); color: var(--mijoz); font-size: 11px; }
+.sk-ikon { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta); font-size: 15px; }
+.sk-info { margin: 4px 0 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.sk-butun { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 10px; border-radius: 10px; background: var(--fon); }
+.sk-butun span { flex: 1; font-size: 14px; }
+.sk-butun b { min-width: 28px; text-align: center; font-size: 17px; font-variant-numeric: tabular-nums; }
+.sk-butun button { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font-size: 18px; }
+.sk-bolaklar { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+.sk-b { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px 10px;
+  border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font: inherit; }
+.sk-b b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.sk-b small { font-size: 11px; color: var(--xira); font-variant-numeric: tabular-nums; }
+.sk-b::after { content: ""; position: absolute; left: 0; bottom: 0; height: 4px; width: var(--u); background: var(--aks-s-t); }
+.sk-b:active { background: var(--fon); }
+.sk-boshqa summary { cursor: pointer; }
+.sk-boshqa .tugma { font-size: 14px; }
+.sk-bosh { text-align: center; padding: 24px 16px; }
+.sk-bosh-ikon { font-size: 40px; }
+/* Server: firma satri, kirish, aʼzolar (2026-11-20) */
+.sk-hisob { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; font-size: 14px; color: var(--xira); }
+.sk-hisob b { color: var(--matn); }
+.sk-firma h2 { margin: 0 0 4px; }
+.sk-firma h3, #sk-oyna h3 { margin: 16px 0 4px; font-size: 15px; }
+.sk-firma .tugma { margin-top: 6px; width: 100%; }
+.sk-azolar { list-style: none; padding: 0; margin: 6px 0; }
+.sk-azolar li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--chiziq); }
+.sk-azolar .tugma { flex: 0 0 auto; min-height: 36px; padding: 6px 12px; font-size: 14px; }
+.sk-kod { font-family: ui-monospace, monospace; font-size: 22px; letter-spacing: 1px; text-align: center; padding: 12px; margin: 8px 0 2px;
+  border: 1px dashed var(--chiziq); border-radius: 10px; user-select: all; }
+body.sk-band #sk-oyna .tugma.asosiy, body.sk-band .sk-firma .tugma { opacity: .6; pointer-events: none; }
+.sk-forma { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.sk-forma label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--xira); min-width: 0; }
+.sk-forma .keng { grid-column: 1 / -1; margin-top: 0; }
+.sk-forma input { min-height: 46px; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--fon); color: var(--matn); font: inherit; font-size: 17px; box-sizing: border-box; width: 100%; }
+.sk-tur { margin-top: 10px; }
+.sk-son { display: flex; gap: 4px; }
+.sk-son input { text-align: center; min-width: 0; }
+.sk-son button { flex: 0 0 46px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font-size: 20px; }
+.sk-bolak-sar { display: flex; align-items: center; gap: 12px; }
+.sk-bolak-sar > div { display: flex; flex-direction: column; }
+.sk-raqam { padding: 8px 12px; border-radius: 10px; border: 2px dashed var(--aks-s-t); color: var(--aks-s-t); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tugma.xavf { background: #c62828; border-color: #c62828; color: #fff; }

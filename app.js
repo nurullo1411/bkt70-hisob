@@ -154,15 +154,16 @@ function zakazniOch(matn, jim) {
 // ---------- ekranlar: bosh sahifa → boʻlim roʻyxati → zakaz (telefonning ← tugmasi ham ishlaydi) ----------
 let joriyEkran = "bosh";
 function ekran(nom, push = true) {
-  for (const e of ["bosh", "royxat", "zakaz", "kassa", "katalog"]) $("e-" + e).hidden = e !== nom;
+  for (const e of ["bosh", "royxat", "zakaz", "kassa", "katalog", "sklad"]) $("e-" + e).hidden = e !== nom;
   if (push && nom !== joriyEkran) history.pushState({ ekran: nom }, "");
   joriyEkran = nom;
   document.body.dataset.ekran = nom;
   $("orqaga").hidden = nom === "bosh";
   const bolim = BOSH_BOLIMLAR.find((h) => h[0] === arxivTab) || HOLATLAR.find((h) => h[0] === arxivTab);
-  $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : nom === "kassa" ? "Hisobot" : nom === "katalog" ? "Katalog" : "Buyurtma maʼlumotlari";
+  $("sarlavha").textContent = nom === "bosh" ? "BKT 70 hisob" : nom === "royxat" ? bolim[1] : nom === "kassa" ? "Hisobot" : nom === "katalog" ? "Katalog" : nom === "sklad" ? "Sklad" : "Buyurtma maʼlumotlari";
   if (nom === "kassa") { hbChiz(); kassaYangila(); }
   else if (nom === "katalog") katalogChiz();
+  else if (nom === "sklad") { if (typeof skladChiz === "function") skladChiz(); }
   else if (nom !== "zakaz") { arxivniChiz(); zakazlarniOl(); }
   window.scrollTo(0, 0);
   if (typeof ekranYoniq === "function") ekranYoniq();
@@ -1412,24 +1413,26 @@ $("otxod-usul").addEventListener("change", async () => {
   const usul = $("otxod-usul").value;
   otxodUsuliniSaqla(usul);
   if (usul.startsWith("sklad") && !skladSaqlangan()) {
-    holat("Sklad yuklanmoqda…");
     try { await skladYukla(); } catch (e) { xato(e.message); }
   }
   hisobla();
   holat(`Otxod: ${$("otxod-usul").selectedOptions[0].textContent}`);
 });
 
-// ---------- sklad bilan kesish rejasi (Dodorom_sklad → Apps Script, faqat oʻqiladi) ----------
+// ---------- sklad bilan kesish rejasi ----------
+// Sklad ilovada (sklad.js, foydalanuvchi 2026-11-20 — Sheets bilan bogʻlanmaydi). raskroy.py ga eski shaklda beriladi.
+// "sklad_baza" hali yoʻq boʻlsa — eski Sheets keshi (localStorage "sklad"), koʻchirilgach u oʻchiriladi.
 // Har profilga alohida PDF: ishchi adashmasin (raskroy.py dagidek).
 let skladReja = null;
-function skladSaqlangan() { try { return JSON.parse(ol("sklad") || "null"); } catch (e) { return null; } }
+function skladSaqlangan() {
+  const b = typeof skladBaza === "function" ? skladBaza() : null;
+  if (b) return skRaskroyQatorlari(b);
+  try { return JSON.parse(ol("sklad") || "null"); } catch (e) { return null; }
+}
 async function skladYukla() {
-  const url = await shifrliOch("sklad.enc");
-  if (!url) throw new Error("Sklad ulanmagan (sklad.enc yoʻq yoki narx havolasi ochilmagan)");
-  const j = await fetch(url).then((r) => r.json());
-  if (!j || j.xato || !Array.isArray(j.qatorlar)) throw new Error("Sklad javobi: " + ((j && j.xato) || "notoʻgʻri"));
-  saqla("sklad", JSON.stringify(j));
-  return j;
+  const sk = skladSaqlangan();
+  if (!sk) throw new Error("Sklad boʻsh — bosh sahifada “📦 Sklad” boʻlimida koʻchiring yoki qoʻshing");
+  return sk;
 }
 // Rang konstruksiyaning oʻzidan (⚙ da belgilangan), har rang alohida reja
 let skladGuruhlar = [];
@@ -1456,7 +1459,7 @@ json.dumps(raskroy.rang_guruhlari(json.loads(_zakaz)))`)); } catch (e) { skladGu
     $("sklad-rang2").innerHTML = '<option value="">— tanlang —</option>' +
       mos.map((r) => `<option${r === eski2 ? " selected" : ""}>${esc(r)}</option>`).join("");
   }
-  $("sklad-holat").textContent = (sk ? `Sklad: ${new Date(sk.vaqt).toLocaleString("uz")} holati, ${sk.qatorlar.length} qator` : "Sklad hali yuklanmagan") +
+  $("sklad-holat").textContent = (sk ? (sk.ilova ? `Sklad (ilovada): ${sk.qatorlar.length} boʻlak` : `Sklad: ${new Date(sk.vaqt).toLocaleString("uz")} holati, ${sk.qatorlar.length} qator`) : "Sklad boʻsh — “📦 Sklad” boʻlimida koʻchiring yoki qoʻshing") +
     (kerak ? ` · ${g.konstruksiyalar.join(", ")}: rangi belgilanmagan, skladdagi rangni tanlang yoki ⚙ da belgilang` : "");
 }
 function skladRejaniHisobla() {
@@ -1493,21 +1496,6 @@ function otxodChegarasi(profil) {
   if (!otxodChegaralari) { try { otxodChegaralari = JSON.parse(py.runPython("import raskroy, json\njson.dumps(raskroy.OTXOD_CHEGARA)")); } catch (e) { return null; } }
   return otxodChegaralari[profil] ?? null;
 }
-$("sklad-ol").addEventListener("click", async () => {
-  $("sklad-ol").disabled = true;
-  $("sklad-holat").textContent = "Sklad yuklanmoqda…";
-  try { await skladYukla(); } catch (e) {
-    $("sklad-ol").disabled = false;
-    skladRanglariniChiz();
-    $("sklad-holat").innerHTML = `<span class="ogoh">${esc(e.message)}</span>` + (skladSaqlangan() ? " · oxirgi saqlangan sklad ishlatiladi" : "");
-    skladRejaniHisobla();
-    return;
-  }
-  $("sklad-ol").disabled = false;
-  skladRanglariniChiz();
-  skladRejaniHisobla();
-  if (otxodUsuli().startsWith("sklad")) { const ochiq = $("kesish-quti").open; hisobla(); if (ochiq) $("kesish-quti").open = true; }
-});
 $("sklad-rang").addEventListener("change", () => { skladRanglariniChiz(); skladRejaniHisobla(); });
 $("sklad-rang2").addEventListener("change", skladRejaniHisobla);
 $("kesish-quti").addEventListener("toggle", () => {
@@ -1583,12 +1571,8 @@ function dlTahrirChiz(fokus) {
 const dlSon = (v) => { const x = Number(String(v).replace(/\s/g, "").replace(",", ".")); return Number.isFinite(x) && x >= 0 ? x : null; };
 $("diller-pdf").addEventListener("click", async () => {
   const b = $("diller-pdf"), eskiMatn = b.innerHTML;
-  b.disabled = true; b.textContent = "Sklad yuklanmoqda…";
-  let sk = null, skIzoh = "";
-  try { sk = await skladYukla(); } catch (e) {
-    sk = skladSaqlangan();
-    skIzoh = sk ? "Internet yoʻq: oxirgi yuklangan sklad ishlatildi" : "Sklad yuklanmadi: profil hammasi yangi hivichda";
-  }
+  b.disabled = true;
+  const sk = skladSaqlangan(), skIzoh = sk ? "" : "Sklad boʻsh: profil hammasi yangi hivichda";
   b.disabled = false; b.innerHTML = eskiMatn;
   const r = dillerOl("diller_jadvali", sk ? sk.qatorlar : null);
   if (r.xato) { alert("Roʻyxat chiqmadi: " + r.xato); return; }

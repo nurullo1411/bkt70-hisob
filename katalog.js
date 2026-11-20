@@ -112,3 +112,4 @@ $("katalog-ich").addEventListener("click", (e) => {
   }
 });
 $("katalog-och").addEventListener("click", () => { katalogForma = null; katalogTasdiq = null; ekran("katalog"); });
+$("sklad-och").addEventListener("click", () => ekran("sklad"));
