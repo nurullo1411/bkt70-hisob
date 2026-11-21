@@ -1811,7 +1811,7 @@ async function aiSorov(xabarlar) {
   const javob = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": kalit, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: AI_MODEL, max_tokens: 8000, system: AI_TIZIM.replace("OYNA_ROYXATI", oynaTurlari().join(", ") || "—"), output_config: { effort: "medium" }, messages: xabarlar }),
+    body: JSON.stringify({ model: AI_MODEL, max_tokens: 16000, system: AI_TIZIM.replace("OYNA_ROYXATI", oynaTurlari().join(", ") || "—"), output_config: { effort: "medium" }, messages: xabarlar }),
   });
   const d = await javob.json().catch(() => ({}));
   if (!javob.ok) {
