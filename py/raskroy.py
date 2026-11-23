@@ -301,6 +301,10 @@ def _aniq(qolgan, profil, L, k, chegara=ANIQ_CHEGARA):
 def _yangi_variantlar(qolgan, profil):
     """Faqat yangi hivichdan kesish variantlari: ochkoʻz, FFD va eng kam hivichli aniq joylash."""
     L = hivich(profil) * 100
+    # Arra izi bilan hivichga sigʻmaydigan detal boʻlsa, quyidagi sikl cheksiz aylanardi (650 sm detal — 2026-11-23)
+    katta = [d for d, n in qolgan.items() if n > 0 and _vazn(d, profil) > _sigim(L, profil)]
+    if katta:
+        raise HisobXato(f"{profil}: {_k(max(katta))} sm detal {_k(L)} sm hivichga sigʻmaydi (arra {_k(_b(ARRA))} sm bilan)")
     greedy, q2 = [], Counter(qolgan)
     while sum(q2.values()):
         t = _eng_toliq(q2, profil, L)
