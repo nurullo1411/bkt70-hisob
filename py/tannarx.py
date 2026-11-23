@@ -63,6 +63,21 @@ def _yolgiz_otxod(umumiy, k):
     return _YOLGIZ_KESH[kalit]
 
 
+def _lambri_ogoh(zakaz, faol):
+    """Alyumin lambri 114 sh/d rangida AKFA da yoʻq (foydalanuvchi, 2026-11-23: ogohlantirish; narx laminat turkumi boʻyicha)."""
+    from diller import LAMBRI_114_NOM
+    from hisob import LAMBRI_ALU
+    from raskroy import _konstruksiya_rangi
+    u = (zakaz.get("umumiy") or {}).get("tanlov") or {}
+    ogoh = []
+    for i, k in enumerate(faol):
+        r, _ = _konstruksiya_rangi(u, k)
+        if r and r not in LAMBRI_114_NOM and json.dumps(k.get("bolak"), ensure_ascii=False).count(f'"{LAMBRI_ALU}"'):
+            ogoh.append(f"{k.get('nom') or f'K{i + 1}'}: alyumin lambri 114 {r} rangida AKFA da yoʻq — narx laminat (7011) boʻyicha; "
+                        "boshqa rang yoki PVX lambri tanlang")
+    return ogoh
+
+
 def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None, otxod_bolish="metr"):
     """Zakazni hisoblaydi. soni = 0 boʻlgan konstruksiya hisobga kirmaydi.
 
@@ -150,7 +165,7 @@ def tannarx(zakaz, narxlar=None, kurs=None, otxod_usuli=None, sklad=None, otxod_
         "narx_yoq": narx_yoq,
         "otxod_usuli": otxod_usuli,
         "otxod_usuli_nomi": OTXOD_USULLARI[otxod_usuli],
-        "ogohlantirish": ogoh_usul + [f"{k['nom']}: {k['izoh']}" for k in konstruksiyalar if k["izoh"]] + [
+        "ogohlantirish": ogoh_usul + _lambri_ogoh(zakaz, faol) + [f"{k['nom']}: {k['izoh']}" for k in konstruksiyalar if k["izoh"]] + [
             f"{o['profil']}: otxod chegarasi yoʻq" for o in otxod if o["chegara_yoq"]] + [
             f"{o['profil']}: rangi belgilanmagan konstruksiya, sklad ishlatilmadi"
             for o in otxod if otxod_usuli.startswith("sklad") and not o.get("sklad_rang")],
