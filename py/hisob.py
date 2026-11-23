@@ -160,7 +160,13 @@ LAMBRI = "Lambri"
 LAMBRI_PROFIL = "LII"
 LAMBRI_ENI = D(10)
 LAMBRI_AYIRMA = D(1)
-HIVICH_6 = {LAMBRI_PROFIL}
+# Alyumin lambri (foydalanuvchi, 2026-11-23): AKFA 114, tasma ishchi eni 8 sm, hivich 6 m, terilishi PVX dagidek;
+# shtapik, rezina, podstavka kerak emas. Termo 116 ishlatilmaydi. Hamma seriyada (PVX bilan birga).
+LAMBRI_ALU = "Lambri alyumin"
+LAMBRI_ALU_PROFIL = "L114"
+LAMBRI_ALU_ENI = D(8)
+LAMBRI_TURLARI = {LAMBRI: (LAMBRI_PROFIL, LAMBRI_ENI, "Lambri"), LAMBRI_ALU: (LAMBRI_ALU_PROFIL, LAMBRI_ALU_ENI, "Lambri alyumin")}
+HIVICH_6 = {LAMBRI_PROFIL, LAMBRI_ALU_PROFIL}
 
 
 def oyna_qalinligi(k, umumiy=None):
@@ -304,7 +310,7 @@ class Hisob:
         self.vertikal_r = vertikal_r  # False: boʻyiga ham oddiy G shtapik
         self.profillar = {}
         self.oynalar = {}
-        self.lambrilar = []  # (joy, en, boʻy, tasma soni)
+        self.lambrilar = []  # (joy, en, boʻy, tasma soni, oyna_turi)
         self.joriy_oyna = None  # boʻlakka berilgan oyna turi (None — konstruksiyaniki)
         self.belgi = None       # "_belgi" li boʻlak ichida — uning qiymati (ilova uchun)
         self.belgilangan = []   # shu boʻlakdagi tabaqalar: (joy, en, boy) — kesish oʻlchami
@@ -433,7 +439,7 @@ class Hisob:
             self.armatura_samorez += int(bitta) * soni
 
     def oyna(self, joy, ichki_en, ichki_boy, ayirma, arka=D(0), past=D(0), yonlar=2, geo=None):
-        if self.joriy_oyna == LAMBRI:
+        if self.joriy_oyna in LAMBRI_TURLARI:
             return self.lambri(joy, ichki_en, ichki_boy, arka or past)
         en, boy = ichki_en - ayirma, ichki_boy - ayirma
         if en <= 0 or boy <= 0:
@@ -525,12 +531,13 @@ class Hisob:
     def lambri(self, joy, ichki_en, ichki_boy, yoy=False):
         if yoy:
             raise HisobXato("Arkali boʻlakka lambri hozircha yoʻq")
+        profil, eni, nom = LAMBRI_TURLARI[self.joriy_oyna]
         en, boy = ichki_en - LAMBRI_AYIRMA, ichki_boy - LAMBRI_AYIRMA
         if en <= 0 or boy <= 0:
             raise HisobXato(f"{joy} lambrisi uchun joy yetmaydi: {en} × {boy}")
-        soni = int(math.ceil(en / LAMBRI_ENI))
-        self.detal(f"Lambri ({joy.lower()})", LAMBRI_PROFIL, boy, soni)
-        self.lambrilar.append((joy, en, boy, soni))
+        soni = int(math.ceil(en / eni))
+        self.detal(f"{nom} ({joy.lower()})", profil, boy, soni)
+        self.lambrilar.append((joy, en, boy, soni, self.joriy_oyna))
 
     def shakl_oyna(self, ichki_en, ichki_boy, tekis_gor, tekis_ver, yoylar):
         """Toʻrtburchak boʻlmagan gluxoy oyna (portal U oynasi): oʻlcham va narx eng katta eni × boʻyi boʻyicha.
@@ -538,7 +545,7 @@ class Hisob:
         Shtapik har tomon boʻyicha: gorizontallari oʻz eni, vertikallari boʻyi − 2 × qalinlik, yoy tomoni egiladi.
         Rezina tomonlar yigʻindisi, yoy tomoni tekis profil boʻyicha (eni + chuqurlik), + 8. yoylar: [(eni, chuqurlik)].
         """
-        if self.joriy_oyna == LAMBRI:
+        if self.joriy_oyna in LAMBRI_TURLARI:
             raise HisobXato("Shakldor (portal) oynaga lambri hozircha yoʻq")
         en, boy = ichki_en - D("1.5"), ichki_boy - D("1.5")
         if en <= 0 or boy <= 0:
@@ -1447,7 +1454,7 @@ def hisobla(k):
             for (j, e, b, t), s in h.oynalar.items()
         ],
         "oyna_m2": float(m2),
-        "lambrilar": [{"joy": j, "en": float(e), "boy": float(b), "tasma": n} for j, e, b, n in h.lambrilar],
+        "lambrilar": [{"joy": j, "en": float(e), "boy": float(b), "tasma": n, "tur": t} for j, e, b, n, t in h.lambrilar],
         "ogohlantirishlar": h.ogohlantirishlar,
         "qoida_yoq": h.qoida_yoq,
         **({"yozuvlar": [{"belgi": list(g), "nomi": n, "uzunlik": float(u)} for g, n, u in h.yozuvlar]}

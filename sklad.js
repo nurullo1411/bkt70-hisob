@@ -11,7 +11,7 @@ const SK_RASKROY = { "BKT 70": "", "Aldoks": "ALD|" };
 // Kesish kodi (raskroy_kod): raskroy.py taniydigan profil. Nom faqat koʻrinish — kod boʻyicha raskroy.py ga
 // u kutgan nom beriladi (raskroy.SKLAD_NOMI; Aldoks "ALD|" + _ald_sklad nomi; "#>" — bir uchi qiya).
 const SK_KOD_NOM = { F702: "Kosa F702", F703: "Kosa F703", M702: "O'rta M702", V702: "Qanot V702", V707: "Balkon o'rta V707",
-  V708: "Balkon qanot V708", A701: "Shtulp A701", LII: "Lambri II PVX", H702: "Lapsha lam",
+  V708: "Balkon qanot V708", A701: "Shtulp A701", LII: "Lambri II PVX", L114: "Lambri 114 alyumin", H702: "Lapsha lam",
   "183": "ALD|kosa", "183#>": "ALD|kosa #>", "181": "ALD|qanot", "182": "ALD|Oʻrta ##", "182#>": "ALD|Oʻrta #>", "185": "ALD|Balkon o'rta", "198": "ALD|balkon qanot" };
 // Eski Sheets nomidan kod (raskroy._sklad_nom / _ald_sklad bilan bir xil qoida; tanilmasa null)
 function skRaskroyKod(seriyaNom, nom) {

@@ -54,6 +54,9 @@ let orqaga = [], oldinga = [];
 let oldindanTaymer = null;
 
 const LAMBRI = "Lambri", LAMBRI_ENI = 10;  // hisob.LAMBRI, tasma eni sm
+// Alyumin lambri 114 (foydalanuvchi, 2026-11-23): hisob.LAMBRI_ALU, tasma 8 sm
+const LAMBRI_ALU = "Lambri alyumin", LAMBRI_ALU_ENI = 8;
+const lambrimi = (x) => x === LAMBRI || x === LAMBRI_ALU;
 function oynaTurlari() {
   // Katalogda yashirilgan turlar tanlovda chiqmaydi (eski zakazda qolgani narxi bilan hisoblanadi)
   try { const n = JSON.parse(ol("narxlar")), y = new Set(n.oyna_yashirin || []); return Object.keys(n.steklopaket_som || {}).filter((t) => !y.has(t)); } catch (e) { return ["Oq+oq"]; }
@@ -564,10 +567,10 @@ function chizmaSVG(k, opts = {}) {
     const tus = oynaTuslari(tur);
     return tus ? `<linearGradient id="${gid}-oy${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${tus[0]}"/><stop offset="1" stop-color="${tus[1]}"/></linearGradient>` : "";
   }).join("");
-  let oynaUslub = "", oynaGul = false, oynaLambri = false;
+  let oynaUslub = "", oynaGul = false, oynaLambri = false, oynaLambriEn = LAMBRI_ENI;
   const oynaTanla = (p) => {
     const tur = bargOynaTuri(k, p), i = turlar.indexOf(tur), tus = oynaTuslari(tur);
-    oynaLambri = tur === LAMBRI;
+    oynaLambri = lambrimi(tur); oynaLambriEn = tur === LAMBRI_ALU ? LAMBRI_ALU_ENI : LAMBRI_ENI;
     oynaUslub = tus ? `style="fill:url(#${gid}-oy${i});stroke:${tus[2]}"` : "";
     oynaGul = String(tur).toLowerCase().includes("gul");
   };
@@ -623,14 +626,14 @@ function chizmaSVG(k, opts = {}) {
   }
 
   // Lambri (foydalanuvchi, 2026-11-09): PVX, profil rangida, tik tasmalar 10 sm
-  function lambriChiz(x, y, w, h) {
-    let q = rect(x, y, Math.max(w, 0), Math.max(h, 0), "lb");
-    for (let xx = x + LAMBRI_ENI; xx < x + w - 0.5; xx += LAMBRI_ENI) q += chiziq(xx, y, xx, y + h, "lb-ch");
+  function lambriChiz(x, y, w, h, en = LAMBRI_ENI) {
+    let q = rect(x, y, Math.max(w, 0), Math.max(h, 0), en === LAMBRI_ALU_ENI ? "lb lb-alu" : "lb");
+    for (let xx = x + en; xx < x + w - 0.5; xx += en) q += chiziq(xx, y, xx, y + h, "lb-ch");
     return q;
   }
   // Oyna: gradient va ikkita yaltiroq chiziq (faqat katta chizmada)
   function oyna(x, y, w, h, d, tY = null, pY = null) {
-    if (oynaLambri && !tY && !pY) return lambriChiz(x, y, w, h);
+    if (oynaLambri && !tY && !pY) return lambriChiz(x, y, w, h, oynaLambriEn);
     const sh = opts.kichik ? 0 : t * 0.22;
     let q = sh ? yuza(x - sh, y - sh, w + 2 * sh, h + 2 * sh, d - sh, "sht", "", tY, pY) : "";
     q += yuza(x, y, w, h, d, "oy", oynaUslub, tY, pY);
@@ -674,7 +677,7 @@ function chizmaSVG(k, opts = {}) {
       }
       if (bola && bola.olchamlar) q += ichkiChiz(bola, bx, by, bw, bh, yy, p);
       else {
-        if (bola && bola.oyna_turi === LAMBRI) q += lambriChiz(bx, by, bw, bh);
+        if (bola && lambrimi(bola.oyna_turi)) q += lambriChiz(bx, by, bw, bh, bola.oyna_turi === LAMBRI_ALU ? LAMBRI_ALU_ENI : LAMBRI_ENI);
         if (p != null) ichkiBos.push(rect(bx, by, Math.max(bw, 0.1), Math.max(bh, 0.1), "bos ii", `data-p="${p}" data-ii="${yy.join(".")}"`));
       }
       off += len + ICHKI_IMPOST;
@@ -1630,11 +1633,12 @@ function oynaTugmalari(b, attr) {
   const gul = (o) => (o.toLowerCase().includes("gul") ? ";background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)" : "");
   const tug = (v, nom, rang) => `<button data-${attr}="oyna_turi" data-v="${esc(JSON.stringify(v))}" class="sz-oyna${oz === v ? " faol" : ""}"><span class="namuna" style="background:${oynaRangi(rang)}${gul(rang)}"></span>${esc(nom)}</button>`;
   return tug("", "Konstruksiyadagidek", asosiy) + turlar.map((o) => tug(o, o, o)).join("") + (!lambriBor() ? "" :
-    `<button data-${attr}="oyna_turi" data-v='"${LAMBRI}"' class="sz-oyna${oz === LAMBRI ? " faol" : ""}"><span class="namuna lambri-namuna"></span>Lambri</button>`);
+    `<button data-${attr}="oyna_turi" data-v='"${LAMBRI}"' class="sz-oyna${oz === LAMBRI ? " faol" : ""}"><span class="namuna lambri-namuna"></span>Lambri PVX</button>` +
+    `<button data-${attr}="oyna_turi" data-v='"${LAMBRI_ALU}"' class="sz-oyna${oz === LAMBRI_ALU ? " faol" : ""}"><span class="namuna lambri-namuna lambri-alu"></span>Lambri alyumin</button>`);
 }
 function oynaSarlavha(p) {
   const ot = bargOynaTuri(tahrir, p) || "Oq+oq";
-  if (oynaTurlari().includes(ot) || ot === LAMBRI) return ot;
+  if (oynaTurlari().includes(ot) || lambrimi(ot)) return ot;
   let bor = false;
   try { bor = ot in (JSON.parse(ol("narxlar")).steklopaket_som || {}); } catch (e) {}
   return ot + (bor ? " (katalogda yashirilgan)" : " (roʻyxatda yoʻq — boshqasini tanlang)");
@@ -1955,9 +1959,9 @@ function ichkiPanel(b, bosh) {
       <button class="tugma" data-amal="ii_ol" data-v='${JSON.stringify(y)}'>Olish</button></div>`;
     const barglar = t.olchamlar.map((_, j) => j).filter((j) => !(t.bolaklar && t.bolaklar[j] && t.bolaklar[j].olchamlar));
     q += `<div class="tugmalar">${barglar.map((j) => {
-      const lb = !!(t.bolaklar && t.bolaklar[j] && t.bolaklar[j].oyna_turi === LAMBRI);
+      const ot = t.bolaklar && t.bolaklar[j] && t.bolaklar[j].oyna_turi, lb = lambrimi(ot);
       if (!lambriBor()) return "";
-      return `<button class="tugma${lb ? " faol" : ""}" data-amal="ii_lambri" data-v='${JSON.stringify(y + ":" + j)}'>${j + 1}: ${lb ? "Lambri ✓" : "Oyna"}</button>`;
+      return `<button class="tugma${lb ? " faol" : ""}" data-amal="ii_lambri" data-v='${JSON.stringify(y + ":" + j)}'>${j + 1}: ${ot === LAMBRI_ALU ? "Lambri alyumin ✓" : lb ? "Lambri PVX ✓" : "Oyna"}</button>`;
     }).join("")}</div>`;
     (t.bolaklar || []).forEach((c, j) => { if (c && c.olchamlar) yur(c, [...yol, j], `${nom}${j + 1}-boʻlak ichida → `); });
   };
@@ -2525,10 +2529,11 @@ $("k-panel").addEventListener("click", (e) => {
   const v = JSON.parse(el.dataset.v);
   if (el.dataset.amal === "ii_ol") ichkiImpostOl(b, iiYol(v));
   else if (el.dataset.amal === "ii_lambri") {
-    // tabaqa ichi boʻlagi: oyna ⇄ lambri (foydalanuvchi, 2026-11-09)
+    // tabaqa ichi boʻlagi: Oyna → Lambri PVX → Lambri alyumin → Oyna (foydalanuvchi, 2026-11-09; alyumin 2026-11-23)
     const [y_, j_] = v.split(":"), t = iiTugun(b, iiYol(y_)), j = +j_;
     if (!t.bolaklar) t.bolaklar = t.olchamlar.map(() => null);
-    t.bolaklar[j] = t.bolaklar[j] && t.bolaklar[j].oyna_turi === LAMBRI ? null : { oyna_turi: LAMBRI };
+    const ot = t.bolaklar[j] && t.bolaklar[j].oyna_turi;
+    t.bolaklar[j] = ot === LAMBRI ? { oyna_turi: LAMBRI_ALU } : ot === LAMBRI_ALU ? null : { oyna_turi: LAMBRI };
   }
   else if (el.dataset.amal === "ii_qosh") ichkiImpostQosh(b, [], v, 2);
   else if (el.dataset.amal === "esh_en") {

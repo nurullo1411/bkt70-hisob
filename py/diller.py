@@ -117,6 +117,10 @@ def eng_profil_nomi(profil, rang):
 # PVX lambri diller nomi sklad rangi boʻyicha (foydalanuvchi, 2026-11-10): laminatda ichi oq variant (11,70);
 # grey (ichi oq varianti yoʻq), 306g va anod ga alux antrazit
 _LAMBRI_ALUX = "TRIO 6000 (Alyuks-Oq) Lambri New LAM LL (N)"
+# Alyumin lambri 114 (foydalanuvchi, 2026-11-23; AKFA full price 04.11.2026). sh/d da 114 yoʻq — rang soʻraladi.
+LAMBRI_114_NOM = {"oq": "114 Lambri (Oq) (Adt)", "306g": "(A) Lambri (114) (SW306G)", "z/d": "(A) Lambri (114) (V Zol Dub)",
+                  "d/m": "(A) Lambri (114) (V Dub Mokko)", "grey": "(A) Lambri (114) (7011)", "alux": "(A) Lambri (114) (7011)",
+                  "anod": "(A) Lambri (114) (15020)"}
 LAMBRI_NOM = {"oq": "Lambri II (N)", "grey": _LAMBRI_ALUX, "alux": _LAMBRI_ALUX, "306g": _LAMBRI_ALUX,
               "anod": _LAMBRI_ALUX,
               "sh/d": "TRIO 6000 (Sheffal Dub-Oq) Lambri LAM LL (N)",
@@ -164,6 +168,8 @@ def profil_nomi(profil, rang, ald_tur="ADT"):
         return ald_profil_nomi(profil, rang, ald_tur)
     if profil in ENGELBERG_PROFILLARI:
         return eng_profil_nomi(profil, rang)
+    if profil == "L114":  # alyumin lambri 8 sm, 6 m (foydalanuvchi, 2026-11-23)
+        return LAMBRI_114_NOM.get(rang, f"114 Lambri — {rang} rangi AKFA da yoʻq") if rang else "114 Lambri — rangi?"
     if profil == "LII":  # PVX lambri 10 sm, 6 m (foydalanuvchi, 2026-11-09)
         return LAMBRI_NOM.get(rang or "", "Lambri II (N) — rangi?")
     if rang in ("oq", "306g", "anod"):

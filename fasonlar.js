@@ -214,7 +214,7 @@ function fasonRasm(f) {
   // tabaqa ichi (sendvich, ichki impost)
   const ichki = (ii, x, y, w, h) => {
     if (!ii) { ich += oyna(x, y, w, h); return; }
-    if (ii.oyna_turi === "Lambri") { ich += oyna(x, y, w, h, true); return; }
+    if (/^Lambri/.test(ii.oyna_turi || "")) { ich += oyna(x, y, w, h, true); return; }
     const v = ii.yonalish === "vertikal", d = qism(ii.olchamlar, v ? w : h);
     let p = 0;
     d.forEach((q, i) => {
@@ -256,7 +256,7 @@ function fasonRasm(f) {
       }
       return;
     }
-    ich += oyna(x + t / 2, y + t / 2, w - t, h - t, b.oyna_turi === "Lambri") + belgi(x + t, y + t, w - 2 * t, h - 2 * t, b);
+    ich += oyna(x + t / 2, y + t / 2, w - t, h - t, /^Lambri/.test(b.oyna_turi || "")) + belgi(x + t, y + t, w - 2 * t, h - 2 * t, b);
   };
   const W = L * s, Hh = H * s, ox = (72 - W) / 2, oy = (72 - Hh) / 2;
   if (r.bolak.lapsha) chiz(r.bolak, ox + t, oy + t, W - 2 * t, Hh - 2 * t);

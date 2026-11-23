@@ -733,6 +733,7 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
 .chizma .lb { fill: var(--rama-1, #eef0f2); stroke: var(--rama-chiziq, #8a939c); stroke-width: .3; }
 .chizma .lb-ch { stroke: var(--rama-chiziq, #8a939c); stroke-width: .35; opacity: .7; }
 .lambri-namuna { background: repeating-linear-gradient(90deg, #d9dde1 0 5px, #8a939c 5px 6px) !important; }
+.lambri-namuna.lambri-alu { background: repeating-linear-gradient(90deg, #c9ced3 0 4px, #6e7780 4px 5px) !important; }
 
 /* tanlov jadvali (konstruktor): har tanlov bir qatorda */
 .jadval { padding: 4px 12px; }
