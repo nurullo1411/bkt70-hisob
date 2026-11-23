@@ -165,7 +165,14 @@ LAMBRI_AYIRMA = D(1)
 LAMBRI_ALU = "Lambri alyumin"
 LAMBRI_ALU_PROFIL = "L114"
 LAMBRI_ALU_ENI = D(8)
-LAMBRI_TURLARI = {LAMBRI: (LAMBRI_PROFIL, LAMBRI_ENI, "Lambri"), LAMBRI_ALU: (LAMBRI_ALU_PROFIL, LAMBRI_ALU_ENI, "Lambri alyumin")}
+# Yotiq lambri (foydalanuvchi, 2026-11-23): tasmalar eniga — soni = (ichki boʻyi − 1) : en yuqoriga, uzunligi ichki eni − 1
+LAMBRI_YOTIQ = "Lambri yotiq"
+LAMBRI_ALU_YOTIQ = "Lambri alyumin yotiq"
+# oyna_turi → (profil, tasma eni, detal nomi, yotiq)
+LAMBRI_TURLARI = {LAMBRI: (LAMBRI_PROFIL, LAMBRI_ENI, "Lambri", False),
+                  LAMBRI_ALU: (LAMBRI_ALU_PROFIL, LAMBRI_ALU_ENI, "Lambri alyumin", False),
+                  LAMBRI_YOTIQ: (LAMBRI_PROFIL, LAMBRI_ENI, "Lambri yotiq", True),
+                  LAMBRI_ALU_YOTIQ: (LAMBRI_ALU_PROFIL, LAMBRI_ALU_ENI, "Lambri alyumin yotiq", True)}
 HIVICH_6 = {LAMBRI_PROFIL, LAMBRI_ALU_PROFIL}
 
 
@@ -531,12 +538,12 @@ class Hisob:
     def lambri(self, joy, ichki_en, ichki_boy, yoy=False):
         if yoy:
             raise HisobXato("Arkali boʻlakka lambri hozircha yoʻq")
-        profil, eni, nom = LAMBRI_TURLARI[self.joriy_oyna]
+        profil, eni, nom, yotiq = LAMBRI_TURLARI[self.joriy_oyna]
         en, boy = ichki_en - LAMBRI_AYIRMA, ichki_boy - LAMBRI_AYIRMA
         if en <= 0 or boy <= 0:
             raise HisobXato(f"{joy} lambrisi uchun joy yetmaydi: {en} × {boy}")
-        soni = int(math.ceil(en / eni))
-        self.detal(f"{nom} ({joy.lower()})", profil, boy, soni)
+        soni = int(math.ceil((boy if yotiq else en) / eni))
+        self.detal(f"{nom} ({joy.lower()})", profil, en if yotiq else boy, soni)
         self.lambrilar.append((joy, en, boy, soni, self.joriy_oyna))
 
     def shakl_oyna(self, ichki_en, ichki_boy, tekis_gor, tekis_ver, yoylar):

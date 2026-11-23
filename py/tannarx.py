@@ -66,13 +66,13 @@ def _yolgiz_otxod(umumiy, k):
 def _lambri_ogoh(zakaz, faol):
     """Alyumin lambri 114 sh/d rangida AKFA da yoʻq (foydalanuvchi, 2026-11-23: ogohlantirish; narx laminat turkumi boʻyicha)."""
     from diller import LAMBRI_114_NOM
-    from hisob import LAMBRI_ALU
+    from hisob import LAMBRI_ALU, LAMBRI_ALU_YOTIQ
     from raskroy import _konstruksiya_rangi
     u = (zakaz.get("umumiy") or {}).get("tanlov") or {}
     ogoh = []
     for i, k in enumerate(faol):
         r, _ = _konstruksiya_rangi(u, k)
-        if r and r not in LAMBRI_114_NOM and json.dumps(k.get("bolak"), ensure_ascii=False).count(f'"{LAMBRI_ALU}"'):
+        if r and r not in LAMBRI_114_NOM and any(f'"{t}"' in json.dumps(k.get("bolak"), ensure_ascii=False) for t in (LAMBRI_ALU, LAMBRI_ALU_YOTIQ)):
             ogoh.append(f"{k.get('nom') or f'K{i + 1}'}: alyumin lambri 114 {r} rangida AKFA da yoʻq — narx laminat (7011) boʻyicha; "
                         "boshqa rang yoki PVX lambri tanlang")
     return ogoh
