@@ -1169,6 +1169,8 @@ header h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: 
 .sk-ranglar { display: flex; flex-wrap: wrap; gap: 6px; }
 .sk-ranglar button { min-height: 34px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--chiziq); background: var(--karta); color: var(--matn); font: inherit; font-size: 13px; }
 .sk-ranglar button.faol { background: var(--matn); border-color: var(--matn); color: var(--karta); }
+.sk-profillar button { font-weight: 600; }
+.sk-profillar button.faol { background: var(--asosiy); border-color: var(--asosiy); color: var(--asosiy-matn); }
 .sk-boshliq { text-align: center; padding: 24px 8px; }
 .sk-karta { padding: 12px 12px 14px; }
 .sk-sar { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
@@ -1208,7 +1210,7 @@ body.sk-band #sk-oyna .tugma.asosiy, body.sk-band .sk-firma .tugma { opacity: .6
 .sk-forma { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
 .sk-forma label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--xira); min-width: 0; }
 .sk-forma .keng { grid-column: 1 / -1; margin-top: 0; }
-.sk-forma input { min-height: 46px; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--fon); color: var(--matn); font: inherit; font-size: 17px; box-sizing: border-box; width: 100%; }
+.sk-forma input, .sk-forma select { min-height: 46px; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--chiziq); background: var(--fon); color: var(--matn); font: inherit; font-size: 17px; box-sizing: border-box; width: 100%; }
 .sk-tur { margin-top: 10px; }
 .sk-son { display: flex; gap: 4px; }
 .sk-son input { text-align: center; min-width: 0; }

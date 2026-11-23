@@ -99,9 +99,19 @@ function sbQollash(n, navbat) {
     } else if (o.nom === "bolak_tahrir" || o.nom === "bolak_ochir" || o.nom === "bolak_qaytar") {
       const b = v.bolaklar.find((x) => x.id === a.p_id);
       if (!b) continue;
-      if (o.nom === "bolak_tahrir") { b.sm = a.p_sm; b.rang = a.p_rang; }
+      if (o.nom === "bolak_tahrir") { b.sm = a.p_sm; b.rang = a.p_rang; if (a.p_profil) b.profil_id = id(a.p_profil); }
       else b.holat = o.nom === "bolak_ochir" ? "ochirildi" : "bor";
       b.versiya = (b.versiya || 1) + 1; b.kutish = true;
+    } else if (o.nom === "guruh_rang") {  // kartadagi hamma boʻlak va butun hivich yangi rangga (0003)
+      const pid = id(a.p_profil);
+      if (a.p_eski === a.p_yangi) continue;
+      for (const b of v.bolaklar) if (b.profil_id === pid && b.rang === a.p_eski && b.holat === "bor") { b.rang = a.p_yangi; b.versiya = (b.versiya || 1) + 1; b.kutish = true; }
+      const e = v.butunlar.find((x) => x.profil_id === pid && x.rang === a.p_eski);
+      if (e && e.soni > 0) {
+        let u = v.butunlar.find((x) => x.profil_id === pid && x.rang === a.p_yangi);
+        if (!u) { u = { profil_id: pid, rang: a.p_yangi, soni: 0 }; v.butunlar.push(u); }
+        u.soni += e.soni; e.soni = 0;
+      }
     } else if (o.nom === "butun") {
       const pid = id(a.p_profil);
       let u = v.butunlar.find((x) => x.profil_id === pid && x.rang === a.p_rang);
@@ -161,7 +171,7 @@ function sbJurnalMatn(j) {
   let sm = n(j.sm), eski = "";
   if (j.amal === "tahrirladi") {
     sm = m.eski_sm != null && Number(m.eski_sm) !== Number(j.sm) ? `${n(m.eski_sm)} → ${n(j.sm)}` : n(j.sm);
-    if (m.eski_rang && m.eski_rang !== j.rang) eski = `rang ${m.eski_rang} → ${j.rang}`;
+    eski = [m.eski_profil ? `profil ${m.eski_profil} → ${j.profil}` : "", m.eski_rang && m.eski_rang !== j.rang ? `rang ${m.eski_rang} → ${j.rang}` : ""].filter(Boolean).join(", ");
   } else if (j.amal === "butun_qoshdi" || j.amal === "butun_oldi") eski = `${m.delta > 0 ? "+" : ""}${m.delta} → ${m.soni} ta`;
   else if (j.amal === "seriya_tahrir") eski = `hivich ${n(m.eski)} → ${n(j.sm)}`;
   else if (j.amal === "seriya_qosh") eski = `hivich ${n(j.sm)}`;
@@ -361,7 +371,7 @@ if (typeof window !== "undefined") (function () {
   // ---------- yozish: oflayn navbat (c-qadam, docs/server.md "Navbat") ----------
   // Har amal avval "sb_navbat" ga yoziladi (op_id bilan), keyin sinxron() yuboradi. Server bir op_id ni ikki marta yozmaydi.
   // Koʻrinish = server nusxasi + navbat (sbQollash). Ziddiyat → "sb_ziddiyat" (oyna bilan hal qilinadi).
-  const NAVBAT_AMAL = new Set(["bolak_qosh", "bolak_tahrir", "bolak_ochir", "bolak_qaytar", "butun", "seriya_qosh", "seriya_tahrir", "profil_qosh", "profil_tahrir"]);
+  const NAVBAT_AMAL = new Set(["bolak_qosh", "bolak_tahrir", "bolak_ochir", "bolak_qaytar", "butun", "seriya_qosh", "seriya_tahrir", "profil_qosh", "profil_tahrir", "guruh_rang"]);
   const oqiJ = (k) => { try { return JSON.parse(ok(k) || "[]"); } catch (e) { return []; } };
   const meniki = (x) => { const s = sessiya(); return !!s && x.uid === s.uid; };
   const navbat = () => oqiJ("sb_navbat").filter(meniki);
@@ -398,7 +408,9 @@ if (typeof window !== "undefined") (function () {
     const S = bol ? `S-${bol.raqam}` : "";
     switch (o.nom) {
       case "bolak_qosh": return `Qoʻshish ${a.p_raqamlar.map((r) => "S-" + r).join(", ")} · ${a.p_sm} sm · ${a.p_rang}`;
-      case "bolak_tahrir": return `${S || "Boʻlak"} → ${a.p_sm} sm · ${a.p_rang}`;
+      case "bolak_tahrir": { const p = a.p_profil && b && b.profillar.find((x) => x.id === a.p_profil);
+        return `${S || "Boʻlak"} → ${p ? p.nom + " · " : ""}${a.p_sm} sm · ${a.p_rang}`; }
+      case "guruh_rang": { const p = b && b.profillar.find((x) => x.id === a.p_profil); return `${p ? p.nom + ": " : ""}rang ${a.p_eski} → ${a.p_yangi} (hammasi)`; }
       case "bolak_ochir": return `${S || "Boʻlak"} oʻchirish`;
       case "bolak_qaytar": return `${S || "Boʻlak"} qaytarish`;
       case "butun": return `Butun hivich ${a.p_delta > 0 ? "+" : ""}${a.p_delta} · ${a.p_rang}`;
@@ -445,7 +457,10 @@ if (typeof window !== "undefined") (function () {
           let j;
           try { j = await rpc(o.nom, o.args); }
           catch (e) {
-            if (nomalum(e)) { holat = "oflayn"; break; }
+            // 0003 qoʻllanmagan server: profil koʻchirish / guruh rangi funksiyasi yoʻq — navbat toʻxtab qolmasin (vaqtinchalik emas)
+            if (/PGRST202/.test(e.kod || e.message || "") && (o.nom === "guruh_rang" || (o.nom === "bolak_tahrir" && o.args.p_profil)))
+              j = { xato: "Serverda bu imkoniyat hali yoʻq (0003 yangilanishi qoʻllanmagan) — oʻzgarmadi" };
+            else if (nomalum(e)) { holat = "oflayn"; break; }
             if (e.st === 401) { holat = "kirish"; break; }
             if (e.st === 403 && /aʼzosi emas/.test(e.message)) {  // chiqarilgan: hamma navbat yuborilmadi
               royxatSaqla("sb_yuborilmadi", [...yuborilmadi(), ...nb.map((x) => ({ ...x, xato: e.message }))]);
@@ -455,7 +470,7 @@ if (typeof window !== "undefined") (function () {
             if (/blokingizda emas/.test(e.message) && o.nom === "bolak_qosh" && !o.blokQayta) {  // eski blok — yangi raqamlar
               await yangiRaqam(o, nb, "blok"); continue;
             }
-            j = { xato: e.message };  // boshqa 4xx — ziddiyat roʻyxatiga matn bilan
+            if (!j) j = { xato: e.message };  // boshqa 4xx — ziddiyat roʻyxatiga matn bilan
           }
           holat = "";
           let qolgan = navbat().filter((x) => x.op !== o.op);

@@ -120,16 +120,31 @@ function skBolakQosh(b, { profil, rang, sm, soni = 1, manba = "qoʻlda", sana })
   skJurnal(b, "bolak_qosh", { raqamlar, profil, rang, sm: u, manba });
   return raqamlar;
 }
-function skBolakTahrir(b, raqam, { rang, sm }) {
+function skBolakTahrir(b, raqam, { rang, sm, profil }) {
   const x = b.bolaklar.find((q) => q.raqam === raqam);
   if (!x) throw new Error(`S-${raqam} topilmadi`);
-  const h = skHivich(b, x.profil);
+  // profilni oʻzgartirish (foydalanuvchi, 2026-11-22): faqat shu seriya ichida
+  const eskiP = x.profil, yangiP = profil || x.profil;
+  if (yangiP !== eskiP && (skProfil(b, yangiP) || {}).seriya !== (skProfil(b, eskiP) || {}).seriya) throw new Error("Profil shu seriyada topilmadi");
+  const h = skHivich(b, yangiP);
   const u = Math.round(Number(String(sm).replace(",", ".")) * 10) / 10;
   if (!(u > 0) || u > h) throw new Error(`Uzunlik 0–${h} sm`);
   const r = skRang(rang);
   if (!r) throw new Error("Rangni yozing");
-  x.sm = u; x.rang = r;
-  skJurnal(b, "bolak_tahrir", { raqam, rang: r, sm: u });
+  x.sm = u; x.rang = r; x.profil = yangiP;
+  skJurnal(b, "bolak_tahrir", { raqam, rang: r, sm: u, ...(yangiP !== eskiP ? { profil: yangiP, eski_profil: eskiP } : {}) });
+}
+// Kartadagi rang (foydalanuvchi, 2026-11-22): profil + eski rangdagi hamma boʻlak va butun hivich yangi rangga. Qaytaradi: {bolak, butun}
+function skGuruhRang(b, profil, eski, yangi) {
+  if (!skProfil(b, profil)) throw new Error("Profil topilmadi");
+  const r = skRang(yangi);
+  if (!r) throw new Error("Rangni yozing");
+  if (r === eski) return { bolak: 0, butun: 0 };
+  const bol = b.bolaklar.filter((x) => x.profil === profil && x.rang === eski);
+  for (const x of bol) skBolakTahrir(b, x.raqam, { rang: r, sm: x.sm });
+  const n = (b.butunlar.find((x) => x.profil === profil && x.rang === eski) || {}).soni || 0;
+  if (n) { skButun(b, profil, eski, -n); skButun(b, profil, r, n); }
+  return { bolak: bol.length, butun: n };
 }
 function skBolakOchir(b, raqam, sabab = "oʻchirildi") {
   const i = b.bolaklar.findIndex((q) => q.raqam === raqam);
@@ -185,8 +200,8 @@ function skExcel(b) {
 
 // ---------- koʻrinish uchun guruhlar ----------
 // Seriya ichida profil + rang boʻyicha; profil tartibi — baza tartibi, rang — alifbo; boʻlaklar uzunidan kaltasiga
-function skGuruhlar(b, seriya, { rang = "", izla = "" } = {}) {
-  const pr = b.profillar.filter((p) => p.seriya === seriya);
+function skGuruhlar(b, seriya, { rang = "", izla = "", pnom = "" } = {}) {
+  const pr = b.profillar.filter((p) => p.seriya === seriya && (!pnom || skAsosNom(p.nom).toLowerCase() === pnom.toLowerCase()));
   const q = skNom(izla).toLowerCase().replace(/^s-?/, "");
   const raqamIzla = /^\d+$/.test(q) ? Number(q) : null;
   const g = [];
@@ -212,6 +227,13 @@ function skJami(b, seriya) {
   const but = b.butunlar.filter((x) => !seriya || (skProfil(b, x.profil) || {}).seriya === seriya);
   return { bolak: bol.length, butun: but.reduce((s, x) => s + x.soni, 0),
     summa: skYaxlit(bol.reduce((s, x) => s + (skBolakSumma(b, x) || 0), 0) + but.reduce((s, x) => s + (skButunSumma(b, x) || 0), 0)) };
+}
+// Profil tugmasi (foydalanuvchi, 2026-11-22): nomning "/" dan oldingi qismi ("kosa /306g" → "kosa"), katta-kichik harf farqsiz
+const skAsosNom = (nom) => (String(nom).split("/")[0].trim() || String(nom).trim());
+function skProfilNomlar(b, seriya) {
+  const bor = new Set([...b.bolaklar, ...b.butunlar].map((x) => x.profil)), m = new Map();
+  for (const p of b.profillar) if (p.seriya === seriya && bor.has(p.id)) { const k = skAsosNom(p.nom); if (!m.has(k.toLowerCase())) m.set(k.toLowerCase(), k); }
+  return [...m.values()];  // tartib — profillar tartibi (kartalar kabi)
 }
 function skRanglar(b, seriya) {
   const s = new Set();
@@ -276,7 +298,7 @@ function skTekshir(b) {
 }
 
 if (typeof module !== "undefined") module.exports = { skExcel, skNom, skRang, skMetrSm, skSmMetr, skBoshBaza, skSeriyaQosh, skProfilQosh, skProfilTahrir,
-  skBolakQosh, skBolakTahrir, skBolakOchir, skButun, skBolakSumma, skButunSumma, skGuruhlar, skJami, skRanglar, skEskiKochir, skRaskroyQatorlari, skTekshir, skTiklash, skKesishda, skRaskroyKod, SK_KOD_NOM };
+  skBolakQosh, skBolakTahrir, skGuruhRang, skBolakOchir, skButun, skBolakSumma, skButunSumma, skGuruhlar, skJami, skRanglar, skAsosNom, skProfilNomlar, skEskiKochir, skRaskroyQatorlari, skTekshir, skTiklash, skKesishda, skRaskroyKod, SK_KOD_NOM };
 
 // ======================= Ekran (faqat brauzerda) =======================
 if (typeof document !== "undefined" && document.getElementById("e-sklad")) (function () {
@@ -287,7 +309,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
   const ozk = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
   const okk = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 
-  let seriya = okk("sk_seriya"), rangF = "", izla = "", oyna = null, xabarMatn = "", tasdiq = null, tiklash = null, tasdiqB = null;
+  let seriya = okk("sk_seriya"), rangF = "", profF = "", izla = "", oyna = null, xabarMatn = "", tasdiq = null, tiklash = null, tasdiqB = null;
   // Qoʻshish oynasi oxirgi tanlovni eslaydi (ketma-ket qoʻshish tez boʻlsin)
   let qosh = { tur: "bolak", profil: null, rang: "", soni: 1, yangiProfil: false, oxirgi: [] };
 
@@ -433,8 +455,10 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     }
     if (!skSeriya(b, seriya)) seriya = b.seriyalar[0].id;
     const s = skSeriya(b, seriya), jami = skJami(b, seriya), ranglar = skRanglar(b, seriya);
+    const pnomlar = skProfilNomlar(b, seriya);
     if (rangF && !ranglar.includes(rangF)) rangF = "";
-    const g = skGuruhlar(b, seriya, { rang: rangF, izla: izlaQiymat(izla) });
+    if (profF && !pnomlar.some((x) => x.toLowerCase() === profF.toLowerCase())) profF = "";
+    const g = skGuruhlar(b, seriya, { rang: rangF, izla: izlaQiymat(izla), pnom: profF });
     const tab = (x) => { const j = skJami(b, x.id); return `<button data-sk-s="${x.id}" class="${x.id === seriya ? "faol" : ""}">${h(x.nom)}<small>${j.bolak + j.butun}</small></button>`; };
     let t = srvSatr() + `<div class="sk-tablar" role="tablist">${b.seriyalar.map(tab).join("")}${ega() ? '<button data-sk="seriya" aria-label="Seriya qoʻshish">＋</button>' : ""}</div>
       <section class="sk-tepa"><div><small>${h(s.nom)} · hivich ${smM(s.hivich_sm)} sm</small><b>${jami.bolak} boʻlak${jami.butun ? ` · ${jami.butun} butun` : ""}</b></div>
@@ -442,11 +466,12 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       <button class="tugma asosiy keng sk-qosh-t" data-sk="qosh">+ Qoʻshish</button>
       ${xabarMatn ? `<p class="sk-xabar">${xabarMatn}</p>` : ""}
       <div class="sk-filtr"><input id="sk-izla" type="search" placeholder="Profil yoki S-raqam" value="${h(izla)}" autocomplete="off">
+        ${pnomlar.length > 1 ? `<div class="sk-ranglar sk-profillar"><button data-sk-pf="" class="${profF ? "" : "faol"}">Hammasi</button>${pnomlar.map((r) => `<button data-sk-pf="${h(r)}" class="${r.toLowerCase() === profF.toLowerCase() ? "faol" : ""}">${h(r)}</button>`).join("")}</div>` : ""}
         ${ranglar.length > 1 ? `<div class="sk-ranglar"><button data-sk-r="" class="${rangF ? "" : "faol"}">Hammasi</button>${ranglar.map((r) => `<button data-sk-r="${h(r)}" class="${r === rangF ? "faol" : ""}">${h(r)}</button>`).join("")}</div>` : ""}</div>`;
-    if (!g.length) t += `<p class="xira sk-boshliq">${izlaQiymat(izla) || rangF ? "Hech narsa topilmadi" : "Bu seriyada hali boʻlak yoʻq — “+ Qoʻshish” bosing"}</p>`;
+    if (!g.length) t += `<p class="xira sk-boshliq">${izlaQiymat(izla) || rangF || profF ? "Hech narsa topilmadi" : "Bu seriyada hali boʻlak yoʻq — “+ Qoʻshish” bosing"}</p>`;
     for (const x of g) {
       t += `<section class="karta sk-karta"><div class="sk-sar"><div class="sk-nom"><b>${h(x.profil.nom)}</b><span class="sk-rang">${h(x.rang)}</span>${s.nom in SK_RASKROY && !x.profil.kod ? '<span class="sk-yoq" title="Kesish rejasi bu nomni tanimaydi">kesishda olinmaydi</span>' : ""}</div>
-          ${ega() ? `<button class="sk-ikon" data-sk="profil" data-id="${x.profil.id}" aria-label="Profil narxi va nomi">✏️</button>` : ""}</div>
+          ${ega() ? `<button class="sk-ikon" data-sk="profil" data-id="${x.profil.id}" data-r="${h(x.rang)}" aria-label="Profil nomi, narxi va rangi">✏️</button>` : ""}</div>
         <div class="xira sk-info">${x.bolaklar.length} boʻlak · ${smM(x.metr)} m${x.butun ? ` · ${x.butun} butun` : ""} · ${x.summa == null ? "narx yoʻq" : pul(x.summa)}</div>
         ${x.butun ? `<div class="sk-butun"><span>Butun hivich <small class="xira">${smM(s.hivich_sm)} sm</small></span>
           <button data-sk="butun" data-p="${x.profil.id}" data-r="${h(x.rang)}" data-d="-1" aria-label="Bitta kamaytirish">−</button><b>${x.butun}</b>
@@ -502,7 +527,8 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       q.innerHTML = `<div class="sk-bolak-sar"><span class="sk-raqam">S-${x.raqam}</span><div><b>${h(p.nom)}</b><small class="xira">${h(s.nom)} · ${h(x.rang)}</small></div></div>
         <p class="xira">Qoʻshilgan: ${h(x.sana)} · ${h(x.manba)}${sm != null ? ` · qiymati ${pul(skYaxlit(sm))}` : ""}</p>
         <div class="sk-forma"><label>Uzunlik, sm<input id="skb-sm" type="text" inputmode="decimal" value="${smM(x.sm)}"></label>
-          <label>Rang<input id="skb-rang" type="text" maxlength="20" value="${h(x.rang)}"></label></div>
+          <label>Rang<input id="skb-rang" type="text" maxlength="20" value="${h(x.rang)}"></label>
+          <label class="keng">Profil<select id="skb-profil">${b.profillar.filter((q) => q.seriya === p.seriya).map((q) => `<option value="${h(q.id)}"${q.id === p.id ? " selected" : ""}>${h(q.nom)}${s.nom in SK_RASKROY && !q.kod ? " (kesishda olinmaydi)" : ""}</option>`).join("")}</select></label></div>
         <div class="tugmalar"><button class="tugma${tasdiq === "ochir" ? " xavf" : " tasdiq"}" data-q="ochir">${tasdiq === "ochir" ? "Rostdan oʻchirilsinmi?" : "Oʻchirish"}</button>
           <button class="tugma" data-q="yop">Yopish</button><button class="tugma asosiy" data-q="bsaqla">Saqlash</button></div>
         ${srv() ? `<button class="tugma keng sk-tarix-t" data-q="btarix">🕘 S-${x.raqam} tarixi</button>` : ""}`;
@@ -513,7 +539,10 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       if (!p) { yop(); return; }
       q.innerHTML = `<div class="sarlavha-katta">Profil</div><div class="sk-forma">
         <label class="keng">Nomi<input id="skp-nom" type="text" maxlength="40" value="${h(p.nom)}"></label>
-        <label class="keng">Hivich narxi, $ (summa shundan)<input id="skp-narx" type="text" inputmode="decimal" value="${p.narx == null ? "" : String(p.narx).replace(".", ",")}" placeholder="boʻsh — narx yoʻq"></label></div>
+        <label class="keng">Hivich narxi, $ (summa shundan)<input id="skp-narx" type="text" inputmode="decimal" value="${p.narx == null ? "" : String(p.narx).replace(".", ",")}" placeholder="boʻsh — narx yoʻq"></label>
+        ${oyna.rang ? (() => { const nb = b.bolaklar.filter((x) => x.profil === p.id && x.rang === oyna.rang).length, nu = (b.butunlar.find((x) => x.profil === p.id && x.rang === oyna.rang) || {}).soni || 0;
+          return `<label class="keng">Shu kartadagi rang<input id="skp-rang" type="text" maxlength="20" value="${h(oyna.rang)}" autocomplete="off"></label>
+        <p class="xira keng">Oʻzgartirsangiz, ${nb} boʻlak${nu ? ` va ${nu} butun hivich` : ""} yangi rangga oʻtadi (nom oʻzgarmaydi).</p>`; })() : ""}</div>
         <p class="xira">${p.kod ? `Kesish rejasida: ${h(p.kod)} (nom oʻzgarsa ham qoladi)` : "Kesish rejasida ishlatilmaydi"}</p>
         <div class="tugmalar"><button class="tugma" data-q="yop">Yopish</button><button class="tugma asosiy" data-q="psaqla">Saqlash</button></div>`;
       return;
@@ -615,7 +644,8 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     if (zd.tur === "versiya" && bol) {
       if (z.nom === "bolak_ochir") return { sarlavha: `${S} oʻzgargan`, matn: `${kim}${qachon} ${S} ni ${smM(bol.sm)} sm · ${h(bol.rang)} qilgan. Siz uni oʻchirmoqchi edingiz.`,
         tugmalar: [["uniki", "Oʻchirmaslik"], ["meniki", "Baribir oʻchirish", true]] };
-      return { sarlavha: `${S}: qaysi toʻgʻri?`, matn: `${kim}${qachon} ${S} ni <b>${smM(bol.sm)} sm · ${h(bol.rang)}</b> qilgan, siz — <b>${smM(a.p_sm)} sm · ${h(a.p_rang)}</b>.`,
+      const pn = (pid) => { const q = pid && skProfil(b, pid); return q ? h(q.nom) + " · " : ""; }, pk = a.p_profil && a.p_profil !== bol.profil_id;
+      return { sarlavha: `${S}: qaysi toʻgʻri?`, matn: `${kim}${qachon} ${S} ni <b>${pk ? pn(bol.profil_id) : ""}${smM(bol.sm)} sm · ${h(bol.rang)}</b> qilgan, siz — <b>${pk ? pn(a.p_profil) : ""}${smM(a.p_sm)} sm · ${h(a.p_rang)}</b>.`,
         tugmalar: [["uniki", `${kim}niki qolsin`], ["meniki", "Meniki toʻgʻri", true]], bogliqMatn: "“Meniki”da ular ham yoziladi" };
     }
     if (zd.tur === "holat" && bol) {
@@ -841,7 +871,9 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
 
   el("e-sklad").addEventListener("click", (e) => {
     const s = e.target.closest("[data-sk-s]");
-    if (s) { seriya = s.dataset.skS; ozk("sk_seriya", seriya); rangF = ""; izla = ""; xabarMatn = ""; chiz(); return; }
+    if (s) { seriya = s.dataset.skS; ozk("sk_seriya", seriya); rangF = ""; profF = ""; izla = ""; xabarMatn = ""; chiz(); return; }
+    const pf = e.target.closest("[data-sk-pf]");
+    if (pf) { profF = pf.dataset.skPf; chiz(); return; }
     const r = e.target.closest("[data-sk-r]");
     if (r) { rangF = r.dataset.skR; chiz(); return; }
     const t = e.target.closest("[data-sk]");
@@ -857,7 +889,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     else if (a === "qosh") { qosh.oxirgi = []; och({ t: "qosh" }); }
     else if (a === "seriya") och({ t: "seriya" });
     else if (a === "seriya-t") och({ t: "seriya-t", id: t.dataset.id });
-    else if (a === "profil") och({ t: "profil", id: t.dataset.id });
+    else if (a === "profil") och({ t: "profil", id: t.dataset.id, rang: t.dataset.r || "" });
     else if (a === "bolak") och({ t: "bolak", n: Number(t.dataset.n) });
     else if (a === "butun") butunPM(t.dataset.p, t.dataset.r, Number(t.dataset.d));
     else if (a === "zaxira") zaxira();
@@ -971,11 +1003,12 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     else if (a === "soni") { const i = el("skq-soni"); i.value = Math.max(1, (Number(i.value) || 1) + Number(t.dataset.v)); }
     else if (a === "saqla") qoshSaqla();
     else if (a === "bsaqla") {
-      const n = oyna.n, rang = el("skb-rang").value, sm = el("skb-sm").value;
-      if (!srv()) { if (amal((b) => skBolakTahrir(b, n, { rang, sm }))) { xabarMatn = `✓ S-${n} saqlandi`; yop(); } return; }
+      const n = oyna.n, rang = el("skb-rang").value, sm = el("skb-sm").value, profil = el("skb-profil") ? el("skb-profil").value : undefined;
+      if (!srv()) { if (amal((b) => skBolakTahrir(b, n, { rang, sm, profil }))) { xabarMatn = `✓ S-${n} saqlandi`; yop(); } return; }
       const x = baza().bolaklar.find((q) => q.raqam === n);
-      ishla((b) => skBolakTahrir(b, n, { rang, sm }), () => SB.yoz("bolak_tahrir",
-        { p_id: x.id, p_versiya: x.versiya, p_sm: Math.round(Number(String(sm).replace(",", ".")) * 10) / 10, p_rang: skRang(rang) }))
+      // p_profil faqat oʻzgarganda (0003 qoʻllanmagan serverda oddiy tahrir ishlayversin)
+      ishla((b) => skBolakTahrir(b, n, { rang, sm, profil }), () => SB.yoz("bolak_tahrir",
+        { p_id: x.id, p_versiya: x.versiya, p_sm: Math.round(Number(String(sm).replace(",", ".")) * 10) / 10, p_rang: skRang(rang), ...(profil && profil !== x.profil ? { p_profil: profil } : {}) }))
         .then((r) => { if (r) { xabarMatn = `${r.navbatda ? "⏳" : "✓"} S-${n} saqlandi`; yop(); } });
     }
     else if (a === "ochir") {
@@ -988,11 +1021,22 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
       });
     }
     else if (a === "psaqla") {
-      const id = oyna.id, nom = el("skp-nom").value, narx = el("skp-narx").value;
-      if (!srv()) { if (amal((b) => skProfilTahrir(b, id, nom, narx))) yop(); return; }
-      const p = skProfil(baza(), id);
-      ishla((b) => skProfilTahrir(b, id, nom, narx), () => SB.yoz("profil_tahrir",
-        { p_id: id, p_versiya: p.versiya, p_nom: skNom(nom), p_narx: sonV(narx), p_kod: p.kod || "" })).then((r) => { if (r) yop(); });
+      const id = oyna.id, nom = el("skp-nom").value, narx = el("skp-narx").value, eskiR = oyna.rang || "";
+      const yangiR = el("skp-rang") ? skRang(el("skp-rang").value) : eskiR, rangOz = !!eskiR && yangiR !== eskiR;
+      const p = skProfil(baza() || skBoshBaza(), id);
+      if (!p) { yop(); return; }
+      const pOz = skNom(nom) !== p.nom || sonV(narx) !== (p.narx ?? null);
+      // avval rang (ziddiyatsiz), keyin nom/narx — nom ziddiyatga tushsa ham rang oʻtgan boʻladi
+      const lokal = (b) => { const g = rangOz ? skGuruhRang(b, id, eskiR, yangiR) : null; if (pOz || !rangOz) skProfilTahrir(b, id, nom, narx); return g; };
+      const xab = (g, nav) => { if (g && rangF === eskiR) rangF = yangiR; if (g) xabarMatn = `${nav ? "⏳" : "✓"} ${h(skNom(nom))}: ${g.bolak} boʻlak${g.butun ? `, ${g.butun} butun` : ""} — ${h(eskiR)} → ${h(yangiR)}`; };
+      if (!srv()) { const r = amal(lokal); if (r) { xab(r === true ? null : r); yop(); } return; }
+      const sinov = { g: null };
+      ishla((b) => { sinov.g = lokal(b); }, async () => {
+        let r = null;
+        if (rangOz) r = await SB.yoz("guruh_rang", { p_profil: id, p_eski: eskiR, p_yangi: yangiR });
+        if (pOz || !rangOz) r = await SB.yoz("profil_tahrir", { p_id: id, p_versiya: p.versiya, p_nom: skNom(nom), p_narx: sonV(narx), p_kod: p.kod || "" });
+        return r;
+      }).then((r) => { if (r) { xab(sinov.g, r.navbatda); yop(); } });
     }
     else if (a === "ssaqla") {
       const nom = el("sks-nom").value, hv = String(el("sks-h").value).replace(",", ".");
