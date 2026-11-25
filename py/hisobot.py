@@ -564,7 +564,7 @@ def _termo_rezina(s, r, ser):
 
 
 def _termo_aksessuar(s, narxlar, r, ser):
-    """Burchak soedineli json "soedinitel" dan (har: rama, rama_burchak, qanot, qanot_burchak); impost 01.553 ("19 ugl")
+    """Burchak soedineli json "soedinitel" dan (har: rama, rama_burchak, qanot, qanot_burchak); A10 burchak listi; impost 01.553 ("19 ugl")
     har uchiga 2 + samorez; K188 kley har burchakka; Takos 24 × 2 tabaqa oynasiga, CT 203 × 2 gluxoyga
     (foydalanuvchi, 2026-11-25: Termo 70 dagidek)."""
     rama, tabaqa = sum(s["ramalar"].values()), sum(s["tabaqalar"].values())
@@ -575,6 +575,11 @@ def _termo_aksessuar(s, narxlar, r, ser):
     for nom, soni in jami.items():
         if soni:
             r.qosh("Aksessuar", nom, soni, "dona")
+    # A10 burchak listi Termo 70 dagidek (foydalanuvchi, 2026-11-25): rama burchagiga A10-001, qanot burchagiga A10-002 + A10-003
+    r.qosh("Aksessuar", "A10-001", 4 * rama, "dona")
+    if tabaqa:
+        r.qosh("Aksessuar", "A10-002", 4 * tabaqa, "dona")
+        r.qosh("Aksessuar", "A10-003", 4 * tabaqa, "dona")
     burchak = 4 * (rama + tabaqa)
     kley_g = D(burchak * K188_BURCHAKKA_G)
     r.summa_bilan("Aksessuar", "K188 kley", kley_g, "g",
