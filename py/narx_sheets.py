@@ -75,7 +75,7 @@ def tuz(manba):
     # Engelberg 7000 (2026-11-09): Narxlar dagi "ENG 7051 | Oq" (hivich 6 m narxi) qatorlari;
     # metall rangga bogʻliq emas: "ENG 0701 | *"; yangi PVX seriyalar (2026-11-25): "PVX 6041 | Oq"
     for kalit, qiymat in narx.items():
-        m = re.match(r"^((?:ENG|BKT70|ALD|PVX) \S+) \| (.+)$", kalit)  # BKT70 LII — lambri (Narxlar da)
+        m = re.match(r"^((?:ENG|BKT70|ALD|PVX|TERMO) \S+) \| (.+)$", kalit)  # BKT70 LII — lambri (Narxlar da)
         if m:
             profil.setdefault(m.group(1), {})[m.group(2)] = qiymat
 

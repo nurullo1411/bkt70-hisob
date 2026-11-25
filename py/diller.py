@@ -13,7 +13,7 @@ Oyna oʻlchami 0,5 sm ga: yuqoriga faqat 2 mm gacha kattalashsa (79,9 → 80), a
 
 from math import ceil, floor
 
-from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG_PROFILLARI, PVX_PROFIL, HisobXato, asl_profil, oyna_qalinligi
+from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG_PROFILLARI, PVX_PROFIL, TERMO_PROFIL, HisobXato, asl_profil, oyna_qalinligi
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
@@ -125,6 +125,14 @@ def pvx_profil_nomi(profil, rang):
     return s["nom_lam"][profil].format(r=r, ll="LAM LL" if r.startswith("7011") else "LAM")
 
 
+def termo_profil_nomi(profil, rang):
+    """Yangi Termo seriya (seriyalar.json "nom": kod → sklad rangi → AKFA nomi; foydalanuvchi, 2026-11-25)."""
+    if not rang:
+        return f"{profil} — rangi?"
+    nom = (TERMO_PROFIL[profil].get("nom") or {}).get(profil, {}).get(rang)
+    return nom or f"{profil} — {rang} rangi AKFA da yoʻq"
+
+
 # PVX lambri diller nomi sklad rangi boʻyicha (foydalanuvchi, 2026-11-10): laminatda ichi oq variant (11,70);
 # grey (ichi oq varianti yoʻq), 306g va anod ga alux antrazit
 _LAMBRI_ALUX = "TRIO 6000 (Alyuks-Oq) Lambri New LAM LL (N)"
@@ -181,6 +189,8 @@ def profil_nomi(profil, rang, ald_tur="ADT"):
         return eng_profil_nomi(profil, rang)
     if profil in PVX_PROFIL:
         return pvx_profil_nomi(profil, rang)
+    if profil in TERMO_PROFIL:
+        return termo_profil_nomi(profil, rang)
     if profil == "L114":  # alyumin lambri 8 sm, 6 m (foydalanuvchi, 2026-11-23)
         return LAMBRI_114_NOM.get(rang, f"114 Lambri — {rang} rangi AKFA da yoʻq") if rang else "114 Lambri — rangi?"
     if profil == "LII":  # PVX lambri 10 sm, 6 m (foydalanuvchi, 2026-11-09)

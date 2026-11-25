@@ -249,5 +249,185 @@
     "Anod"
    ]
   }
+ ],
+ "termo": [
+  {
+   "nomi": "BKT-57",
+   "guruh": "Termo",
+   "kosa": "WDT.57.F0002",
+   "qanot": "WDT.57.V0002",
+   "urta": "WDT.57.M0005",
+   "shtapik": {
+    "20": "WDT.67.G0005"
+   },
+   "r": "3.4",
+   "urta_yarmi": "1.7",
+   "qanot_qoshimcha": "1.2",
+   "qanot_ayirma": "10.6",
+   "oyna_ayirma": "1.2",
+   "shtapik_qalinligi": "2.2",
+   "oyna_standart": 20,
+   "rang_yoq": [],
+   "nom": {
+    "WDT.57.F0002": {
+     "oq": "TERMO BKT 57 F0002 Kosa (Oq) (6.5m)",
+     "306g": "TERMO BKT 57 F0002 Kosa (SW306G) (6.5m)",
+     "anod": "TERMO BKT 57 F0002 Kosa (15051) (6.5m)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) BKT 57 F0002 Kosa (6.5m)",
+     "alux": "T LAM (7011-Alyuks LL) BKT 57 F0002 Kosa (6.5m)",
+     "sh/d": "T LAM (7011-Sheffal Dub LL) BKT 57 F0002 Kosa (6.5m)",
+     "d/m": "T LAM (8017-Dub Mokko) BKT 57 F0002 Kosa (6.5m) (N)",
+     "z/d": "T LAM (8017-Zol Dub) BKT 57 F0002 Kosa (6.5m)"
+    },
+    "WDT.57.V0002": {
+     "oq": "TERMO BKT 57 V0002 Qanot (Oq) (6.5m)",
+     "306g": "TERMO BKT 57 V0002 Qanot (SW306G) (6.5m)",
+     "anod": "TERMO BKT 57 V0002 Qanot (15051) (6.5m)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) BKT 57 V0002 Qanot (6.5m)",
+     "alux": "T LAM (7011-Alyuks LL) BKT 57 V0002 Qanot (6.5m)",
+     "sh/d": "T LAM (7011-Sheffal Dub LL) BKT 57 V0002 Qanot (6.5m)",
+     "d/m": "T LAM (8017-Dub Mokko) BKT 57 V0002 Qanot (6.5m) (N)",
+     "z/d": "T LAM (8017-Zol Dub) BKT 57 V0002 Qanot (6.5m)"
+    },
+    "WDT.57.M0005": {
+     "oq": "TERMO BKT 57 M0005 Urta (Oq) (6.5m)",
+     "306g": "TERMO BKT 57 M0005 Urta (SW306G) (6.5m)",
+     "anod": "TERMO BKT 57 M0005 Urta (15051) (6.5m)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) BKT 57 M0005 Urta (6.5m)",
+     "alux": "T LAM (7011-Alyuks LL) BKT 57 M0005 Urta (6.5m)",
+     "sh/d": "T LAM (7011-Sheffal Dub LL) BKT 57 M0005 Urta (6.5m)",
+     "d/m": "T LAM (8017-Dub Mokko) BKT 57 M0005 Urta (6.5m) (N)",
+     "z/d": "T LAM (8017-Zol Dub) BKT 57 M0005 Urta (6.5m)"
+    },
+    "WDT.67.G0005": {
+     "oq": "TERMO WDT 67 G05 Shtapik (Oq) (6.5m)",
+     "306g": "TERMO WDT 67 G05 Shtapik (SW306G) (6.5m)",
+     "anod": "TERMO WDT 67 G05 Shtapik (15051) (6.5m)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) Shtapik WDT 67 G05 (6.5m)",
+     "alux": "T LAM (8017-Alyuks) Shtapik WDT 67 G05 (6.5m)",
+     "sh/d": "T LAM (8017-Sheffal Dub) Shtapik WDT 67 G05 (6.5m) (N)",
+     "d/m": "T LAM (8017-Dub Mokko) Shtapik WDT 67 G05 (6.5m) (N)",
+     "z/d": "T LAM (8017-Zol Dub) Shtapik WDT 67 G05 (6.5m) (N)"
+    }
+   },
+   "kisqa": {
+    "WDT.57.F0002": "Kosa BKT 57",
+    "WDT.57.V0002": "Qanot BKT 57",
+    "WDT.57.M0005": "Urta BKT 57",
+    "WDT.67.G0005": "Shtapik G05"
+   }
+  },
+  {
+   "nomi": "EWDT-70",
+   "guruh": "Termo",
+   "kosa": "EWDT.70.F001",
+   "qanot": "EWDT.70.V001",
+   "urta": "EWDT.70.M001",
+   "shtapik": {
+    "24": "WDT.65.G0035"
+   },
+   "r": "3.8",
+   "urta_yarmi": "1.9",
+   "qanot_qoshimcha": "1.2",
+   "qanot_ayirma": "11.8",
+   "oyna_ayirma": "1.2",
+   "shtapik_qalinligi": "3.5",
+   "oyna_standart": 24,
+   "rang_yoq": [
+    "Oq",
+    "Anod"
+   ],
+   "nom": {
+    "EWDT.70.F001": {
+     "oq": "TERMO EWDT70 F001 (Oq) (6.5m) (N)",
+     "306g": "TERMO EWDT70 F001 (SW306G) (6.5m) (N)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) EWDT70 F001 (6.5m)",
+     "alux": "T LAM (7011-Shef Granit-Alyuks LL) EWDT70 F001 (6.5m) (N)",
+     "sh/d": "T LAM (7011-Sheffal Dub) EWDT70 F001 (6.5m) (N)",
+     "d/m": "T LAM (8017-Dub Mokko) EWDT70 F001 (6.5m) (N)"
+    },
+    "EWDT.70.V001": {
+     "306g": "TERMO EWDT70 V001 (SW306G) (6.5m) (N)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) EWDT70 V001 (6.5m)",
+     "alux": "T LAM (7011-Shef Granit-Alyuks LL) EWDT70 V001 (6.5m) (N)",
+     "sh/d": "T LAM (7011-Sheffal Dub) EWDT70 V001 (6.5m) (N)",
+     "d/m": "T LAM (8017-Dub Mokko) EWDT70 V001 (6.5m) (N)"
+    },
+    "EWDT.70.M001": {
+     "306g": "TERMO EWDT70 M001 (SW306G) (6.5m) (N)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) EWDT70 M001 (6.5m)",
+     "alux": "T LAM (7011-Shef Granit-Alyuks LL) EWDT70 M001 (6.5m) (N)",
+     "sh/d": "T LAM (7011-Sheffal Dub) EWDT70 M001 (6.5m) (N)",
+     "d/m": "T LAM (8017-Dub Mokko) EWDT70 M001 (6.5m) (N)"
+    },
+    "WDT.65.G0035": {
+     "oq": "TERMO WDT 65 G0035 Shtapik (R) (Oq) (6.5m) (N)",
+     "306g": "TERMO WDT 65 G0035 (SW306G) (6.5m) (N)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) WDT 65 G0035 (6.5m) (N)",
+     "alux": "T LAM (8017-Alyuks) WDT65 G0035 (6.5m) (N)",
+     "sh/d": "T LAM (8017-Sheffal Dub) WDT 65 G0035 (6.5m) (N)",
+     "d/m": "T LAM (8017-Dub Mokko) WDT 65 G0035 (6.5m) (N)"
+    }
+   },
+   "kisqa": {
+    "EWDT.70.F001": "Kosa EWDT 70",
+    "EWDT.70.V001": "Qanot EWDT 70",
+    "EWDT.70.M001": "Urta EWDT 70",
+    "WDT.65.G0035": "Shtapik G0035"
+   }
+  },
+  {
+   "nomi": "EWDT-80",
+   "guruh": "Termo",
+   "kosa": "EWDT.80.F001",
+   "qanot": "EWDT.80.V001",
+   "urta": "EWDT.80.M001",
+   "shtapik": {
+    "24": "WDT.65.G0045"
+   },
+   "r": "3.8",
+   "urta_yarmi": "1.9",
+   "qanot_qoshimcha": "1.2",
+   "qanot_ayirma": "11.8",
+   "oyna_ayirma": "1.2",
+   "shtapik_qalinligi": "4.5",
+   "oyna_standart": 24,
+   "rang_yoq": [
+    "Oq",
+    "Anod"
+   ],
+   "nom": {
+    "EWDT.80.F001": {
+     "306g": "TERMO EWDT80 F001 (SW306G) (6.5m) (N)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) EWDT80 F001 (6.5m) (N)",
+     "alux": "T LAM (7011-Alyuks) EWDT80 F001 (6.5m) (N)",
+     "d/m": "T LAM (8017-Dub Mokko) EWDT80 F001 (6.5m) (N)"
+    },
+    "EWDT.80.V001": {
+     "306g": "TERMO EWDT80 V001 (SW306G) (6.5m) (N)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) EWDT80 V001 (6.5m) (N)",
+     "alux": "T LAM (7011-Alyuks) EWDT80 V001 (6.5m) (N)",
+     "d/m": "T LAM (8017-Dub Mokko) EWDT80 V001 (6.5m) (N)"
+    },
+    "EWDT.80.M001": {
+     "306g": "TERMO EWDT80 M001 (SW306G) (6.5m) (N)",
+     "grey": "T LAM (7011-Anthrazit Grey LL) EWDT80 M001 (6.5m) (N)",
+     "alux": "T LAM (7011-Alyuks) EWDT80 M001 (6.5m) (N)",
+     "d/m": "T LAM (8017-Dub Mokko) EWDT80 M001 (6.5m) (N)"
+    },
+    "WDT.65.G0045": {
+     "306g": "TERMO WDT 65 G0045 (SW306G) (6.5m) (N)",
+     "grey": "T LAM (8017-Anthrazit Grey LL) WDT 65 G0045 (6.5m) (N)",
+     "alux": "T LAM (8017-Alyuks) WDT 65 G0045 (6.5m) (N)",
+     "d/m": "T LAM (8017-Dub Mokko) WDT 65 G0045 (6.5m) (N)"
+    }
+   },
+   "kisqa": {
+    "EWDT.80.F001": "Kosa EWDT 80",
+    "EWDT.80.V001": "Qanot EWDT 80",
+    "EWDT.80.M001": "Urta EWDT 80",
+    "WDT.65.G0045": "Shtapik G0045"
+   }
+  }
  ]
 }

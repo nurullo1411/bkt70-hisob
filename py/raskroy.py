@@ -12,7 +12,7 @@ from copy import deepcopy
 from math import ceil
 from pathlib import Path
 
-from hisob import PVX_MALUMOT, HisobXato, asl_profil, hisobla, kesish_profili
+from hisob import PVX_MALUMOT, TERMO_MALUMOT, HisobXato, asl_profil, hisobla, kesish_profili
 from zakaz import _birlashtir
 
 HIVICH = 650
@@ -673,6 +673,18 @@ for _s in PVX_MALUMOT.values():
             TARTIB.append(_p)
         PROFIL_NOMI.setdefault(_p, (_s.get("kisqa") or {}).get(_p, _p))
     TOGRI_KESIM.update({_s["urta"], *_metall})
+
+
+# Yangi Termo seriyalar (seriyalar.json; foydalanuvchi, 2026-11-25): Termo 70 dagidek — hivich 6,5 m, otxod chegarasi
+# kosa 70, qanot 60, urta 100, shtapik 40; urta va shtapik 90°.
+for _s in TERMO_MALUMOT.values():
+    _shtapik = set(_s["shtapik"].values())
+    for _p, _ch in [(_s["kosa"], 70), (_s["qanot"], 60), (_s["urta"], 100), *((x, 40) for x in _shtapik)]:
+        OTXOD_CHEGARA[_p] = _ch
+        if _p not in TARTIB:
+            TARTIB.append(_p)
+        PROFIL_NOMI.setdefault(_p, (_s.get("kisqa") or {}).get(_p, _p))
+    TOGRI_KESIM.update({_s["urta"], *_shtapik})
 
 
 def toliq_nom(profil):

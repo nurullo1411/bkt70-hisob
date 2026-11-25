@@ -170,6 +170,9 @@ SERIYALAR_FAYL = Path(__file__).with_name("seriyalar.json")
 PVX_SERIYALAR = []        # Seriya obyektlari
 PVX_MALUMOT = {}          # seriya nomi → json yozuvi
 PVX_PROFIL = {}           # profil (va metall) kodi → json yozuvi
+TERMO_SERIYALAR = []      # yangi Termo seriyalar (seriyalar.json "termo"; foydalanuvchi, 2026-11-25)
+TERMO_MALUMOT = {}        # seriya nomi → json yozuvi
+TERMO_PROFIL = {}         # profil kodi → json yozuvi
 PVX_XATOLAR = []          # yaroqsiz yozuvlar: seriya oʻtkazib yuboriladi (ilova toʻxtamaydi); test va ilova_yig tekshiradi
 
 
@@ -178,15 +181,16 @@ def _pvx_yukla():
         return  # rama tekshiruvi "seriyalar.json yuklanmadi" deydi (hisobla)
     umumiy = {}  # bir nechta seriyada bir xil kod (6035, 0601…): nomi bir xil boʻlishi shart
     try:
-        royxat = json.loads(SERIYALAR_FAYL.read_text(encoding="utf-8")).get("pvx", [])
+        malumot = json.loads(SERIYALAR_FAYL.read_text(encoding="utf-8"))
     except ValueError as e:
         PVX_XATOLAR.append(f"seriyalar.json oʻqilmadi: {e}")
         return
-    for s in royxat:
-        try:
-            _pvx_bitta(s, umumiy)
-        except (KeyError, TypeError, ValueError, ArithmeticError) as e:
-            PVX_XATOLAR.append(f"seriyalar.json, {s.get('nomi', '?') if isinstance(s, dict) else '?'}: {e!r}")
+    for guruh, bitta in (("pvx", _pvx_bitta), ("termo", _termo_bitta)):
+        for s in malumot.get(guruh, []):
+            try:
+                bitta(s, umumiy)
+            except (KeyError, TypeError, ValueError, ArithmeticError, AttributeError) as e:
+                PVX_XATOLAR.append(f"seriyalar.json, {s.get('nomi', '?') if isinstance(s, dict) else '?'}: {e!r}")
 
 
 def _pvx_bitta(s, umumiy):
@@ -203,7 +207,7 @@ def _pvx_bitta(s, umumiy):
         raise ValueError(f"{s['nomi']}: nomi yoki kosa/urta/qanot kodi boshqa seriyada bor")
     kodlar = [kosa, qanot, urta, *s["shtapik"].values(), *metall.values()]
     for p in kodlar:
-        if p in ENGELBERG_PROFILLARI or p in ALDOKS_PROFILLARI or p in RAMA_R:
+        if p in ENGELBERG_PROFILLARI or p in ALDOKS_PROFILLARI or p in RAMA_R or p in TERMO_PROFIL:
             raise ValueError(f"{p} kodi boshqa seriyada bor")
         nom = (s.get("nom_oq", {}).get(p), s.get("nom_lam", {}).get(p))
         if umumiy.get(p, nom) != nom:
@@ -220,6 +224,43 @@ def _pvx_bitta(s, umumiy):
         ARMATURA[p] = (m, D(13) if p != urta else D("0.5"))
     PVX_SERIYALAR.append(seriya)
     PVX_MALUMOT[s["nomi"]] = s
+
+
+def _band_kod(p):
+    """Kod boshqa seriyada (eski yoki json) ishlatilganmi."""
+    return (p in RAMA_R or p in IMPOST_YARMI or p in TABAQA_AYIRMA or p in ENGELBERG_PROFILLARI or p in ALDOKS_PROFILLARI
+            or p in TERMO_PROFIL or p in {"G24", "G24-R", "G32", "G32-R", "A701", "H702", "V707", "V708", "LII", "L114"})
+
+
+def _termo_bitta(s, umumiy):
+    """Yangi Termo seriya (foydalanuvchi, 2026-11-25; docs/seriyalar.md): Termo 70 qoidasi — kosa 45° payvandsiz,
+    urta 90° = ichki, qanot = ichki + qanot_qoshimcha, qanot ichki = qanot − qanot_ayirma, oyna = ichki − oyna_ayirma,
+    shtapik 90° (vertikal = ichki boʻyi − 2 × qalinlik); laminatda har profil + 0,08. Hozircha faqat rom."""
+    kosa, qanot, urta = s["kosa"], s["qanot"], s["urta"]
+    oyna = D(s["oyna_ayirma"])
+    shtapik = {int(q): p for q, p in s["shtapik"].items()}
+    seriya = Seriya(s["nomi"], urta, qanot, D(s["qanot_qoshimcha"]), oyna, D(0), False, shtapik, False,
+                    gluxoy_oyna=oyna, fortochka_oyna=oyna, shtapik_qalinligi=D(s["shtapik_qalinligi"]),
+                    oyna_standart=int(s["oyna_standart"]), faqat_rom=True, faqat_oddiy=True, guruh=s.get("guruh") or "Termo",
+                    rang_yoq=tuple(s.get("rang_yoq") or ()))
+    r, yarmi, ayirma = D(s["r"]), D(s["urta_yarmi"]), D(s["qanot_ayirma"])
+    if min(r, yarmi, ayirma, oyna, seriya.shtapik_qalinligi) < 0:
+        raise ValueError(f"{s['nomi']}: manfiy oʻlcham")
+    kodlar = [kosa, qanot, urta, *shtapik.values()]
+    if s["nomi"] in PVX_MALUMOT or s["nomi"] in TERMO_MALUMOT or len(set(kodlar)) != len(kodlar):
+        raise ValueError(f"{s['nomi']}: nomi boshqa seriyada bor yoki kodlar takrorlangan")
+    for p in kodlar:
+        if _band_kod(p) or p in PVX_PROFIL:
+            raise ValueError(f"{p} kodi boshqa seriyada bor")
+    for p in kodlar:
+        TERMO_PROFIL[p] = s
+    RAMA_R[kosa] = r
+    IMPOST_YARMI[urta] = yarmi
+    TABAQA_AYIRMA[qanot] = ayirma
+    SERIYA_RAMA[kosa] = seriya
+    IMPOST_RAMA[urta] = kosa
+    TERMO_SERIYALAR.append(seriya)
+    TERMO_MALUMOT[s["nomi"]] = s
 
 
 _pvx_yukla()
@@ -295,8 +336,10 @@ def asl_profil(p):
 def narx_kaliti(profil):
     """Profil narx kaliti: "BKT70 F702", "ENG 7051"."""
     profil = asl_profil(profil)
-    if profil.startswith(("BKT70 ", "ENG ", "ALD ", "PVX ")):
+    if profil.startswith(("BKT70 ", "ENG ", "ALD ", "PVX ", "TERMO ")):
         return profil
+    if profil in TERMO_PROFIL:  # yangi Termo seriyalar (seriyalar.json), hivich 6,5 m
+        return f"TERMO {profil}"
     if profil in PVX_PROFIL:  # yangi PVX seriyalar (seriyalar.json), hivich 6 m
         return f"PVX {profil}"
     if profil in ALDOKS_PROFILLARI:
@@ -1349,6 +1392,10 @@ def _bolak_ichi(b, z, h, ctx):
     if z.ichki_en <= 0 or z.ichki_boy <= 0:
         raise HisobXato(f"Boʻlak juda kichik: ichki {z.ichki_en} × {z.ichki_boy}")
     tur = b.get("tur")
+    if h.seriya.faqat_oddiy and (tur not in ("gluxoy", "tabaqa", "bolinish") or b.get("dvaynoy") or b.get("lapsha")
+                                 or b.get("fortochka") or b.get("tabaqa_impost")):
+        raise HisobXato(f"{h.seriya.nomi}da hozircha faqat rom: gluxoy, oddiy tabaqa, impost (fortochka, dvaynoy, eshik, "
+                        "lapsha, tabaqa ichi impost yoʻq)")
     if h.seriya.faqat_rom and (tur not in ("gluxoy", "tabaqa", "bolinish", "eshik", "portal")
                                or b.get("dvaynoy") or b.get("lapsha")):
         raise HisobXato(f"{h.seriya.nomi}da hozircha: gluxoy, tabaqa, fortochka, eshik, impost, arka, portal, lambri "
@@ -1358,6 +1405,8 @@ def _bolak_ichi(b, z, h, ctx):
                         "impost yoʻq)")
     if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("egilgan") is not None):
         raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, fortochka, impost) hisoblanadi")
+    if h.seriya in TERMO_SERIYALAR and b.get("oyna_turi") in LAMBRI_TURLARI:  # tasdiqlanmagan (2026-11-25)
+        raise HisobXato(f"{h.seriya.nomi}da lambri hozircha yoʻq")
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas
     past = h.yoy_chuqurligi(z.past_yoy, z)
     if tur == "gluxoy":
@@ -1525,6 +1574,9 @@ def hisobla(k):
             bolaklar.append({"tur": "gluxoy"}); olchamlar.append(k["ong"])
         bolak = {"tur": "bolinish", "yonalish": "vertikal", "lapsha": True, "olchamlar": olchamlar, "bolaklar": bolaklar}
     _ramalar_hisobi(profil, impost, L, H, bolak, h)
+    if seriya in TERMO_SERIYALAR:  # foydalanuvchi keyin oʻrgatadi (2026-11-25)
+        _qoida_yoq(h, f"{seriya.nomi}: rezina, soedinitel, burchak (A10), kley va podstavka hali "
+                     "oʻrgatilmagan — tannarxga kirmagan")
 
     m2 = sum((en * boy * n for (_, en, boy, _), n in h.oynalar.items()), D(0)) / 10000
     return {
