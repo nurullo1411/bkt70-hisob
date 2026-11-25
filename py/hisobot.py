@@ -250,7 +250,10 @@ ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Oq) (Uz)", "Ruchka Okon (ROTO LUX) (Oq
                  "Ruchka Okon (ROTO LUX) (Bronza) (Tr)", "Ruchka Okon (ROTO LUX) (Tem Kor) (Tr)",
                  "Ruchka Okon HOPPE NY (Oq) (Tr)", "Ruchka Okon HOPPE NY (Seriy) (Tr)",
                  "Ruchka Okon HOPPE NY (Bronza) (Tr)", "Ruchka Okon HOPPE NY (Tem Kor) (Tr)"]
-ENG_PETLYA_PROSTOE = "(Prostoe Otkr) Petli Komplekt (FORNAX)"
+# Fornax 13 (Engelberg 7000, 7600, 6500 PENTA) — "(13)" li nom (foydalanuvchi, 2026-11-25; 2026-11-25 gacha
+# Engelbergda "(13)" siz nom edi — docs/tarix.md); Fornax 9 seriyalarda (6000 QVT, 6000 Trio, 7000 AKFA) — "(13)" siz
+ENG_PETLYA_PROSTOE = "(13) (Prostoe Otkr) Petli Komplekt (FORNAX)"
+ENG_PETLYA_PROSTOE_9 = "(Prostoe Otkr) Petli Komplekt (FORNAX)"
 # Petlya 100 mm rangga qarab (foydalanuvchi, 2026-11-09): oq — (Oq) (120sht), qolgani — (Laminant)
 # har Petlya 100 mm ga samorez 3,9×38 × 8 (foydalanuvchi, 2026-11-10)
 ENG_PETLYA_100_SAMOREZ = 8
@@ -488,7 +491,8 @@ def _eng_furnitura(s, tanlov, r, pvx=None):
     if not soni:
         pass
     elif petlya == "prostoe":
-        r.qosh("Furnitura", ENG_PETLYA_PROSTOE, soni, "komplekt")
+        r.qosh("Furnitura", ENG_PETLYA_PROSTOE_9 if pvx and str(pvx.get("fornax")) == "9" else ENG_PETLYA_PROSTOE,
+               soni, "komplekt")
         # har komplektga samorez 3,9×38 × 11 va 3,9×25 × 4 (foydalanuvchi, 2026-11-10; ProfOknada yozilmagan)
         samorez += ENG_PROSTOE_SAMOREZ[1] * soni
         # framujniy petlya komplekti (Sredniy Prijim oʻrniga; foydalanuvchi, 2026-11-10): Prostoe Otkr bilan,
