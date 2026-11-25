@@ -7,7 +7,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, PVX_MALUMOT, TERMO_MALUMOT, TERMO_OGOH, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
+from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, PVX_MALUMOT, TERMO_MALUMOT, termo_ogoh, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
                    oyna_qalinligi, profil_narxi)
 
 PETLYA_CHEGARA = 260
@@ -890,8 +890,15 @@ def hisobot(k, narxlar):
         _rom_furnitura(s, tanlov, r)
         # oyna va shtapik orasiga EPDM Ю, oyna perimetri + har tomonga 2 sm (foydalanuvchi, 2026-11-25; Termo 70 dagidek)
         r.qosh("Rezina", "EPDM Rezina Ю", D(s["oyna_rezinasi"]) / 100, "m")
+        # seriya rezinalari (seriyalar.json "rezina"; foydalanuvchi, 2026-11-25): joy "qanot" — qanotning kosa/impostga
+        # tegadigan perimetri × koef, "oyna" — oyna perimetri + har tomonga 2 sm × koef. kg dagi rezinaning 1 metr vazni
+        # hali yoʻq — narxsiz (narx_yoq)
+        for x in TERMO_MALUMOT[n["seriya"]].get("rezina") or []:
+            asos = s["markaziy_rezina"] if x["joy"] == "qanot" else s["oyna_rezinasi"]
+            if asos:
+                r.qosh("Rezina", x["nom"], D(asos) * D(str(x["koef"])) / 100, "m")
         # tannarx toʻliq emasligi hamma joyda koʻrinsin (foydalanuvchi, 2026-11-25): narxsiz qator → narx_yoq
-        r.qosh("Aksessuar", TERMO_OGOH.format(n["seriya"]), 1, "—")
+        r.qosh("Aksessuar", termo_ogoh(n["seriya"]), 1, "—")
     else:
         markaziy = D(s["markaziy_rezina"]) / 100
         if markaziy:

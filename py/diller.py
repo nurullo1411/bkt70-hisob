@@ -13,7 +13,7 @@ Oyna oʻlchami 0,5 sm ga: yuqoriga faqat 2 mm gacha kattalashsa (79,9 → 80), a
 
 from math import ceil, floor
 
-from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG_PROFILLARI, PVX_PROFIL, TERMO_OGOH, TERMO_PROFIL, HisobXato, asl_profil, oyna_qalinligi
+from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG_PROFILLARI, PVX_PROFIL, TERMO_MALUMOT, TERMO_PROFIL, HisobXato, asl_profil, oyna_qalinligi
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
@@ -80,6 +80,9 @@ REZINA_KG_M = {"A01-002": 0.064, "A01-003": 0.036, "EPDM Rezina Ю": 0.046, "A01
 # Aldoks "Qishki Bosma" pachka (100 m) bilan sotiladi — dillerga metrda
 REZINALAR = ("A01-005", "A01-003", "A01-002", "EPDM Rezina Ю", "EPDM 5108", "EPDM 5025",
              "Rezina EPDM (Champ 01.18.30)", "Rezina Profil P (Bosma) (Qishki)")
+# yangi Termo seriyalar (seriyalar.json "rezina", sotuv "kg"): 1 metr vazni foydalanuvchi oʻlchab beradi
+REZINALAR += tuple(sorted({x["nom"] for s in TERMO_MALUMOT.values() for x in s.get("rezina") or []
+                           if x.get("sotuv") == "kg"} - set(REZINALAR)))
 
 # Dillerdan olinmaydi — eslatma (qizil)
 ESLATMA = {"3,9×19 YHBM": "Samorez 3,9×19", "4,8×19 YSBM": "Samorez 4,8×19", "Zaklepka 4×12": "Zaklepka 4×12", "3,9×16 YSBM": "Samorez 3,9×16 (IDEAL YHB)", "Lapsha samorez soʻm": "Samorez (lapsha)", "Medved samorez soʻm": "Medved samorez (montaj)", "K188": "Kley K188 (Saudal)", "MK 01": "Pena"}
@@ -234,7 +237,7 @@ def diller_royxati(zakaz, narxlar=None, sklad=None):
     eslatma, rezina = {}, []
     for m in t["materiallar"]:
         bolim, art, birlik, jami = m["bolim"], m["artikul"], m["birlik"], m["jami"]
-        if bolim in TASHLANADI or not jami or art.endswith(TERMO_OGOH.format("")[1:]):  # ogohlantirish, material emas
+        if bolim in TASHLANADI or not jami or " hali hisobda yoʻq" in art:  # ogohlantirish, material emas
             continue
         if bolim == "Podokonnik" or art in ESLATMA:
             nom = ESLATMA.get(art) or ("Podokonnik qopqogʻi" if art.startswith("Krishka") else art.replace(" | ", ", "))

@@ -315,7 +315,16 @@
     "WDT.57.V0002": "Qanot BKT 57",
     "WDT.57.M0005": "Urta BKT 57",
     "WDT.67.G0005": "Shtapik G05"
-   }
+   },
+   "rezina": [
+    {
+     "nom": "EPDM 057 (SECIL)",
+     "joy": "qanot",
+     "koef": 3,
+     "sotuv": "m"
+    }
+   ],
+   "hali_yoq": "tashqi oyna rezinasi"
   },
   {
    "nomi": "EWDT-70",
@@ -374,7 +383,27 @@
     "EWDT.70.V001": "Qanot EWDT 70",
     "EWDT.70.M001": "Urta EWDT 70",
     "WDT.65.G0035": "Shtapik G0035"
-   }
+   },
+   "rezina": [
+    {
+     "nom": "EP-041",
+     "joy": "qanot",
+     "koef": 1,
+     "sotuv": "kg"
+    },
+    {
+     "nom": "EPDM0120",
+     "joy": "qanot",
+     "koef": 2,
+     "sotuv": "kg"
+    },
+    {
+     "nom": "A01-001",
+     "joy": "oyna",
+     "koef": 1,
+     "sotuv": "kg"
+    }
+   ]
   },
   {
    "nomi": "EWDT-80",
@@ -427,7 +456,27 @@
     "EWDT.80.V001": "Qanot EWDT 80",
     "EWDT.80.M001": "Urta EWDT 80",
     "WDT.65.G0045": "Shtapik G0045"
-   }
+   },
+   "rezina": [
+    {
+     "nom": "EP-039",
+     "joy": "qanot",
+     "koef": 1,
+     "sotuv": "kg"
+    },
+    {
+     "nom": "EPDM0120",
+     "joy": "qanot",
+     "koef": 2,
+     "sotuv": "kg"
+    },
+    {
+     "nom": "A01-001",
+     "joy": "oyna",
+     "koef": 1,
+     "sotuv": "kg"
+    }
+   ]
   }
  ]
 }
