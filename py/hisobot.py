@@ -888,6 +888,8 @@ def hisobot(k, narxlar):
         # yangi Termo seriya (foydalanuvchi, 2026-11-25): rom furniturasi Termo 70 dagidek; rezina va soedinitel
         # hali oʻrgatilmagan (hisob.qoida_yoq da)
         _rom_furnitura(s, tanlov, r)
+        # oyna va shtapik orasiga EPDM Ю, oyna perimetri + har tomonga 2 sm (foydalanuvchi, 2026-11-25; Termo 70 dagidek)
+        r.qosh("Rezina", "EPDM Rezina Ю", D(s["oyna_rezinasi"]) / 100, "m")
         # tannarx toʻliq emasligi hamma joyda koʻrinsin (foydalanuvchi, 2026-11-25): narxsiz qator → narx_yoq
         r.qosh("Aksessuar", TERMO_OGOH.format(n["seriya"]), 1, "—")
     else:
