@@ -173,6 +173,8 @@ PVX_PROFIL = {}           # profil (va metall) kodi → json yozuvi
 TERMO_SERIYALAR = []      # yangi Termo seriyalar (seriyalar.json "termo"; foydalanuvchi, 2026-11-25)
 TERMO_MALUMOT = {}        # seriya nomi → json yozuvi
 TERMO_PROFIL = {}         # profil kodi → json yozuvi
+# hisobotda narxsiz qator (narx_yoq → "tannarx toʻliq emas" hamma joyda; foydalanuvchi, 2026-11-25), dillerga tushmaydi
+TERMO_OGOH = "{}: rezina, soedinitel, aksessuar hali hisobda yoʻq"
 PVX_XATOLAR = []          # yaroqsiz yozuvlar: seriya oʻtkazib yuboriladi (ilova toʻxtamaydi); test va ilova_yig tekshiradi
 
 

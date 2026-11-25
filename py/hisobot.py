@@ -7,7 +7,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, PVX_MALUMOT, TERMO_MALUMOT, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
+from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, PVX_MALUMOT, TERMO_MALUMOT, TERMO_OGOH, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
                    oyna_qalinligi, profil_narxi)
 
 PETLYA_CHEGARA = 260
@@ -888,6 +888,8 @@ def hisobot(k, narxlar):
         # yangi Termo seriya (foydalanuvchi, 2026-11-25): rom furniturasi Termo 70 dagidek; rezina va soedinitel
         # hali oʻrgatilmagan (hisob.qoida_yoq da)
         _rom_furnitura(s, tanlov, r)
+        # tannarx toʻliq emasligi hamma joyda koʻrinsin (foydalanuvchi, 2026-11-25): narxsiz qator → narx_yoq
+        r.qosh("Aksessuar", TERMO_OGOH.format(n["seriya"]), 1, "—")
     else:
         markaziy = D(s["markaziy_rezina"]) / 100
         if markaziy:
