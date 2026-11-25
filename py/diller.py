@@ -237,7 +237,7 @@ def diller_royxati(zakaz, narxlar=None, sklad=None):
     eslatma, rezina = {}, []
     for m in t["materiallar"]:
         bolim, art, birlik, jami = m["bolim"], m["artikul"], m["birlik"], m["jami"]
-        if bolim in TASHLANADI or not jami or " hali hisobda yoʻq" in art:  # ogohlantirish, material emas
+        if bolim in TASHLANADI or not jami:
             continue
         if bolim == "Podokonnik" or art in ESLATMA:
             nom = ESLATMA.get(art) or ("Podokonnik qopqogʻi" if art.startswith("Krishka") else art.replace(" | ", ", "))

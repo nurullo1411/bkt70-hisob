@@ -7,7 +7,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, PVX_MALUMOT, TERMO_MALUMOT, termo_ogoh, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
+from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, PVX_MALUMOT, TERMO_MALUMOT, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
                    oyna_qalinligi, profil_narxi)
 
 PETLYA_CHEGARA = 260
@@ -550,6 +550,45 @@ def _eng_furnitura(s, tanlov, r, pvx=None):
     return samorez
 
 
+def _termo_rezina(s, r, ser):
+    """Oyna va shtapik orasiga EPDM Ю (oyna perimetri + har tomonga 2 sm) + json "rezina": joy "qanot" — qanotning
+    kosa/impostga tegadigan perimetri × koef, "oyna" — oyna perimetri (+ 2 sm) × koef. Bir nomli rezina qoʻshiladi.
+    kg da sotiladiganining 1 metr vazni hali yoʻq — metrda, narxsiz (foydalanuvchi, 2026-11-25)."""
+    jami = {"EPDM Rezina Ю": D(s["oyna_rezinasi"])}
+    for x in ser.get("rezina") or []:
+        asos = D(s["markaziy_rezina"] if x["joy"] == "qanot" else s["oyna_rezinasi"])
+        jami[x["nom"]] = jami.get(x["nom"], D(0)) + asos * D(str(x["koef"]))
+    for nom, sm in jami.items():
+        if sm:
+            r.qosh("Rezina", nom, sm / 100, "m")
+
+
+def _termo_aksessuar(s, narxlar, r, ser):
+    """Burchak soedineli json "soedinitel" dan (har: rama, rama_burchak, qanot, qanot_burchak); impost 01.553 ("19 ugl")
+    har uchiga 2 + samorez; K188 kley har burchakka; Takos 24 × 2 tabaqa oynasiga, CT 203 × 2 gluxoyga
+    (foydalanuvchi, 2026-11-25: Termo 70 dagidek)."""
+    rama, tabaqa = sum(s["ramalar"].values()), sum(s["tabaqalar"].values())
+    sanoq = {"rama": rama, "rama_burchak": 4 * rama, "qanot": tabaqa, "qanot_burchak": 4 * tabaqa}
+    jami = {}
+    for x in ser.get("soedinitel") or []:
+        jami[x["nom"]] = jami.get(x["nom"], 0) + sanoq[x["har"]] * x["soni"]
+    for nom, soni in jami.items():
+        if soni:
+            r.qosh("Aksessuar", nom, soni, "dona")
+    burchak = 4 * (rama + tabaqa)
+    kley_g = D(burchak * K188_BURCHAKKA_G)
+    r.summa_bilan("Aksessuar", "K188 kley", kley_g, "g",
+                  kley_g * D(narxlar["k188_tuba_narx"]) / D(narxlar["k188_tuba_g"]), "K188")
+    if s["impost_soni"]:
+        soedinitel = 4 * s["impost_soni"]
+        r.qosh("Aksessuar", "01.553", soedinitel, "dona", kalit="Soedinitel Urta 19 ugl", komplekt=4)
+        r.qosh("Aksessuar", SOEDINITEL_SAMOREZ, soedinitel * 2, "dona")
+    if s["tabaqa_oyna_soni"]:
+        r.qosh("Aksessuar", "Takos Regulirovichniy (24mm)", s["tabaqa_oyna_soni"] * 2, "dona")
+    if s["gluxoy_oyna_soni"]:
+        r.qosh("Aksessuar", "CT 203", s["gluxoy_oyna_soni"] * 2, "dona")
+
+
 def _rom_furnitura(s, tanlov, r):
     """Rom tabaqasi: ProfOkna "Akfa TERMO 70 распашная створка" roʻyxati."""
     boylar = [D(b) for b in s.get("rom_tabaqa_boylari", [])]
@@ -885,20 +924,11 @@ def hisobot(k, narxlar):
         _dvaynoy_furnitura(s, r)
         _fortochka_furnitura(s, tanlov, r)
     elif n.get("seriya") in TERMO_MALUMOT:
-        # yangi Termo seriya (foydalanuvchi, 2026-11-25): rom furniturasi Termo 70 dagidek; rezina va soedinitel
-        # hali oʻrgatilmagan (hisob.qoida_yoq da)
+        # yangi Termo seriya (foydalanuvchi, 2026-11-25; docs/seriyalar.md): rom furniturasi Termo 70 dagidek,
+        # rezina va burchak soedineli seriyalar.json dan, impost, kley va podstavka Termo 70 dagidek
         _rom_furnitura(s, tanlov, r)
-        # oyna va shtapik orasiga EPDM Ю, oyna perimetri + har tomonga 2 sm (foydalanuvchi, 2026-11-25; Termo 70 dagidek)
-        r.qosh("Rezina", "EPDM Rezina Ю", D(s["oyna_rezinasi"]) / 100, "m")
-        # seriya rezinalari (seriyalar.json "rezina"; foydalanuvchi, 2026-11-25): joy "qanot" — qanotning kosa/impostga
-        # tegadigan perimetri × koef, "oyna" — oyna perimetri + har tomonga 2 sm × koef. kg dagi rezinaning 1 metr vazni
-        # hali yoʻq — narxsiz (narx_yoq)
-        for x in TERMO_MALUMOT[n["seriya"]].get("rezina") or []:
-            asos = s["markaziy_rezina"] if x["joy"] == "qanot" else s["oyna_rezinasi"]
-            if asos:
-                r.qosh("Rezina", x["nom"], D(asos) * D(str(x["koef"])) / 100, "m")
-        # tannarx toʻliq emasligi hamma joyda koʻrinsin (foydalanuvchi, 2026-11-25): narxsiz qator → narx_yoq
-        r.qosh("Aksessuar", termo_ogoh(n["seriya"]), 1, "—")
+        _termo_rezina(s, r, TERMO_MALUMOT[n["seriya"]])
+        _termo_aksessuar(s, narxlar, r, TERMO_MALUMOT[n["seriya"]])
     else:
         markaziy = D(s["markaziy_rezina"]) / 100
         if markaziy:

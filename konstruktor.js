@@ -2374,7 +2374,7 @@ function sozlamaHtml() {
     <div class="sz-seg"><button data-sz="s:rama" data-v='"183"' class="${faol(j.rama === "183")}">Aldoks</button></div>
     ${engmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax / Roto), eshik, arka, portal, lambri.</div>` : ""}
     ${yangiPvx(j.rama) ? `<div class="xira">${esc(pvxSer(j.rama).nomi)}: hozircha faqat rom (gluxoy, tabaqa, impost); Fornax ${esc(pvxSer(j.rama).fornax)}; oyna ${seriyaOynaStd(j.rama)} mm.</div>` : ""}
-    ${yangiTermo(j.rama) ? `<div class="xira">${esc(termoSer(j.rama).nomi)}: hozircha faqat rom (gluxoy, tabaqa, impost); oyna ${seriyaOynaStd(j.rama)} mm; rezina va soedinitel hali hisobda yoʻq.</div>` : ""}
+    ${yangiTermo(j.rama) ? `<div class="xira">${esc(termoSer(j.rama).nomi)}: hozircha faqat rom (gluxoy, tabaqa, impost); oyna ${seriyaOynaStd(j.rama)} mm.</div>` : ""}
     ${aldmi(j.rama) ? `<div class="xira">Aldoks: rom, fortochka, eshik, arka, portal, lambri (PVX); oyna 20 mm.</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>

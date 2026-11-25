@@ -173,14 +173,6 @@ PVX_PROFIL = {}           # profil (va metall) kodi → json yozuvi
 TERMO_SERIYALAR = []      # yangi Termo seriyalar (seriyalar.json "termo"; foydalanuvchi, 2026-11-25)
 TERMO_MALUMOT = {}        # seriya nomi → json yozuvi
 TERMO_PROFIL = {}         # profil kodi → json yozuvi
-# hisobotda narxsiz qator (narx_yoq → "tannarx toʻliq emas" hamma joyda; foydalanuvchi, 2026-11-25), dillerga tushmaydi
-TERMO_OGOH = "{}: soedinitel, aksessuar hali hisobda yoʻq"
-
-
-def termo_ogoh(nomi):
-    """Narxsiz ogohlantirish qatori: json "hali_yoq" boʻlsa qoʻshiladi (BKT-57: tashqi oyna rezinasi)."""
-    qosh = (TERMO_MALUMOT.get(nomi) or {}).get("hali_yoq")
-    return TERMO_OGOH.format(nomi).replace(" hali", f", {qosh} hali") if qosh else TERMO_OGOH.format(nomi)
 PVX_XATOLAR = []          # yaroqsiz yozuvlar: seriya oʻtkazib yuboriladi (ilova toʻxtamaydi); test va ilova_yig tekshiradi
 
 
@@ -1582,9 +1574,6 @@ def hisobla(k):
             bolaklar.append({"tur": "gluxoy"}); olchamlar.append(k["ong"])
         bolak = {"tur": "bolinish", "yonalish": "vertikal", "lapsha": True, "olchamlar": olchamlar, "bolaklar": bolaklar}
     _ramalar_hisobi(profil, impost, L, H, bolak, h)
-    if seriya in TERMO_SERIYALAR:  # foydalanuvchi keyin oʻrgatadi (2026-11-25)
-        _qoida_yoq(h, f"{seriya.nomi}: soedinitel, kley va podstavka hali "
-                     "oʻrgatilmagan — tannarxga kirmagan")
 
     m2 = sum((en * boy * n for (_, en, boy, _), n in h.oynalar.items()), D(0)) / 10000
     return {

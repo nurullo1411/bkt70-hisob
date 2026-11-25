@@ -322,9 +322,26 @@
      "joy": "qanot",
      "koef": 3,
      "sotuv": "m"
+    },
+    {
+     "nom": "EPDM Rezina Ю",
+     "joy": "oyna",
+     "koef": 1,
+     "sotuv": "kg"
     }
    ],
-   "hali_yoq": "tashqi oyna rezinasi"
+   "soedinitel": [
+    {
+     "nom": "Soedinitel Kosa F0002 (1 komp)",
+     "har": "rama",
+     "soni": 1
+    },
+    {
+     "nom": "Soedinitel Qanot V0002 (1 komp)",
+     "har": "qanot",
+     "soni": 1
+    }
+   ]
   },
   {
    "nomi": "EWDT-70",
@@ -403,6 +420,33 @@
      "koef": 1,
      "sotuv": "kg"
     }
+   ],
+   "soedinitel": [
+    {
+     "nom": "Soedinitel BKH (W 24-17.7mm) (Uz)",
+     "har": "rama_burchak",
+     "soni": 2
+    },
+    {
+     "nom": "Soedinitel CLSW 14 (Uz)",
+     "har": "rama_burchak",
+     "soni": 2
+    },
+    {
+     "nom": "Soedinitel BKH (W 24-25.7mm) (Uz)",
+     "har": "qanot_burchak",
+     "soni": 1
+    },
+    {
+     "nom": "Soedinitel BKH (W 24-9.7mm) (Uz)",
+     "har": "qanot_burchak",
+     "soni": 1
+    },
+    {
+     "nom": "Soedinitel CLSW 14 (Uz)",
+     "har": "qanot_burchak",
+     "soni": 1
+    }
    ]
   },
   {
@@ -475,6 +519,33 @@
      "joy": "oyna",
      "koef": 1,
      "sotuv": "kg"
+    }
+   ],
+   "soedinitel": [
+    {
+     "nom": "Soedinitel BKH (W 24-17.7mm) (Uz)",
+     "har": "rama_burchak",
+     "soni": 2
+    },
+    {
+     "nom": "Soedinitel CLSW 14 (Uz)",
+     "har": "rama_burchak",
+     "soni": 2
+    },
+    {
+     "nom": "Soedinitel BKH (W 24-25.7mm) (Uz)",
+     "har": "qanot_burchak",
+     "soni": 1
+    },
+    {
+     "nom": "Soedinitel BKH (W 24-9.7mm) (Uz)",
+     "har": "qanot_burchak",
+     "soni": 1
+    },
+    {
+     "nom": "Soedinitel CLSW 14 (Uz)",
+     "har": "qanot_burchak",
+     "soni": 1
     }
    ]
   }
