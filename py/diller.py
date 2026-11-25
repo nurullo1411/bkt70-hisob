@@ -13,7 +13,7 @@ Oyna oʻlchami 0,5 sm ga: yuqoriga faqat 2 mm gacha kattalashsa (79,9 → 80), a
 
 from math import ceil, floor
 
-from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG_PROFILLARI, HisobXato, asl_profil, oyna_qalinligi
+from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG_PROFILLARI, PVX_PROFIL, HisobXato, asl_profil, oyna_qalinligi
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
@@ -114,6 +114,17 @@ def eng_profil_nomi(profil, rang):
     return f"ENG 7000 ({r}) {ENG_LAM_NOM.get(profil, profil)} {ll} (N)"
 
 
+def pvx_profil_nomi(profil, rang):
+    """Yangi PVX seriya (seriyalar.json) diller nomi: Oq — nom_oq, laminat — nom_lam shabloni Engelberg ranglari bilan
+    (foydalanuvchi, 2026-11-25: hamma laminat bitta narxda). Metall rangga bogʻliq emas."""
+    s = PVX_PROFIL[profil]
+    oq = s.get("nom_oq", {}).get(profil)
+    if rang in (None, "oq") or profil not in s.get("nom_lam", {}):
+        return oq or profil
+    r = ENG_LAM_RANGI.get(rang or "", "rangi?")
+    return s["nom_lam"][profil].format(r=r, ll="LAM LL" if r.startswith("7011") else "LAM")
+
+
 # PVX lambri diller nomi sklad rangi boʻyicha (foydalanuvchi, 2026-11-10): laminatda ichi oq variant (11,70);
 # grey (ichi oq varianti yoʻq), 306g va anod ga alux antrazit
 _LAMBRI_ALUX = "TRIO 6000 (Alyuks-Oq) Lambri New LAM LL (N)"
@@ -168,6 +179,8 @@ def profil_nomi(profil, rang, ald_tur="ADT"):
         return ald_profil_nomi(profil, rang, ald_tur)
     if profil in ENGELBERG_PROFILLARI:
         return eng_profil_nomi(profil, rang)
+    if profil in PVX_PROFIL:
+        return pvx_profil_nomi(profil, rang)
     if profil == "L114":  # alyumin lambri 8 sm, 6 m (foydalanuvchi, 2026-11-23)
         return LAMBRI_114_NOM.get(rang, f"114 Lambri — {rang} rangi AKFA da yoʻq") if rang else "114 Lambri — rangi?"
     if profil == "LII":  # PVX lambri 10 sm, 6 m (foydalanuvchi, 2026-11-09)

@@ -9,6 +9,7 @@ import math
 import sys
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
+from pathlib import Path
 
 
 def D(x):
@@ -108,6 +109,14 @@ class Seriya:
     chift: str = None
     # yoy ostidagi yon shtapik yoy boshlanishigacha, uchi gradusda (foydalanuvchi, 2026-11-15: Termo, Aldoks, Engelberg)
     shtapik_arka_boshi: bool = True               # ramani boʻladigan profil (Aldoks: 109 Chift Quloq)
+    # seriyalar.json dan kelgan PVX (foydalanuvchi, 2026-11-25): laminatda oʻlcham oʻzgarmaydi, faqat oddiy tabaqa,
+    # furnitura Fornax 13 yoki 9, aksessuar nomlari seriyadan
+    laminat_yoq: bool = False
+    faqat_oddiy: bool = False       # fortochka, tabaqa ichi impost yoʻq
+    fornax: str = "13"
+    soedinitel: str = None
+    takos: str = None
+    guruh: str = None
 
 
 TERMO70 = Seriya("Termo 70", "M702", "V702", D("1.1"), D(2), D(0), False, {}, True)
@@ -153,6 +162,69 @@ REZINA_CHET = "EPDM 5025"
 REZINA_QANOT = "EPDM 5108"
 
 
+# ---------- Yangi PVX seriyalar (foydalanuvchi, 2026-11-25; docs/seriyalar.md, docs/manba/winpro-qarorlar.md) ----------
+# Maʼlumot seriyalar.json da (keyin firmalar serverda oʻz seriyasini qoʻshadi). Qoidalar Engelberg 7000 dagidek:
+# kosa + 0,5, urta = ichki (payvandlanmaydi), qanot = ichki + qanot_qoshimcha, qanot ichki = qanot − 0,5 − 2 × qanot_r,
+# shtapik 45° = ichki, oyna = ichki − 1,5; armatura kosa va qanot − 13, urta − 0,5. Laminatda + 0,08 yoʻq.
+SERIYALAR_FAYL = Path(__file__).with_name("seriyalar.json")
+PVX_SERIYALAR = []        # Seriya obyektlari
+PVX_MALUMOT = {}          # seriya nomi → json yozuvi
+PVX_PROFIL = {}           # profil (va metall) kodi → json yozuvi
+PVX_XATOLAR = []          # yaroqsiz yozuvlar: seriya oʻtkazib yuboriladi (ilova toʻxtamaydi); test va ilova_yig tekshiradi
+
+
+def _pvx_yukla():
+    if not SERIYALAR_FAYL.exists():
+        return  # rama tekshiruvi "seriyalar.json yuklanmadi" deydi (hisobla)
+    umumiy = {}  # bir nechta seriyada bir xil kod (6035, 0601…): nomi bir xil boʻlishi shart
+    try:
+        royxat = json.loads(SERIYALAR_FAYL.read_text(encoding="utf-8")).get("pvx", [])
+    except ValueError as e:
+        PVX_XATOLAR.append(f"seriyalar.json oʻqilmadi: {e}")
+        return
+    for s in royxat:
+        try:
+            _pvx_bitta(s, umumiy)
+        except (KeyError, TypeError, ValueError, ArithmeticError) as e:
+            PVX_XATOLAR.append(f"seriyalar.json, {s.get('nomi', '?') if isinstance(s, dict) else '?'}: {e!r}")
+
+
+def _pvx_bitta(s, umumiy):
+    """Bitta seriya yozuvi: avval hammasi tekshiriladi, keyin roʻyxatga yoziladi (xatoda yarim yozilmaydi)."""
+    kosa, qanot, urta = s["kosa"], s["qanot"], s["urta"]
+    metall = s.get("metall") or {}
+    seriya = Seriya(s["nomi"], urta, qanot, D(s["qanot_qoshimcha"]), D("1.5"), D("0.5"), True,
+                    {int(q): p for q, p in s["shtapik"].items()}, False, pvx=True, faqat_rom=True,
+                    oyna_standart=int(s["oyna_standart"]), laminat_yoq=True, faqat_oddiy=True,
+                    fornax=str(s.get("fornax") or "13"), soedinitel=s.get("soedinitel"), takos=s.get("takos"),
+                    guruh=s.get("guruh"), rang_yoq=tuple(s.get("rang_yoq") or ()))
+    r, yarmi, qanot_r = D(s["r"]), D(s["urta_yarmi"]), D(s["qanot_r"])
+    if s["nomi"] in PVX_MALUMOT or kosa in RAMA_R or urta in IMPOST_YARMI or qanot in TABAQA_AYIRMA:
+        raise ValueError(f"{s['nomi']}: nomi yoki kosa/urta/qanot kodi boshqa seriyada bor")
+    kodlar = [kosa, qanot, urta, *s["shtapik"].values(), *metall.values()]
+    for p in kodlar:
+        if p in ENGELBERG_PROFILLARI or p in ALDOKS_PROFILLARI or p in RAMA_R:
+            raise ValueError(f"{p} kodi boshqa seriyada bor")
+        nom = (s.get("nom_oq", {}).get(p), s.get("nom_lam", {}).get(p))
+        if umumiy.get(p, nom) != nom:
+            raise ValueError(f"{p} ikki seriyada har xil nom bilan")
+    for p in kodlar:
+        umumiy[p] = (s.get("nom_oq", {}).get(p), s.get("nom_lam", {}).get(p))
+        PVX_PROFIL[p] = s
+    RAMA_R[kosa] = r
+    IMPOST_YARMI[urta] = yarmi
+    TABAQA_AYIRMA[qanot] = D("0.5") + 2 * qanot_r
+    SERIYA_RAMA[kosa] = seriya
+    IMPOST_RAMA[urta] = kosa
+    for p, m in metall.items():
+        ARMATURA[p] = (m, D(13) if p != urta else D("0.5"))
+    PVX_SERIYALAR.append(seriya)
+    PVX_MALUMOT[s["nomi"]] = s
+
+
+_pvx_yukla()
+
+
 # Lambri (foydalanuvchi, 2026-11-09): PVX lambri, tasma 10 sm, hivich 6 m (diller "Lambri II (N)", ProfOkna 1080
 # "Lambri II"). Oyna oʻrniga, boʻlakka oyna_turi = "Lambri" berilsa. Tik teriladi: tasma soni = (ichki eni − 1) : 10
 # yuqoriga, uzunligi = ichki boʻyi − 1. Shtapik, rezina, podstavka — hech narsa kerak emas.
@@ -189,7 +261,7 @@ def oyna_qalinligi(k, umumiy=None):
 def hivich_metr(kalit, standart):
     """Profil narxi qaysi hivich uzunligiga (m): Engelberg 6 m (foydalanuvchi, 2026-11-08), qolgani narxlardagi."""
     k = narx_kaliti(kalit)
-    return 6 if k.startswith(("ENG ", "ALD ")) or k.split(" ")[-1] in HIVICH_6 else standart
+    return 6 if k.startswith(("ENG ", "ALD ", "PVX ")) or k.split(" ")[-1] in HIVICH_6 else standart
 
 
 RANG_SINONIM = {"Svetnoy (kraska)": "Svetnoy", "Svetnoy": "Svetnoy (kraska)"}
@@ -223,8 +295,10 @@ def asl_profil(p):
 def narx_kaliti(profil):
     """Profil narx kaliti: "BKT70 F702", "ENG 7051"."""
     profil = asl_profil(profil)
-    if profil.startswith(("BKT70 ", "ENG ", "ALD ")):
+    if profil.startswith(("BKT70 ", "ENG ", "ALD ", "PVX ")):
         return profil
+    if profil in PVX_PROFIL:  # yangi PVX seriyalar (seriyalar.json), hivich 6 m
+        return f"PVX {profil}"
     if profil in ALDOKS_PROFILLARI:
         return f"ALD {profil}"
     return f"ENG {profil}" if profil in ENGELBERG_PROFILLARI else f"BKT70 {profil}"
@@ -433,12 +507,12 @@ class Hisob:
         self.profillar[key] = self.profillar.get(key, 0) + soni
         if self.yozuv_belgi is not None:
             self.yozuvlar.append((self.yozuv_belgi, nomi, uzunlik))
-        if armatura and profil in ARMATURA and self.seriya is ENGELBERG:
+        if armatura and profil in ARMATURA and (self.seriya is ENGELBERG or self.seriya.laminat_yoq):
             arm, ayirma = ARMATURA[profil]
             u = uzunlik - ayirma
             if u <= 0:
                 raise HisobXato(f"{nomi} juda kalta, armatura sigʻmaydi: {uzunlik}")
-            if self.metall == "2" and not arm.endswith("-2"):
+            if self.metall == "2" and self.seriya is ENGELBERG and not arm.endswith("-2"):
                 arm += "-2"
             akey = (f"Armatura ({nomi.lower()})", arm, u)
             self.profillar[akey] = self.profillar.get(akey, 0) + soni
@@ -1279,6 +1353,9 @@ def _bolak_ichi(b, z, h, ctx):
                                or b.get("dvaynoy") or b.get("lapsha")):
         raise HisobXato(f"{h.seriya.nomi}da hozircha: gluxoy, tabaqa, fortochka, eshik, impost, arka, portal, lambri "
                         "(dvaynoy, lapsha yoʻq)")
+    if h.seriya.faqat_oddiy and (b.get("fortochka") or b.get("tabaqa_impost")):
+        raise HisobXato(f"{h.seriya.nomi}da hozircha faqat rom: gluxoy, oddiy tabaqa, impost (fortochka, tabaqa ichi "
+                        "impost yoʻq)")
     if not h.seriya.eshik and (tur in ("eshik", "portal") or b.get("egilgan") is not None):
         raise HisobXato(f"{h.seriya.nomi}: hozircha faqat rom (gluxoy, tabaqa, fortochka, impost) hisoblanadi")
     arka = h.yoy_chuqurligi(z.tepa_yoy, z)  # 0 — boʻlak tepasi yoy emas
@@ -1393,6 +1470,8 @@ def hisobla(k):
     """Konstruksiya lugʻatidan natija lugʻatini qaytaradi. Xato boʻlsa HisobXato chiqaradi."""
     profil = k.get("rama")
     if profil not in RAMA_R:
+        if not SERIYALAR_FAYL.exists():
+            raise HisobXato(f"Nomaʼlum rama: {profil} (seriyalar.json yuklanmadi — ilovani yangilang)")
         raise HisobXato(f"Nomaʼlum rama: {profil}")
     seriya = SERIYA_RAMA[profil]
     impost = k.get("impost") or seriya.impost
@@ -1409,7 +1488,7 @@ def hisobla(k):
     rang = (k.get("tanlov") or {}).get("rang")
     if rang in seriya.rang_yoq:
         raise HisobXato(f"{seriya.nomi}da {rang} rangi yoʻq")
-    lam = LAMINAT_QOSHIMCHA if rang == "Laminatsiya" else D(0)
+    lam = LAMINAT_QOSHIMCHA if rang == "Laminatsiya" and not seriya.laminat_yoq else D(0)
     metall = str((k.get("tanlov") or {}).get("eng_metall") or "1.5")
     h = Hisob(k.get("oyna_qalinligi", seriya.oyna_standart), vertikal_r=vertikal == "R", lam=lam, seriya=seriya, metall=metall)
     h.eshik_tur = (k.get("tanlov") or {}).get("eshik_tur") or "balkon"

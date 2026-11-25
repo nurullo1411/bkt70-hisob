@@ -1151,6 +1151,9 @@ const YOQ_ASBOB = {
   "183": new Set(["lapsha", "lapsha_y", "dv_chap", "dv_ong"]),  // fortochka, arka, yoy impost, portal bor (2026-11-14)
 };
 const YOQ_BOLIM = {};
+// yangi PVX: faqat rom (fortochka, dvaynoy, eshik, arka, lapsha, portal hozircha yoʻq)
+const YANGI_PVX_YOQ = new Set(["lapsha", "lapsha_y", "yoy", "portal", "dv_chap", "dv_ong", "fortochka", "fortochka_tepa",
+  "esh1_chap", "esh1_ong", "esh2_ong", "esh2_chap", "arka_yarim", "arka", "aylana"]);
 const seriyaRama = () => (tahrir ? joriy(tahrir).rama : null);
 // Chift Quloq faqat Aldoksda (foydalanuvchi, 2026-11-14)
 const asbobBor = (id) => !(YOQ_ASBOB[seriyaRama()] || new Set()).has(id) && (!id.startsWith("chift") || aldmi(seriyaRama()));
@@ -2094,7 +2097,21 @@ const RANG_TURKUMLARI = [
 const RAMALAR = [["F702", "Kosa (Sredniy)", "F702 · r = 3,8"], ["F703", "Kosa Shirokaya", "F703 · r = 5,8"]];
 // PVX Engelberg 7000 (foydalanuvchi, 2026-11-08): seriya rama kodidan; hozircha faqat rom, rang Oq yoki Laminatsiya
 const PVX_RAMALAR = [["7051", "Kosa 7051", "Engelberg · r = 5,4"]];
-const pvxmi = (rama) => rama === "7051";
+// Yangi PVX seriyalar (foydalanuvchi, 2026-11-25): maʼlumot py/seriyalar.json da (hisob.py bilan bitta fayl), ilova boshida
+// yuklanadi. Hozircha faqat rom: gluxoy, oddiy tabaqa, impost; rang Oq yoki Laminatsiya; furnitura Fornax 13 / 9.
+let PVX_SERIYALAR = [];
+async function pvxYukla() {
+  try { const j = await (await fetch("py/seriyalar.json")).json(); PVX_SERIYALAR = j.pvx || []; } catch (e) { PVX_SERIYALAR = []; }
+  for (const s of PVX_SERIYALAR) YOQ_ASBOB[s.kosa] = YANGI_PVX_YOQ;
+}
+const pvxSer = (rama) => PVX_SERIYALAR.find((s) => s.kosa === rama) || null;
+const yangiPvx = (rama) => !!pvxSer(rama);
+const pvxmi = (rama) => rama === "7051" || yangiPvx(rama);  // PVX guruhi (rang, soedinitel, furnitura paneli)
+const engmi = (rama) => rama === "7051";                     // faqat Engelberg 7000: eshik, arka, Roto, metall
+// Seriya oyna qalinliklari: yangi PVX — shtapigi bor qalinliklar, Aldoks 20, qolgani 24 / 32
+const seriyaOynalar = (rama) => (pvxSer(rama) ? Object.keys(pvxSer(rama).shtapik).map(Number)
+  : rama === "183" ? [20] : [24, 32]);
+const seriyaOynaStd = (rama) => (pvxSer(rama) ? pvxSer(rama).oyna_standart : rama === "183" ? 20 : 24);
 // Aldoks (alyumin; foydalanuvchi, 2026-11-11): kosa 183, oyna faqat 20 mm, hozircha faqat rom
 const aldmi = (rama) => rama === "183";
 
@@ -2111,10 +2128,14 @@ const ENG_RUCHKALAR = [["Ruchka Okon (ROTO LUX) (Oq) (Uz)", "Roto Lux oq Uz"], [
   ["Ruchka Okon (ROTO LUX) (Bronza) (Tr)", "Roto Lux bronza"], ["Ruchka Okon (ROTO LUX) (Tem Kor) (Tr)", "Roto Lux toʻq jigarrang"],
   ["Ruchka Okon HOPPE NY (Oq) (Tr)", "Hoppe oq"], ["Ruchka Okon HOPPE NY (Seriy) (Tr)", "Hoppe kulrang"],
   ["Ruchka Okon HOPPE NY (Bronza) (Tr)", "Hoppe bronza"], ["Ruchka Okon HOPPE NY (Tem Kor) (Tr)", "Hoppe toʻq jigarrang"]];
-function engFurnituraHtml(k, faol) {
+function engFurnituraHtml(k, faol, yangi = false) {
   const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
   const v = (kalit, std) => t[kalit] ?? ut[kalit] ?? std;
   const seg = (kalit, std, royxat) => `<div class="sz-seg">${royxat.map(([q, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(q))}" class="${faol(v(kalit, std) === q)}">${esc(y)}</button>`).join("")}</div>`;
+  if (yangi) return `<div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Fornax)</span></div>
+    ${seg("eng_petlya", "prostoe", [["prostoe", "Prostoe Otkr komplekt"], ["100", "Petlya 100 mm (2–3 ta)"]])}
+    <div class="sz-bolim">Ruchka</div>
+    ${seg("eng_ruchka", ENG_RUCHKALAR[0][0], ENG_RUCHKALAR)}`;
   return `<div class="sz-bolim">Metall <span class="xira">(armatura, Romchi kabi)</span></div>
     ${seg("eng_metall", "1.5", [["1.5", "1,5 mm"], ["2", "2 mm"]])}
     <div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Engelberg)</span></div>
@@ -2324,12 +2345,18 @@ function sozlamaHtml() {
   return `
     <label class="belgi sz-rejim"><input type="checkbox" data-sz-faqat ${faqatShu ? "checked" : ""}> Faqat shu konstruksiyaga</label>
     <p class="xira sz-izoh">${faqatShu ? "Tanlov faqat shu konstruksiyaga yoziladi." : "Tanlov butun zakazga (hamma konstruksiyaga) yoziladi."}</p>
-    <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama) && !aldmi(j.rama))}">Termo 70 (BKT 70)</button><button data-sz="s:rama" data-v='"7051"' class="${faol(pvxmi(j.rama))}">PVX Engelberg 7000</button><button data-sz="s:rama" data-v='"183"' class="${faol(j.rama === "183")}">Aldoks</button></div>
-    ${pvxmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax / Roto), eshik, arka, portal, lambri.</div>` : ""}
+    <div class="sz-bolim">PVX</div>
+    <div class="sz-seg sz-seriyalar"><button data-sz="s:rama" data-v='"7051"' class="${faol(engmi(j.rama))}">Engelberg 7000</button>${PVX_SERIYALAR.map((s) => `<button data-sz="s:rama" data-v="${esc(JSON.stringify(s.kosa))}" class="${faol(j.rama === s.kosa)}">${esc(s.nomi)}</button>`).join("")}</div>
+    <div class="sz-bolim">Termo</div>
+    <div class="sz-seg"><button data-sz="s:rama" data-v='"F702"' class="${faol(!pvxmi(j.rama) && !aldmi(j.rama))}">Termo 70 (BKT 70)</button></div>
+    <div class="sz-bolim">Alyuminiy</div>
+    <div class="sz-seg"><button data-sz="s:rama" data-v='"183"' class="${faol(j.rama === "183")}">Aldoks</button></div>
+    ${engmi(j.rama) ? `<div class="xira">Engelberg: rom, fortochka, dvaynoy (Fornax / Roto), eshik, arka, portal, lambri.</div>` : ""}
+    ${yangiPvx(j.rama) ? `<div class="xira">${esc(pvxSer(j.rama).nomi)}: hozircha faqat rom (gluxoy, tabaqa, impost); Fornax ${esc(pvxSer(j.rama).fornax)}; oyna ${seriyaOynaStd(j.rama)} mm.</div>` : ""}
     ${aldmi(j.rama) ? `<div class="xira">Aldoks: rom, fortochka, eshik, arka, portal, lambri (PVX); oyna 20 mm.</div>` : ""}
 
     <div class="sz-bolim">Oyna</div>
-    <div class="sz-seg">${(aldmi(j.rama) ? [[20, "20 mm"]] : [[24, "24 mm (ikki qavat)"], [32, "32 mm"]]).map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
+    <div class="sz-seg">${seriyaOynalar(j.rama).map((v) => [v, { 20: "20 mm", 24: "24 mm (ikki qavat)", 32: "32 mm" }[v] || v + " mm"]).map(([v, y]) => `<button data-sz="s:oyna_qalinligi" data-v="${v}" class="${faol(j.qal === v)}">${y}</button>`).join("")}</div>
     <div class="sz-oynalar">${oynaTurlari().map((o) => `<button data-sz="t:oyna_turi" data-v="${esc(JSON.stringify(o))}" class="sz-oyna${faol(j.oyna === o)}"><span class="namuna" style="background:${oynaRangi(o)}${gul(o)}"></span>${esc(o)}</button>`).join("")}</div>
 
     ${pvxmi(j.rama) || aldmi(j.rama) ? "" : `<div class="sz-bolim">Rama profili</div>
@@ -2349,8 +2376,8 @@ function sozlamaHtml() {
     <div class="sz-bolim">Montaj <span class="xira">(montajli — pena + medved samorez)</span></div>
     <div class="sz-seg">${[[false, "Montajsiz"], [true, "Montajli"]].map(([v, y]) => `<button data-sz="t:montaj" data-v="${v}" class="${faol(j.montaj === v)}">${y}</button>`).join("")}</div>
 
-    ${pvxmi(j.rama) ? engFurnituraHtml(k, faol) : ""}
-    ${`<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
+    ${pvxmi(j.rama) ? engFurnituraHtml(k, faol, yangiPvx(j.rama)) : ""}
+    ${yangiPvx(j.rama) ? "" : `<div class="sz-bolim">Eshik profili <span class="xira">(ochilishi shundan)</span></div>
     ${aldmi(j.rama) ? `<label class="belgi"><input type="checkbox" data-sz-balkon ${aldYengil(k) ? "" : "checked"}> Balkon <span class="xira">(belgi olinsa — kichik profildan: ichkariga Qanot 181, tashqariga Urta 182)</span></label>` : ""}
     <div class="sz-seg">${(aldmi(j.rama) ? (aldYengil(k) ? [["ichkariga", "Qanot 181 · ichkariga"], ["tashqariga", "Urta 182 · tashqariga"]]
       : [["ichkariga", "Balkon Qanot 198 · ichkariga"], ["tashqariga", "Balkon Urta 185 · tashqariga"]]) : pvxmi(j.rama) ? [["ichkariga", "Balkon Kanot 7055 · ichkariga"], ["tashqariga", "Balkon Urta 7054 · tashqariga"]]
@@ -2403,8 +2430,7 @@ function szBos(b) {
     // Aldoks oynasi faqat 20 mm, boshqa seriyada 20 mm yoʻq
     if (kalit === "rama") {
       const q = joriy(tahrir).qal;
-      if (aldmi(v) && q !== 20) ornat("s", "oyna_qalinligi", 20);
-      else if (!aldmi(v) && q === 20) ornat("s", "oyna_qalinligi", 24);
+      if (!seriyaOynalar(v).includes(q)) ornat("s", "oyna_qalinligi", seriyaOynaStd(v));
     }
     // rang turkumi almashsa, rang nomi shu turkumning birinchisi boʻladi
     if (kalit === "rang") ornat("t", "rang_nomi", RANG_TURKUMLARI.find((r) => r[0] === v)[2][0][0]);

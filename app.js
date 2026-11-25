@@ -2,7 +2,7 @@
 "use strict";
 
 // narxlar.json ilovada yoʻq (ochiq repo): foydalanuvchi bir marta yuklaydi, telefonda saqlanadi.
-const PY_FAYLLAR = ["hisob.py", "hisobot.py", "zakaz.py", "raskroy.py", "tannarx.py", "narx_sheets.py", "diller.py"];
+const PY_FAYLLAR = ["seriyalar.json", "hisob.py", "hisobot.py", "zakaz.py", "raskroy.py", "tannarx.py", "narx_sheets.py", "diller.py"];
 const $ = (id) => document.getElementById(id);
 let py = null;
 let zakaz = null;
@@ -31,6 +31,7 @@ async function yukla() {
   try {
     holat("Python yuklanmoqda…");
     py = await loadPyodide();
+    await pvxYukla();  // yangi PVX seriyalar (konstruktor tugmalari) — py/seriyalar.json (konstruktor.js yuklangach)
     const versiya = await (await fetch("py/versiya.txt", { cache: "no-cache" })).text().catch(() => "");
     for (const f of PY_FAYLLAR) {
       const javob = await fetch("py/" + f);
@@ -1304,7 +1305,7 @@ $("pdf-ber").addEventListener("click", () => {
 
 // Seriya nomi (hisob natijasidan; zaxira — rama boʻyicha): "Termo 70", "Aldoks", "Engelberg 7000"
 const SERIYA_NOMI = { F702: "Termo 70", F703: "Termo 70", 7051: "Engelberg 7000", 183: "Aldoks" };
-const kSeriya = (k, x) => (x && x.seriya) || SERIYA_NOMI[k.rama || zakaz.umumiy.rama] || "";
+const kSeriya = (k, x) => (x && x.seriya) || SERIYA_NOMI[k.rama || zakaz.umumiy.rama] || (pvxSer(k.rama || zakaz.umumiy.rama) || {}).nomi || "";
 // Mijoz PDF: rama qanday (foydalanuvchi, 2026-11-19)
 // faqat Termo 70 da: 2 xil kosa (foydalanuvchi, 2026-11-19); boshqa seriyada qator yoʻq
 const RAMA_NOMI = { F702: "F702 (sredniy)", F703: "F703 (shirokiy)" };
@@ -1709,7 +1710,7 @@ USTANING CHIZISH QOIDALARI (shularga qat'iy amal qil):
 - Chizma odatda ichkaridan koʻrinishda; tashqariga (T) ochiladigan eshik tashqaridan koʻrinishda chiziladi. Chap/oʻngni chizmada koʻringanidek yoz.
 Rom tabaqalari orasida doim impost.
 IMPOST TARTIBI: avval TIK impost (butun boʻyga, tepadan pastgacha), keyin yotiq. Agar tik impost yotiq impostni kesib oʻtib tepadan pastgacha borsa (yuqori va pastki qatorda bir joyda), ildiz — "vertikal" boʻlinish (ustunlar), har ustun ichida "gorizontal". Ildiz "gorizontal" faqat yotiq impost butun eniga uzluksiz borsa (masalan eshik ustidagi butun framuga, ostida ustunlar boshqa joyda).
-SERIYA VA RANG (hujjatda yoki eskiz yonida yozilgan boʻlsa; lotin yoki kirill, masalan "Алдокс 306g"): har konstruksiyaga "rama" qoʻsh — Aldoks / Aldox / Алдокс → "183"; Engelberg / 7000 → "7051"; Termo 70 / BKT 70 → "F702" (F703 aniq yozilsa "F703"). Rang — "tanlov" ga: oq → "rang": "Oq", "rang_nomi": "oq"; 306g (kraska) → "rang": "Svetnoy (kraska)", "rang_nomi": "306g"; grey, z/d, d/m, sh/d, alux → "rang": "Laminatsiya", "rang_nomi": shu nom; anod → "rang": "Anod", "rang_nomi": "anod". Yozilmagan boʻlsa qoʻshma.
+SERIYA VA RANG (hujjatda yoki eskiz yonida yozilgan boʻlsa; lotin yoki kirill, masalan "Алдокс 306g"): har konstruksiyaga "rama" qoʻsh — Aldoks / Aldox / Алдокс → "183"; Engelberg / Engelberg 7000 → "7051"; 7000 AKFA / 7000 Eco → "70E013" (oddiy "7000" — Engelberg emas, soʻra); 6000 QVT / Quattro → "6041"; 6000 Trio → "6031"; 6500 Penta → "6553"; 7600 → "PTG.76.F0001"; Termo 70 / BKT 70 → "F702" (F703 aniq yozilsa "F703"). Rang — "tanlov" ga: oq → "rang": "Oq", "rang_nomi": "oq"; 306g (kraska) → "rang": "Svetnoy (kraska)", "rang_nomi": "306g"; grey, z/d, d/m, sh/d, alux → "rang": "Laminatsiya", "rang_nomi": shu nom; anod → "rang": "Anod", "rang_nomi": "anod". Yozilmagan boʻlsa qoʻshma.
 Boʻlak ichida uning enini (yoki boʻyini) toʻliq kesib oʻtgan kalta chiziq — shu boʻlakning oʻz impostidir, uni tashlab ketma: boʻlakni ichida "bolinish" qil. Ochiladigan tabaqa ostidagi yotiq impost (pastki gluxoy) oʻlchami yozilmagan boʻlsa — pastki boʻlak 70 sm (pastdan impost oʻqigacha): "olchamlar": [null, 70], "bolaklar": [tabaqa, {"tur":"gluxoy"}] (foydalanuvchi qoidasi).
 Qoʻlda chizilgan eskizda ichki oʻlcham yozilmagan boʻlsa, chiziq tepadan pastgacha bitta boʻlib ketsa — bu bitta tik impost: ustunlarni oldin ajrat, yuqori va pastki qatordagi joyi bir xil boʻlsin.
 Soni yozilmagan boʻlsa 1. nom: hujjatdagi raqam yoki "Rom 1", "Eshik 1".
@@ -1899,6 +1900,7 @@ $("ai-boshla").addEventListener("click", async () => {
 // matnli javob boʻlsa "Davom" AI ga qayta yuboradi.
 let aiSuhbat = null;
 const AI_RAMALAR = ["F702", "F703", "183", "7051"];
+const aiRamami = (r) => AI_RAMALAR.includes(r) || yangiPvx(r);
 const aiSon = (x) => son(Number(x) || 0, 2);
 function aiQur() {
   const { r, javob } = aiSuhbat, n = r.natija;
@@ -1916,10 +1918,10 @@ function aiQur() {
   // yangi (boʻsh) zakazda hamma konstruksiya seriyasi / rangi bir xil boʻlsa — zakazning umumiy tanloviga
   if (!zakaz.konstruksiyalar.length && konstr.length) {
     const bir = (f) => { const v = konstr.map(f); return v[0] != null && v.every((x) => x === v[0]) ? v[0] : null; };
-    const rama = bir((k) => (AI_RAMALAR.includes(k.rama) ? k.rama : null));
+    const rama = bir((k) => (aiRamami(k.rama) ? k.rama : null));
     if (rama) {
       zakaz.umumiy.rama = rama;
-      if (rama === "183") zakaz.umumiy.oyna_qalinligi = 20; else if (zakaz.umumiy.oyna_qalinligi === 20) zakaz.umumiy.oyna_qalinligi = 24;
+      if (!seriyaOynalar(rama).includes(zakaz.umumiy.oyna_qalinligi)) zakaz.umumiy.oyna_qalinligi = seriyaOynaStd(rama);
       konstr.forEach((k) => delete k.rama);
     }
     const rang = bir((k) => (k.tanlov && k.tanlov.rang ? k.tanlov.rang + "|" + (k.tanlov.rang_nomi || "") : null));
@@ -1932,7 +1934,7 @@ function aiQur() {
   const natija = konstr.map((k, i) => {
     k.soni = Number.isInteger(k.soni) && k.soni > 0 ? k.soni : 1;
     k.nom = String(k.nom || "K" + (i + 1));
-    if (!AI_RAMALAR.includes(k.rama)) delete k.rama;
+    if (!aiRamami(k.rama)) delete k.rama;
     if (k.tanlov && typeof k.tanlov === "object") {
       const t = k.tanlov.oyna_turi, pk = k.tanlov.podokonnik;
       const tl = {}, rt = RANG_TURKUMLARI.find((x) => x[0] === k.tanlov.rang);

@@ -1,0 +1,253 @@
+{
+ "_izoh": "PVX seriyalari maʼlumoti (foydalanuvchi, 2026-11-25; docs/manba/winpro-qarorlar.md 4–9-qaror, docs/seriyalar.md). Qoidalar Engelberg 7000 dagidek: kosa + 0,5, urta = ichki, qanot = ichki + qanot_qoshimcha, qanot ichki = qanot − 0,5 − 2 × qanot_r, shtapik 45° = ichki, oyna = ichki − 1,5. Laminat qoʻshimchasi (+0,08) yoʻq. Oʻlcham sm, narx $ (AKFA 04.11.2026, hivich). Narx bu yerda yoʻq (ochiq ilovaga tushadi): Sheets \"Narxlar\" PVX qatorlari → narxlar.json → narxlar.enc.",
+ "pvx": [
+  {
+   "nomi": "6000 QVT",
+   "guruh": "PVX",
+   "kosa": "6041",
+   "qanot": "6042",
+   "urta": "6043",
+   "shtapik": {
+    "20": "6035"
+   },
+   "r": 4.5,
+   "urta_yarmi": 1.9,
+   "qanot_r": 5.6,
+   "qanot_qoshimcha": 2.2,
+   "oyna_standart": 20,
+   "metall": {
+    "6041": "0603",
+    "6042": "0601",
+    "6043": "0602"
+   },
+   "fornax": "9",
+   "soedinitel": "Soedinitel 6000 (200sht) (Uz)",
+   "takos": "Takos Regulirovichniy (24mm)",
+   "nom_oq": {
+    "6041": "6000 QVT Kosa (N)",
+    "6042": "6000 QVT Kanot (N)",
+    "6043": "6000 QVT Urta (N)",
+    "6035": "6000 TRIO Shtapik (N)",
+    "0603": "Metall Vst. KOSA 6000 (1.2mm)",
+    "0601": "Metall Vst. KANOT 6000 (1.2mm)",
+    "0602": "Metall Vst. URTA 6000 (1.2mm)"
+   },
+   "kisqa": {
+    "6041": "Kosa",
+    "6042": "Kanot",
+    "6043": "Urta",
+    "6035": "Shtapik",
+    "0603": "Armatura Kosa",
+    "0601": "Armatura Kanot",
+    "0602": "Armatura Urta"
+   },
+   "nom_lam": {
+    "6041": "QVT 6000 ({r}) Kosa {ll} (N)",
+    "6042": "QVT 6000 ({r}) Kanot {ll} (N)",
+    "6043": "QVT 6000 ({r}) Urta {ll} (N)",
+    "6035": "TRIO 6000 ({r}) Shtapik Rez. (TPV) {ll} (N)"
+   },
+   "rang_yoq": [
+    "Svetnoy (kraska)",
+    "Svetnoy",
+    "Anod"
+   ]
+  },
+  {
+   "nomi": "6000 Trio",
+   "guruh": "PVX",
+   "kosa": "6031",
+   "qanot": "6032",
+   "urta": "6033",
+   "shtapik": {
+    "20": "6035"
+   },
+   "r": 4.8,
+   "urta_yarmi": 1.9,
+   "qanot_r": 5.6,
+   "qanot_qoshimcha": 2.2,
+   "oyna_standart": 20,
+   "metall": {
+    "6031": "0603",
+    "6032": "0601",
+    "6033": "0602"
+   },
+   "fornax": "9",
+   "soedinitel": "Soedinitel 6000 (200sht) (Uz)",
+   "takos": "Takos Regulirovichniy (24mm)",
+   "nom_oq": {
+    "6031": "6000 TRIO Kosa (N)",
+    "6032": "6000 TRIO Kanot (N)",
+    "6033": "6000 TRIO Urta (N)",
+    "6035": "6000 TRIO Shtapik (N)",
+    "0603": "Metall Vst. KOSA 6000 (1.2mm)",
+    "0601": "Metall Vst. KANOT 6000 (1.2mm)",
+    "0602": "Metall Vst. URTA 6000 (1.2mm)"
+   },
+   "kisqa": {
+    "6031": "Kosa",
+    "6032": "Kanot",
+    "6033": "Urta",
+    "6035": "Shtapik",
+    "0603": "Armatura Kosa",
+    "0601": "Armatura Kanot",
+    "0602": "Armatura Urta"
+   },
+   "nom_lam": {
+    "6031": "TRIO 6000 ({r}) Kosa {ll} (N)",
+    "6032": "TRIO 6000 ({r}) Kanot {ll} (N)",
+    "6033": "TRIO 6000 ({r}) Urta {ll} (N)",
+    "6035": "TRIO 6000 ({r}) Shtapik Rez. (TPV) {ll} (N)"
+   },
+   "rang_yoq": [
+    "Svetnoy (kraska)",
+    "Svetnoy",
+    "Anod"
+   ]
+  },
+  {
+   "nomi": "7000 AKFA",
+   "guruh": "PVX",
+   "kosa": "70E013",
+   "qanot": "70E023",
+   "urta": "70E033",
+   "shtapik": {
+    "24": "70E057"
+   },
+   "r": 4.4,
+   "urta_yarmi": 2.0,
+   "qanot_r": 5.6,
+   "qanot_qoshimcha": 2.2,
+   "oyna_standart": 24,
+   "metall": {
+    "70E013": "MUNV7010",
+    "70E023": "MUNV7010",
+    "70E033": "MUNV7010"
+   },
+   "fornax": "9",
+   "soedinitel": "Soedinitel 7000 AKFA (Uz)",
+   "takos": "Takos Regulirovichniy (24mm)",
+   "nom_oq": {
+    "70E013": "7000 AKFA Kosa (N)",
+    "70E023": "7000 AKFA Kanot (N)",
+    "70E033": "7000 AKFA Urta (N)",
+    "70E057": "7000 AKFA Shtapik (24mm) (N)",
+    "MUNV7010": "Metall Vst. Universal 7000 AKFA (1mm)"
+   },
+   "kisqa": {
+    "70E013": "Kosa",
+    "70E023": "Kanot",
+    "70E033": "Urta",
+    "70E057": "Shtapik",
+    "MUNV7010": "Armatura (universal)"
+   },
+   "nom_lam": {
+    "70E013": "AKFA 7000 ({r}) Kosa {ll} (N)",
+    "70E023": "AKFA 7000 ({r}) Kanot {ll} (N)",
+    "70E033": "AKFA 7000 ({r}) Urta {ll} (N)",
+    "70E057": "AKFA 7000 ({r}) Shtapik (24mm) (TPV) {ll} (N)"
+   },
+   "rang_yoq": [
+    "Svetnoy (kraska)",
+    "Svetnoy",
+    "Anod"
+   ]
+  },
+  {
+   "nomi": "6500 PENTA",
+   "guruh": "PVX",
+   "kosa": "6553",
+   "qanot": "6551",
+   "urta": "6552",
+   "shtapik": {
+    "24": "6557"
+   },
+   "r": 4.4,
+   "urta_yarmi": 2.0,
+   "qanot_r": 5.6,
+   "qanot_qoshimcha": 2.2,
+   "oyna_standart": 24,
+   "metall": {
+    "6553": "6509",
+    "6551": "6509",
+    "6552": "6509"
+   },
+   "fornax": "13",
+   "soedinitel": "Soedinitel 6500 (Uz)",
+   "takos": "Takos Regulirovichniy (24mm)",
+   "nom_oq": {
+    "6553": "6500 PENTA Kosa (N)",
+    "6551": "6500 PENTA Kanot (N)",
+    "6552": "6500 PENTA Urta (N)",
+    "6557": "6500 PENTA Shtapik Dv. Steklo (20mm) (N)",
+    "6509": "Metall Vst. Universal PENTA 6500 (1mm)"
+   },
+   "kisqa": {
+    "6553": "Kosa",
+    "6551": "Kanot",
+    "6552": "Urta",
+    "6557": "Shtapik",
+    "6509": "Armatura (universal)"
+   },
+   "nom_lam": {
+    "6553": "PENTA 6500 ({r}) Kosa {ll} (N)",
+    "6551": "PENTA 6500 ({r}) Kanot {ll} (N)",
+    "6552": "PENTA 6500 ({r}) Urta {ll} (N)",
+    "6557": "PENTA 6500 ({r}) Shtapik Dv. Steklo (20mm) {ll} (N)"
+   },
+   "rang_yoq": [
+    "Svetnoy (kraska)",
+    "Svetnoy",
+    "Anod"
+   ]
+  },
+  {
+   "nomi": "7600 Engelberg",
+   "guruh": "PVX",
+   "kosa": "PTG.76.F0001",
+   "qanot": "PTG.76.V0002",
+   "urta": "PTG.76.M0001",
+   "shtapik": {
+    "24": "PTG.76.G0002"
+   },
+   "r": 4.6,
+   "urta_yarmi": 2.2,
+   "qanot_r": 5.35,
+   "qanot_qoshimcha": 3.0,
+   "oyna_standart": 24,
+   "metall": {
+    "PTG.76.F0001": "CLR77",
+    "PTG.76.V0002": "CLR77",
+    "PTG.76.M0001": "CLR77"
+   },
+   "fornax": "13",
+   "soedinitel": "Soedinitel 7600 (Uz)",
+   "takos": "Takos Regulirovichniy (24mm)",
+   "nom_oq": {
+    "PTG.76.F0001": "7600 ENG Kosa (N)",
+    "PTG.76.V0002": "7600 ENG Kanot (N)",
+    "PTG.76.M0001": "7600 ENG Urta (N)",
+    "PTG.76.G0002": "ENG 7600 (7011-Alyuks) Shtapik (24mm) (TPV) LAM LL (N)",
+    "CLR77": "Metall Vst. KOSA USKIY 7600 AKFA (1.5mm)"
+   },
+   "kisqa": {
+    "PTG.76.F0001": "Kosa",
+    "PTG.76.V0002": "Kanot",
+    "PTG.76.M0001": "Urta",
+    "PTG.76.G0002": "Shtapik",
+    "CLR77": "Armatura (universal)"
+   },
+   "nom_lam": {
+    "PTG.76.F0001": "ENG 7600 ({r}) Kosa {ll} (N)",
+    "PTG.76.V0002": "ENG 7600 ({r}) Kanot {ll} (N)",
+    "PTG.76.M0001": "ENG 7600 ({r}) Urta {ll} (N)",
+    "PTG.76.G0002": "ENG 7600 ({r}) Shtapik (24mm) (TPV) {ll} (N)"
+   },
+   "rang_yoq": [
+    "Svetnoy (kraska)",
+    "Svetnoy",
+    "Anod"
+   ]
+  }
+ ]
+}

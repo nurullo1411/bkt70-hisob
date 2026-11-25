@@ -7,7 +7,7 @@ import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
+from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, PVX_MALUMOT, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
                    oyna_qalinligi, profil_narxi)
 
 PETLYA_CHEGARA = 260
@@ -178,16 +178,19 @@ ENG_SOEDINITEL_SAMOREZ = "3,9×25 YHBM"              # har soedinitelga 8 ta
 ENG_DRENAJ = {"Oq": "Probka Sliva (Oq) (Uz)", "Laminatsiya": "Probka Sliva (7016) (Uz)"}
 
 
-def _eng_aksessuar(s, k, r):
+def _eng_aksessuar(s, k, r, pvx=None):
+    """pvx — yangi PVX seriya yozuvi (seriyalar.json): soedinitel va takos nomi oʻzidan (foydalanuvchi, 2026-11-25)."""
+    pvx = pvx or {}
     if s["impost_soni"]:
         soed = 2 * s["impost_soni"]
-        r.qosh("Aksessuar", ENG_SOEDINITEL, soed, "dona")  # narx bir donaga (foydalanuvchi, 2026-11-09)
+        r.qosh("Aksessuar", pvx.get("soedinitel") or ENG_SOEDINITEL, soed, "dona")  # narx bir donaga (foydalanuvchi, 2026-11-09)
         r.qosh("Aksessuar", ENG_SOEDINITEL_SAMOREZ, soed * 8, "dona")
     # podstavka Termo 70 dagidek: gluxoyga CT 203 × 2, tabaqa oynasiga Takos (paket qalinligi boʻyicha) × 2
     if s["gluxoy_oyna_soni"]:
         r.qosh("Aksessuar", "CT 203", s["gluxoy_oyna_soni"] * 2, "dona")
     if s["tabaqa_oyna_soni"]:
-        r.qosh("Aksessuar", f"Takos Regulirovichniy ({k.get('oyna_qalinligi', 24)}mm)", s["tabaqa_oyna_soni"] * 2, "dona")
+        r.qosh("Aksessuar", pvx.get("takos") or f"Takos Regulirovichniy ({k.get('oyna_qalinligi', 24)}mm)",
+               s["tabaqa_oyna_soni"] * 2, "dona")
     oyna = s["gluxoy_oyna_soni"] + s["tabaqa_oyna_soni"]
     if oyna:
         r.qosh("Aksessuar", ENG_DRENAJ.get((k.get("tanlov") or {}).get("rang"), ENG_DRENAJ["Laminatsiya"]), oyna, "dona")
@@ -241,6 +244,7 @@ def eng_privod(mm):
     raise HisobXato(f"Povorotniy Privod 2200 mm gacha: {mm} mm")
 ENG_ISPANILET_NOMI = {"fornax": "Ispanilet Fornax", "roto": "Ispanilet Roto"}
 ENG_ZATSEP = {"fornax": "(13) Zatsepka (FORNAX)", "roto": "Zatsepka (ROTO)"}
+ENG_ZATSEP_9 = "Zatsepka (FORNAX)"
 # Ruchka diller nomi bilan, rangi qavsda; Roto Lux: oq, bronza, toʻq jigarrang (foydalanuvchi, 2026-11-09)
 ENG_RUCHKALAR = ["Ruchka Okon (ROTO LUX) (Oq) (Uz)", "Ruchka Okon (ROTO LUX) (Oq) (Tr)",
                  "Ruchka Okon (ROTO LUX) (Bronza) (Tr)", "Ruchka Okon (ROTO LUX) (Tem Kor) (Tr)",
@@ -263,6 +267,7 @@ ENG_OGRANICHITEL_ALDOKS_SAMOREZ = 4
 # Framujniy petlya komplekti: har komplektga samorez 3,9×38 × 6 (foydalanuvchi, 2026-11-10).
 # Fortochkada ISHLATILMAYDI; Prostoe Otkr bilan, "(13) Sredniy Prijim Skritiy (FORNAX)" OʻRNIGA (foydalanuvchi, 2026-11-10).
 ENG_FRAMUGA_PETLYA = "Komplekt Petel Dlya Framujnoe Okna 13mm (Uz)"
+ENG_FRAMUGA_PETLYA_9 = "Komplekt Petel Dlya Framujnoe Okna 9mm (Uz)"  # Fornax 9 seriyalar (2026-11-25)
 ENG_FRAMUGA_PETLYA_SAMOREZ = 6
 
 
@@ -461,14 +466,15 @@ def eng_ispanilet(boy_kesish, mexanizm, jadval=None):
     raise HisobXato(f"{mexanizm.title()} ispaniletiga mos oʻlcham yoʻq: tabaqa {boy_kesish} sm ({mm} mm)")
 
 
-def _eng_furnitura(s, tanlov, r):
+def _eng_furnitura(s, tanlov, r, pvx=None):
     boylar = [D(str(b)) for b in s.get("rom_tabaqa_boylari", [])]
     fortochkalar = [D(str(f[0])) for f in s.get("fortochkalar", [])]  # eni (kesish)
     fort_boylar = [D(str(f[1])) for f in s.get("fortochkalar", [])]
     dvaynoylar = [(D(str(e)), D(str(b))) for e, b in s.get("dvaynoylar", [])]
     if not boylar and not fortochkalar and not dvaynoylar:
         return 0
-    mexanizm = tanlov.get("eng_mexanizm") or "fornax"
+    # yangi PVX seriyalarda faqat Fornax (13 yoki 9; foydalanuvchi, 2026-11-25)
+    mexanizm = "fornax" if pvx else tanlov.get("eng_mexanizm") or "fornax"
     if mexanizm not in ENG_ISPANILET:
         raise HisobXato(f"Mexanizm faqat fornax yoki roto: {mexanizm}")
     petlya = tanlov.get("eng_petlya") or "prostoe"
@@ -489,7 +495,8 @@ def _eng_furnitura(s, tanlov, r):
         # qanot (kesish) 100 sm dan baland boʻlsa (foydalanuvchi tasdiqladi, 2026-11-10), har biriga samorez 3,9×38 × 6
         framuj = sum(1 for b in boylar if b > 100)
         if framuj:
-            r.qosh("Furnitura", ENG_FRAMUGA_PETLYA, framuj, "komplekt")
+            r.qosh("Furnitura", ENG_FRAMUGA_PETLYA_9 if pvx and str(pvx.get("fornax")) == "9" else ENG_FRAMUGA_PETLYA,
+                   framuj, "komplekt")
         r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_PROSTOE_SAMOREZ[0] * soni + ENG_FRAMUGA_PETLYA_SAMOREZ * framuj, "dona")
     else:
         # 100 sm dan baland tabaqaga 3 ta, qolganiga 2 ta (foydalanuvchi)
@@ -532,7 +539,9 @@ def _eng_furnitura(s, tanlov, r):
     if mexanizm == "fornax":
         zatsep += ENG_DV_ZATSEP * len(dvaynoylar)  # Roto dvaynoy zatsepi _eng_dvaynoy_roto da
     if zatsep:
-        r.qosh("Furnitura", ENG_ZATSEP[mexanizm], zatsep, "dona")
+        # Fornax 9 — "(13)" belgisiz nom (foydalanuvchi, 2026-11-25)
+        nom = ENG_ZATSEP_9 if pvx and str(pvx.get("fornax")) == "9" else ENG_ZATSEP[mexanizm]
+        r.qosh("Furnitura", nom, zatsep, "dona")
     # blokirator: oddiy tabaqa va fortochkada yoʻq (komplekt ichida), dvaynoyda bor (_eng_dvaynoy)
     return samorez
 
@@ -630,7 +639,7 @@ def tabaqa_petlya(seriya, tur, en, boy):
         if tur == "fortochka":
             return _ald_petlya(en)
         return None
-    if seriya == ENGELBERG.nomi:
+    if seriya == ENGELBERG.nomi or seriya in PVX_MALUMOT:
         if tur == "eshik":
             return 4 if 200 <= boy - D("0.5") <= 235 and 70 <= en - D("0.5") <= 105 else 3
         return None
@@ -876,8 +885,9 @@ def hisobot(k, narxlar):
         if markaziy:
             r.qosh("Rezina", REZINA_QANOT, markaziy, "m")
         r.qosh("Rezina", REZINA_CHET, markaziy * 2 + D(s["oyna_rezinasi"]) / 100, "m")
-        _eng_aksessuar(s, k, r)
-        samorez = _eng_furnitura(s, tanlov, r) + _eng_eshik(s, tanlov, r, n["qoida_yoq"])
+        pvx = PVX_MALUMOT.get(n.get("seriya"))  # yangi PVX seriya — Engelberg yoʻli, nomlar seriyadan
+        _eng_aksessuar(s, k, r, pvx)
+        samorez = _eng_furnitura(s, tanlov, r, pvx) + _eng_eshik(s, tanlov, r, n["qoida_yoq"])
         if samorez:
             r.qosh("Furnitura", ENG_ISPANILET_SAMOREZ, samorez, "dona")
     if s.get("armatura_samorez"):

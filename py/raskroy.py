@@ -12,7 +12,7 @@ from copy import deepcopy
 from math import ceil
 from pathlib import Path
 
-from hisob import HisobXato, asl_profil, hisobla, kesish_profili
+from hisob import PVX_MALUMOT, HisobXato, asl_profil, hisobla, kesish_profili
 from zakaz import _birlashtir
 
 HIVICH = 650
@@ -659,6 +659,20 @@ PROFIL_NOMI = {
     "109": "Chift Quloq",
     "181□": "Qanot (impost, 90°)", "185□": "Balkon Urta (impost, 90°)", "198□": "Balkon Qanot (impost, 90°)",
 }
+
+
+# Yangi PVX seriyalar (seriyalar.json; foydalanuvchi, 2026-11-25): Engelberg 7000 dagidek — hivich 6 m, otxod chegarasi
+# kosa 70, qanot 45, urta 65, shtapik 36, metall 25; urta va metall 90°, kosa, qanot va shtapik 45°.
+for _s in PVX_MALUMOT.values():
+    _metall = set((_s.get("metall") or {}).values())
+    _shtapik = set(_s["shtapik"].values())
+    for _p, _ch in [(_s["kosa"], 70), (_s["qanot"], 45), (_s["urta"], 65), *((x, 36) for x in _shtapik), *((x, 25) for x in _metall)]:
+        HIVICH_PROFIL[_p] = 600
+        OTXOD_CHEGARA[_p] = _ch
+        if _p not in TARTIB:
+            TARTIB.append(_p)
+        PROFIL_NOMI.setdefault(_p, (_s.get("kisqa") or {}).get(_p, _p))
+    TOGRI_KESIM.update({_s["urta"], *_metall})
 
 
 def toliq_nom(profil):
