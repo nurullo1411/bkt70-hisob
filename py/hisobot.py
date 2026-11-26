@@ -305,7 +305,9 @@ def eng_krishka_rangi(ruchka):
     return "Oq"  # rangsiz eski nom ("ROTO LUX (Uz)") — oq
 
 
-def _eng_dvaynoy(dvaynoylar, ruchka, r):
+def _eng_dvaynoy(dvaynoylar, ruchka, r, toliq=None):
+    """toliq — PVX json "toliq" (6000 Trio, Fornax 9): komplekt va blokirator nomi "(13)" siz (foydalanuvchi, 2026-11-26)."""
+    toliq = toliq or {}
     if not dvaynoylar:
         return 0
     isp, noj, zam = {}, {}, {}
@@ -324,7 +326,7 @@ def _eng_dvaynoy(dvaynoylar, ruchka, r):
             d[k] = d.get(k, 0) + 1
         samorez += 12 if b <= 1225 else 14
     soni = len(dvaynoylar)
-    r.qosh("Furnitura", ENG_DV_KOMPLEKT, soni, "komplekt")
+    r.qosh("Furnitura", toliq.get("dv_komplekt") or ENG_DV_KOMPLEKT, soni, "komplekt")
     for k, n in isp.items():
         r.qosh("Furnitura", f"Ispanilet {k} (FORNAX)", n, "dona")
     for k, n in noj.items():
@@ -332,7 +334,7 @@ def _eng_dvaynoy(dvaynoylar, ruchka, r):
     for k, n in zam.items():
         r.qosh("Furnitura", f"Zamok Sredniy {k} (FORNAX)", n, "dona")
     r.qosh("Furnitura", f"Krishka Petlya ({eng_krishka_rangi(ruchka)}) (FORNAX)", soni, "dona")
-    r.qosh("Furnitura", ENG_DV_BLOKIRATOR, soni, "dona")
+    r.qosh("Furnitura", toliq.get("dv_blokirator") or ENG_DV_BLOKIRATOR, soni, "dona")
     r.qosh("Furnitura", ENG_PETLYA_SAMOREZ, ENG_DV_PETLYA_SAMOREZ_SONI * soni, "dona")
     return samorez
 
@@ -428,7 +430,8 @@ def eng_eshik_zamok(boy_kesish, tur):
     raise HisobXato(f"Eshik zamogʻi 2400 mm gacha: qanot {mm} mm")
 
 
-def _eng_eshik(s, tanlov, r, qoida_yoq):
+def _eng_eshik(s, tanlov, r, qoida_yoq, toliq=None):
+    toliq = toliq or {}  # PVX json "toliq": zatsep va shtulp qopqogʻi seriyadan (6000 Trio — "6000" nomlari)
     eshiklar = s.get("eshiklar") or []
     if not eshiklar:
         return 0
@@ -447,7 +450,7 @@ def _eng_eshik(s, tanlov, r, qoida_yoq):
         zatsep += z
         r.qosh("Furnitura", nom, 1, "dona")
         samorez += 12
-    r.qosh("Furnitura", ENG_ESHIK_ZATSEP, zatsep, "dona")
+    r.qosh("Furnitura", toliq.get("eshik_zatsep") or ENG_ESHIK_ZATSEP, zatsep, "dona")
     petlya = sum(4 if 200 <= b - D("0.5") <= 235 and 70 <= e - D("0.5") <= 105 else 3 for e, b in qanotlar)
     r.qosh("Furnitura", tanlov.get("eng_eshik_petlya") or ENG_ESHIK_PETLYALAR[0], petlya, "dona")
     r.qosh("Furnitura", ENG_ESHIK_PETLYA_SAMOREZ[0], ENG_ESHIK_PETLYA_SAMOREZ[1] * petlya, "dona")
@@ -455,7 +458,7 @@ def _eng_eshik(s, tanlov, r, qoida_yoq):
     if passiv:
         r.qosh("Furnitura", ENG_SHPINGALET, 2 * passiv, "dona")
         samorez += 4 * passiv
-        r.qosh("Aksessuar", ENG_SHTULP_KRISHKA, 2 * passiv, "dona")
+        r.qosh("Aksessuar", toliq.get("shtulp_krishka") or ENG_SHTULP_KRISHKA, 2 * passiv, "dona")
         r.qosh("Aksessuar", ENG_SHTULP_SAMOREZ[0], ENG_SHTULP_SAMOREZ[1] * passiv, "dona")
     return samorez
 
@@ -486,7 +489,7 @@ def _eng_furnitura(s, tanlov, r, pvx=None):
     soni = len(boylar)
     ruchka = tanlov.get("eng_ruchka") or ENG_RUCHKALAR[0]
     r.qosh("Furnitura", ruchka, soni + len(fortochkalar) + len(dvaynoylar), "dona")
-    samorez = (_eng_dvaynoy(dvaynoylar, ruchka, r) if mexanizm == "fornax"
+    samorez = (_eng_dvaynoy(dvaynoylar, ruchka, r, (pvx or {}).get("toliq")) if mexanizm == "fornax"
                else _eng_dvaynoy_roto(dvaynoylar, s.get("dvaynoy_tomonlari") or [], r, ruchka))
     if not soni:
         pass
@@ -941,7 +944,7 @@ def hisobot(k, narxlar):
         r.qosh("Rezina", REZINA_CHET, markaziy * 2 + D(s["oyna_rezinasi"]) / 100, "m")
         pvx = PVX_MALUMOT.get(n.get("seriya"))  # yangi PVX seriya — Engelberg yoʻli, nomlar seriyadan
         _eng_aksessuar(s, k, r, pvx)
-        samorez = _eng_furnitura(s, tanlov, r, pvx) + _eng_eshik(s, tanlov, r, n["qoida_yoq"])
+        samorez = _eng_furnitura(s, tanlov, r, pvx) + _eng_eshik(s, tanlov, r, n["qoida_yoq"], (pvx or {}).get("toliq"))
         if samorez:
             r.qosh("Furnitura", ENG_ISPANILET_SAMOREZ, samorez, "dona")
     if s.get("armatura_samorez"):

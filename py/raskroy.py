@@ -673,6 +673,19 @@ for _s in PVX_MALUMOT.values():
             TARTIB.append(_p)
         PROFIL_NOMI.setdefault(_p, (_s.get("kisqa") or {}).get(_p, _p))
     TOGRI_KESIM.update({_s["urta"], *_metall})
+    # "toliq" (6000 Trio; foydalanuvchi, 2026-11-26): eshik qanoti va shtulp Engelberg dagidek — hivich 6 m,
+    # otxod 65 / 200; shtulp va balkon metalli 90°, shtulp chegarasiz (200 dan kichigi otxod)
+    _t = _s.get("toliq")
+    if _t:
+        _em = set(_t["eshik_metall"].values())
+        for _p, _ch in [*_t["otxod"].items(), *((x, 25) for x in _em)]:
+            HIVICH_PROFIL[_p] = 600
+            OTXOD_CHEGARA[_p] = _ch
+            if _p not in TARTIB:
+                TARTIB.append(_p)
+            PROFIL_NOMI.setdefault(_p, (_s.get("kisqa") or {}).get(_p, _p))
+        TOGRI_KESIM.update({_t["shtulp"], *_em})
+        CHEGARASIZ.add(_t["shtulp"])
 
 
 # Yangi Termo seriyalar (seriyalar.json; foydalanuvchi, 2026-11-25): Termo 70 dagidek — hivich 6,5 m, otxod chegarasi

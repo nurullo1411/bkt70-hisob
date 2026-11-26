@@ -197,15 +197,42 @@ def _pvx_bitta(s, umumiy):
     """Bitta seriya yozuvi: avval hammasi tekshiriladi, keyin roʻyxatga yoziladi (xatoda yarim yozilmaydi)."""
     kosa, qanot, urta = s["kosa"], s["qanot"], s["urta"]
     metall = s.get("metall") or {}
+    # "toliq" (foydalanuvchi, 2026-11-26; 6000 Trio): fortochka, dvaynoy, tabaqa ichi impost, eshik, arka, lapsha —
+    # Engelberg yoʻli. Hamma maydon majburiy (yetishmasa KeyError — seriya oʻtkazib yuboriladi, standart qiymat olinmaydi)
+    t = s.get("toliq")
+    qosh = {}
+    eshik_qanot, eshik_metall = [], {}
+    if t is not None:
+        eshik_qanot = [t["eshik_profili"]["ichkariga"], t["eshik_profili"]["tashqariga"]]
+        eshik_metall = t["eshik_metall"]
+        qosh = dict(eshik_profili={"ichkariga": eshik_qanot[0], "tashqariga": eshik_qanot[1]},
+                    eshik_kosa=D(t["eshik_kosa"]), eshik_impost=D(t["eshik_impost"]),
+                    eshik_2_qoshimcha=D(t["eshik_2_qoshimcha"]), shtulp=t["shtulp"],
+                    shtulp_ayirma=D(t["shtulp_ayirma"]), arka_zapas=D(t["arka_zapas"]),
+                    shtapik_qalinligi=D(t["shtapik_qalinligi"]))
+        for k in ("eshik_qanot_r", "eshik_metall_ayirma", "eshik_zatsep", "shtulp_krishka", "dv_komplekt",
+                  "dv_blokirator", "otxod"):
+            t[k]  # noqa: majburiy maydon
+        if set(eshik_metall) != set(eshik_qanot) or not {*eshik_qanot, t["shtulp"]} <= set(t["otxod"]):
+            raise ValueError(f"{s['nomi']}: eshik_metall yoki otxod da eshik qanoti / shtulp yetishmaydi")
     seriya = Seriya(s["nomi"], urta, qanot, D(s["qanot_qoshimcha"]), D("1.5"), D("0.5"), True,
-                    {int(q): p for q, p in s["shtapik"].items()}, False, pvx=True, faqat_rom=True,
-                    oyna_standart=int(s["oyna_standart"]), laminat_yoq=True, faqat_oddiy=True,
+                    {int(q): p for q, p in s["shtapik"].items()}, t is not None, pvx=True, faqat_rom=t is None,
+                    oyna_standart=int(s["oyna_standart"]), laminat_yoq=True, faqat_oddiy=t is None,
                     fornax=str(s.get("fornax") or "13"), soedinitel=s.get("soedinitel"), takos=s.get("takos"),
-                    guruh=s.get("guruh"), rang_yoq=tuple(s.get("rang_yoq") or ()))
+                    guruh=s.get("guruh"), rang_yoq=tuple(s.get("rang_yoq") or ()), **qosh)
     r, yarmi, qanot_r = D(s["r"]), D(s["urta_yarmi"]), D(s["qanot_r"])
     if s["nomi"] in PVX_MALUMOT or kosa in RAMA_R or urta in IMPOST_YARMI or qanot in TABAQA_AYIRMA:
         raise ValueError(f"{s['nomi']}: nomi yoki kosa/urta/qanot kodi boshqa seriyada bor")
-    kodlar = [kosa, qanot, urta, *s["shtapik"].values(), *metall.values()]
+    if any(p in TABAQA_AYIRMA for p in eshik_qanot):
+        raise ValueError(f"{s['nomi']}: eshik qanoti kodi boshqa seriyada bor")
+    kodlar = [kosa, qanot, urta, *s["shtapik"].values(), *dict.fromkeys([*metall.values(), *eshik_metall.values()])]
+    if t is not None:
+        kodlar += [*eshik_qanot, t["shtulp"]]
+        for p in [*eshik_qanot, t["shtulp"]]:
+            if not (s.get("nom_oq", {}).get(p) and s.get("nom_lam", {}).get(p) and s.get("kisqa", {}).get(p)):
+                raise ValueError(f"{p}: nom_oq, nom_lam yoki kisqa yoʻq")
+    if len(set(kodlar)) != len(kodlar):
+        raise ValueError(f"{s['nomi']}: kodlar takrorlangan")
     for p in kodlar:
         if p in ENGELBERG_PROFILLARI or p in ALDOKS_PROFILLARI or p in RAMA_R or p in TERMO_PROFIL:
             raise ValueError(f"{p} kodi boshqa seriyada bor")
@@ -222,6 +249,15 @@ def _pvx_bitta(s, umumiy):
     IMPOST_RAMA[urta] = kosa
     for p, m in metall.items():
         ARMATURA[p] = (m, D(13) if p != urta else D("0.5"))
+    if t is not None:
+        # tabaqa ichidagi impost = qanot − qanot R − qanot R − 0,5 (foydalanuvchi, 2026-11-26), eshik qanotida ham
+        TABAQA_IMPOST_AYIRMA[qanot] = TABAQA_AYIRMA[qanot]
+        for p in eshik_qanot:
+            # eshik qanoti 122 mm (romniki 78): qanot ichki = qanot − 0,5 − 2 × 10 (foydalanuvchi, 2026-11-26)
+            TABAQA_AYIRMA[p] = D("0.5") + 2 * D(t["eshik_qanot_r"])
+            TABAQA_IMPOST_AYIRMA[p] = TABAQA_AYIRMA[p]
+        for p, m in eshik_metall.items():
+            ARMATURA[p] = (m, D(t["eshik_metall_ayirma"]))  # balkon metalli = qanot kesish − 20
     PVX_SERIYALAR.append(seriya)
     PVX_MALUMOT[s["nomi"]] = s
 

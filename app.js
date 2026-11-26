@@ -1333,7 +1333,7 @@ function eshikMalumot(k) {
   const t = { ...(zakaz.umumiy.tanlov || {}), ...(k.tanlov || {}) }, rama = String(k.rama || zakaz.umumiy.rama);
   const yorliq = (royxat, v) => { const f = royxat.find((x) => x[0] === v); return f ? f[1] : v; };
   let ruchka, zamok, petlya;
-  if (rama === "7051") {
+  if (rama === "7051" || pvxToliq(rama)) {  // 6000 Trio eshigi Engelberg furniturasi bilan (2026-11-26)
     ruchka = yorliq(ENG_ESHIK_RUCHKALAR, t.eng_eshik_ruchka || ENG_ESHIK_RUCHKALAR[0][0]);
     zamok = { fornax: "Fornax", roto: "Roto", gu: "GU" }[t.eng_eshik_zamok || "fornax"] || t.eng_eshik_zamok;
     petlya = yorliq(ENG_ESHIK_PETLYALAR, t.eng_eshik_petlya || ENG_ESHIK_PETLYALAR[0][0]);
