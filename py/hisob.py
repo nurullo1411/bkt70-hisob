@@ -372,6 +372,20 @@ def profil_narxi(narxlar, artikul, rang):
     return d.get(rang, d.get("*"))
 
 
+def rangsiz_profil(artikul):
+    """Armatura (metall) — rangi yoʻq: "PVX 6509", "0701-2" …"""
+    kod = asl_profil(str(artikul))
+    kod = kod.split(" ", 1)[1] if kod.startswith(("PVX ", "ENG ", "TERMO ", "ALD ", "BKT70 ")) else kod
+    metall = {m for m, _ in ARMATURA.values()}
+    return kod in metall or (kod.endswith("-2") and kod[:-2] in metall)
+
+
+def kesish_turkumi(artikul, turkum, rang_nomi):
+    """Otxod va kesish varagʻi guruhi: narx turkumi, lekin rangsiz metall hamma rangda bitta guruh — "*"
+    (foydalanuvchi, 2026-11-27: metall rangdan qatʼi nazar birga kesiladi; narxi baribir "*" kalitida)."""
+    return "*" if rangsiz_profil(artikul) else narx_turkumi(None, artikul, turkum, rang_nomi)
+
+
 GREY_TURKUM = "Laminatsiya grey"
 LAMINAT_RANGLARI = ("grey", "z/d", "d/m", "sh/d", "alux")  # sklad laminat ranglari (docs/raskroy-narx.md)
 

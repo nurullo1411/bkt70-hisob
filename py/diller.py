@@ -11,9 +11,10 @@ Oyna oʻlchami 0,5 sm ga: yuqoriga faqat 2 mm gacha kattalashsa (79,9 → 80), a
 — zazor meʼyoridan 0,2 sm dan koʻp kamaymaydi (foydalanuvchi, 2026-11-18, hamma seriya).
 """
 
+from collections import Counter
 from math import ceil, floor
 
-from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG_PROFILLARI, PVX_PROFIL, TERMO_MALUMOT, TERMO_PROFIL, HisobXato, asl_profil, oyna_qalinligi
+from hisob import ALDOKS, ALDOKS_PROFILLARI, ENGELBERG_PROFILLARI, PVX_PROFIL, TERMO_MALUMOT, TERMO_PROFIL, HisobXato, asl_profil, oyna_qalinligi, rangsiz_profil
 
 # Diller roʻyxatidagi nom ("Diller narx" A → B, 04.11.2026)
 DILLER_NOMI = {
@@ -212,16 +213,23 @@ def profil_nomi(profil, rang, ald_tur="ADT"):
 
 
 def _profil_qatorlari(zakaz, sklad):
-    from raskroy import rang_guruhlari, sklad_rejasi
+    from raskroy import profil_rejasi, rang_guruhlari, sklad_rejasi
 
     qatorlar, izohlar = [], []
     ald_tur = ((zakaz.get("umumiy") or {}).get("tanlov") or {}).get("ald_tur") or "ADT"
+    metall = {}  # rangsiz metall hamma rang guruhidan yigʻilib bir marta kesiladi (foydalanuvchi, 2026-11-27); skladda metall yoʻq
     for g in rang_guruhlari(zakaz):
         rang = g["rang"]
         if rang is None:
             izohlar.append(f"Laminatsiya rangi tanlanmagan ({', '.join(g['konstruksiyalar'])}): nomda rang yoʻq")
         reja = sklad_rejasi(zakaz, sklad or [], rang or "grey", g)
         for r in reja["rejalar"]:
+            if rangsiz_profil(r["profil"]) and not r["sklad_soni"]:
+                m = metall.setdefault(r["profil"], [rang, Counter()])
+                for k in r["konstruksiyalar"]:
+                    for d in k["detallar"]:
+                        m[1][int(round(d["uzunlik"] * 100))] += d["soni"]
+                continue
             if r["yangi_soni"]:
                 nomi = profil_nomi(r["profil"], rang, ald_tur)
                 bor = next((q for q in qatorlar if q["nomi"] == nomi), None)  # 181 va 181□ — bitta hivich nomi
@@ -231,6 +239,10 @@ def _profil_qatorlari(zakaz, sklad):
                 else:
                     qatorlar.append({"nomi": nomi, "soni": r["yangi_soni"], "birlik": "hivich", "sklad": r["sklad_soni"]})
         izohlar += reja.get("izohlar") or []
+    for p, (rang, kerak) in metall.items():
+        soni = profil_rejasi(p, kerak)["yangi_soni"]
+        if soni:
+            qatorlar.append({"nomi": profil_nomi(p, rang, ald_tur), "soni": soni, "birlik": "hivich", "sklad": 0})
     return qatorlar, izohlar
 
 

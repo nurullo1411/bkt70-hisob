@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from hisob import SERIYA_RAMA, HisobXato, asl_profil, kesish_profili, narx_kaliti, narx_turkumi, oyna_qalinligi
+from hisob import SERIYA_RAMA, HisobXato, asl_profil, kesish_profili, kesish_turkumi, narx_kaliti, narx_turkumi, oyna_qalinligi
 from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
@@ -103,7 +103,7 @@ def hisobla_zakaz(zakaz, otxod_usuli="chegara", sklad=None):
             miqdorlar.setdefault(kalit, [0.0] * len(royxat))
             miqdorlar[kalit][i] += round(float(t["miqdor"]), 6)
         for p in n["profillar"]:
-            kalit = (kesish_profili(p), narx_turkumi(narxlar, narx_kaliti(p["profil"]), k["tanlov"]["rang"], sklad_rangi))
+            kalit = (kesish_profili(p), kesish_turkumi(narx_kaliti(p["profil"]), k["tanlov"]["rang"], sklad_rangi))
             if otxod_usuli.startswith("sklad"):  # sklad rangi boʻyicha: grey va z/d bir hivichdan kesilmaydi
                 kalit += (sklad_rangi,)
             guruh = detallar.setdefault(kalit, {"kerak": Counter(), "ulush": [0] * len(royxat)})
@@ -151,9 +151,10 @@ def _otxod_qatorlari(detallar, miqdorlar, sonlar, usul="chegara", sklad=None):
         ishlatilgan = o["ishlatilgan"] / 10000
         jami = o["sarf"] / 10000
         ortiqcha = jami - ishlatilgan
-        miqdorlar[("Profil otxod", narx_kaliti(profil), rang, "m")] = [
-            round(ortiqcha * u / o["ishlatilgan"] / s, 6) for u, s in zip(g["ulush"], sonlar)
-        ]
+        # bir otxod qatoriga bir necha guruh tushishi mumkin (sklad usulida sklad rangi boʻyicha, metall "*") — yigʻiladi
+        qator = miqdorlar.setdefault(("Profil otxod", narx_kaliti(profil), rang, "m"), [0.0] * len(sonlar))
+        for j, (u, s) in enumerate(zip(g["ulush"], sonlar)):
+            qator[j] = round(qator[j] + ortiqcha * u / o["ishlatilgan"] / s, 6)
         natija.append({
             "profil": profil, "rang": rang, "hivich": o["hivich"], "ishlatilgan_m": round(ishlatilgan, 3),
             "sarf_m": round(o["sarf"] / 10000, 3), "jami_m": round(jami, 3), "chegara_yoq": o["chegara_yoq"],

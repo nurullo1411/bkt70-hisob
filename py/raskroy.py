@@ -12,7 +12,7 @@ from copy import deepcopy
 from math import ceil
 from pathlib import Path
 
-from hisob import PVX_MALUMOT, TERMO_MALUMOT, HisobXato, asl_profil, hisobla, kesish_profili, narx_turkumi
+from hisob import PVX_MALUMOT, TERMO_MALUMOT, HisobXato, asl_profil, hisobla, kesish_profili, kesish_turkumi
 from zakaz import _birlashtir
 
 HIVICH = 650
@@ -434,13 +434,13 @@ def kesish_chizmasi(zakaz):
     faol = [k for k in zakaz.get("konstruksiyalar") or [] if k.get("soni", 1) != 0]
     royxat, _ = detallarni_yig({**zakaz, "konstruksiyalar": faol})
     # Narx turkumi boʻyicha alohida (foydalanuvchi, 2026-11-27: PENTA grey alohida kesiladi; narxdagi otxod kaliti
-    # zakaz.hisobla_zakaz dagidek — Oq va laminat, PENTA grey va boshqa laminat bir hivichdan kesilmaydi)
+    # zakaz.hisobla_zakaz dagidek — Oq va laminat, PENTA grey va boshqa laminat bir hivichdan kesilmaydi; metall birga)
     u = zakaz.get("umumiy") or {}
     jami = {}
     for k, el in zip(royxat, faol):
         sr, turkum = _konstruksiya_rangi(u.get("tanlov") or {}, el)
         for d in k["detallar"]:
-            g = (d["profil"], narx_turkumi(None, d["profil"], turkum, sr))
+            g = (d["profil"], kesish_turkumi(d["profil"], turkum, sr))
             jami.setdefault(g, Counter())[_b(d["uzunlik"])] += d["soni"] * k["soni"]
             k.setdefault("_turkum", {})[d["profil"]] = g[1]
     turkumlar = {}
