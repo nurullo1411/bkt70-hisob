@@ -124,7 +124,13 @@ def pvx_profil_nomi(profil, rang):
     oq = s.get("nom_oq", {}).get(profil)
     if rang in (None, "oq") or profil not in s.get("nom_lam", {}):
         return oq or profil
-    r = ENG_LAM_RANGI.get(rang or "", "rangi?")
+    # AKFA da yoʻq rang (Trio, QVT — grey), seriya rang nomi va profil istisnolari (foydalanuvchi, 2026-11-27)
+    if rang in (s.get("lam_yoq") or []):
+        return f"{oq or profil} — {rang} rangi AKFA da yoʻq"
+    aniq = (s.get("nom_lam_rang") or {}).get(profil, {}).get(rang or "")
+    if aniq:
+        return aniq
+    r = {**ENG_LAM_RANGI, **(s.get("lam_rangi") or {})}.get(rang or "", "rangi?")
     return s["nom_lam"][profil].format(r=r, ll="LAM LL" if r.startswith("7011") else "LAM")
 
 

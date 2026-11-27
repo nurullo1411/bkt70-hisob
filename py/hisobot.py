@@ -8,7 +8,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from hisob import (ALDOKS, ARMATURA_SAMOREZ, ENGELBERG, PVX_MALUMOT, TERMO_MALUMOT, REZINA_CHET, REZINA_QANOT, D, HisobXato, hisobla, hivich_metr, narx_kaliti,
-                   oyna_qalinligi, profil_narxi)
+                   narx_turkumi, oyna_qalinligi, profil_narxi)
 
 PETLYA_CHEGARA = 260
 K188_BURCHAKKA_G = 7
@@ -105,15 +105,16 @@ def _kerak(tanlov, kalit, nomi):
 
 
 
-def _profillar(n, rang, narxlar, r):
+def _profillar(n, rang, narxlar, r, rang_nomi=None):
     jami_metr = {}
     for p in n["profillar"]:
         artikul = narx_kaliti(p["profil"])
         jami_metr[artikul] = jami_metr.get(artikul, D(0)) + D(p["uzunlik"]) * p["soni"] / 100
     for artikul, metr in jami_metr.items():
-        hivich = profil_narxi(narxlar, artikul, rang)
+        turkum = narx_turkumi(narxlar, artikul, rang, rang_nomi)  # PENTA grey — alohida narx (2026-11-27)
+        hivich = profil_narxi(narxlar, artikul, turkum)
         summa = None if hivich is None else metr * D(hivich) / D(hivich_metr(artikul, narxlar["hivich_m"]))
-        r.summa_bilan("Profil", artikul, metr, "m", summa, f"{artikul} ({rang})")
+        r.summa_bilan("Profil", artikul, metr, "m", summa, f"{artikul} ({turkum})")
 
 
 def _rezina(s, r):
@@ -921,7 +922,7 @@ def hisobot(k, narxlar):
     s = n["sanoq"]
     r = Royxat(narxlar["narx"])
 
-    _profillar(n, rang, narxlar, r)
+    _profillar(n, rang, narxlar, r, tanlov.get("rang_nomi"))
     if n.get("seriya") in ALD_TUR:
         _ald_hisobot(s, rang, r, tanlov, n["seriya"])
     elif n.get("seriya", "Termo 70") == "Termo 70":

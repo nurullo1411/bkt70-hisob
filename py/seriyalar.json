@@ -30,7 +30,11 @@
     "6035": "6000 TRIO Shtapik (N)",
     "0603": "Metall Vst. KOSA 6000 (1.2mm)",
     "0601": "Metall Vst. KANOT 6000 (1.2mm)",
-    "0602": "Metall Vst. URTA 6000 (1.2mm)"
+    "0602": "Metall Vst. URTA 6000 (1.2mm)",
+    "6034": "6000 TRIO Balkon New (N)",
+    "6034T": "6000 TRIO Balkon Urta (N)",
+    "6038SH": "6000 TRIO Adaptor Truba Bez Imposta (Shtulp Dvernoy) (N)",
+    "06B15": "Metall Vst. BALKON 6000 (1.5mm)"
    },
    "kisqa": {
     "6041": "Kosa",
@@ -39,19 +43,72 @@
     "6035": "Shtapik",
     "0603": "Armatura Kosa",
     "0601": "Armatura Kanot",
-    "0602": "Armatura Urta"
+    "0602": "Armatura Urta",
+    "6034": "Balkon qanot",
+    "6034T": "Balkon urta",
+    "6038SH": "Shtulp",
+    "06B15": "Metall balkon"
    },
    "nom_lam": {
     "6041": "QVT 6000 ({r}) Kosa {ll} (N)",
     "6042": "QVT 6000 ({r}) Kanot {ll} (N)",
     "6043": "QVT 6000 ({r}) Urta {ll} (N)",
-    "6035": "TRIO 6000 ({r}) Shtapik Rez. (TPV) {ll} (N)"
+    "6035": "TRIO 6000 ({r}) Shtapik Rez. (TPV) {ll} (N)",
+    "6034": "TRIO 6000 ({r}) Balkon New {ll} (N)",
+    "6034T": "TRIO 6000 ({r}) Balkon Urta {ll} (N)",
+    "6038SH": "TRIO 6000 ({r}) Adaptor Bez Imp (Shtulp Dvernoy) {ll} (N)"
    },
    "rang_yoq": [
     "Svetnoy (kraska)",
     "Svetnoy",
     "Anod"
-   ]
+   ],
+   "toliq": {
+    "_izoh": "foydalanuvchi, 2026-11-27: Trio dagidek, eshik qanoti Trio balkoni 6034 / 6034T (ProfOkna 6000 Quattro)",
+    "eshik_profili": {
+     "ichkariga": "6034",
+     "tashqariga": "6034T"
+    },
+    "eshik_qanot_r": "10.0",
+    "eshik_kosa": "1.3",
+    "eshik_impost": "1.2",
+    "eshik_2_qoshimcha": "1",
+    "shtulp": "6038SH",
+    "shtulp_ayirma": "1.7",
+    "arka_zapas": "20",
+    "shtapik_qalinligi": "2.2",
+    "eshik_metall": {
+     "6034": "06B15",
+     "6034T": "06B15"
+    },
+    "eshik_metall_ayirma": "20",
+    "eshik_zatsep": "Zatsepka 6000 (750sht) (Uz)",
+    "shtulp_krishka": "Krishka Shtulp Dlya Adap 6000 (Oq) (Uz)",
+    "dv_komplekt": "KOMPLEKT (FORNAX)",
+    "dv_blokirator": "Blokirator Ruchki Na Rame (FORNAX)",
+    "otxod": {
+     "6034": 65,
+     "6034T": 65,
+     "6038SH": 200
+    }
+   },
+   "lam_yoq": [
+    "grey"
+   ],
+   "tabaqa_chegara": {
+    "_izoh": "ProfOkna 6000 распашная створка, qanot kesish oʻlchami sm (foydalanuvchi, 2026-11-27): oshsa ogohlantirish",
+    "boy": 194,
+    "en": 85,
+    "en_boy": 270
+   },
+   "nom_lam_rang": {
+    "6034": {
+     "sh/d": "TRIO 6000 (7011-Sheffal Dub-5F01) Balkon New LAM LL (N)"
+    },
+    "6038SH": {
+     "sh/d": "TRIO 6000 (7011-Sheffal Dub-5F01) Adaptor Bez Imp (Shtulp Dvernoy) LAM LL (N)"
+    }
+   }
   },
   {
    "nomi": "6000 Trio",
@@ -143,6 +200,23 @@
      "6034T": 65,
      "6038SH": 200
     }
+   },
+   "lam_yoq": [
+    "grey"
+   ],
+   "tabaqa_chegara": {
+    "_izoh": "ProfOkna 6000 распашная створка, qanot kesish oʻlchami sm (foydalanuvchi, 2026-11-27): oshsa ogohlantirish",
+    "boy": 194,
+    "en": 85,
+    "en_boy": 270
+   },
+   "nom_lam_rang": {
+    "6034": {
+     "sh/d": "TRIO 6000 (7011-Sheffal Dub-5F01) Balkon New LAM LL (N)"
+    },
+    "6038SH": {
+     "sh/d": "TRIO 6000 (7011-Sheffal Dub-5F01) Adaptor Bez Imp (Shtulp Dvernoy) LAM LL (N)"
+    }
    }
   },
   {
@@ -220,25 +294,82 @@
     "6551": "6500 PENTA Kanot (N)",
     "6552": "6500 PENTA Urta (N)",
     "6557": "6500 PENTA Shtapik Dv. Steklo (20mm) (N)",
-    "6509": "Metall Vst. Universal PENTA 6500 (1mm)"
+    "6509": "Metall Vst. Universal PENTA 6500 (1mm)",
+    "6500BK": "6500 PENTA Balkon Kanot (N)",
+    "6500BU": "6500 PENTA Balkon Urta (N)",
+    "6500SH": "6500 PENTA Adaptor Truba Bez Imposta (Shtulp) (N)"
    },
    "kisqa": {
     "6553": "Kosa",
     "6551": "Kanot",
     "6552": "Urta",
     "6557": "Shtapik",
-    "6509": "Armatura (universal)"
+    "6509": "Armatura (universal)",
+    "6500BK": "Balkon qanot",
+    "6500BU": "Balkon urta",
+    "6500SH": "Shtulp"
    },
    "nom_lam": {
     "6553": "PENTA 6500 ({r}) Kosa {ll} (N)",
     "6551": "PENTA 6500 ({r}) Kanot {ll} (N)",
     "6552": "PENTA 6500 ({r}) Urta {ll} (N)",
-    "6557": "PENTA 6500 ({r}) Shtapik Dv. Steklo (20mm) {ll} (N)"
+    "6557": "PENTA 6500 ({r}) Shtapik Dv. Steklo (20mm) {ll} (N)",
+    "6500BK": "PENTA 6500 ({r}) Balkon Kanot {ll} (N)",
+    "6500BU": "PENTA 6500 ({r}) Balkon Urta {ll} (N)",
+    "6500SH": "PENTA 6500 ({r}) Adaptor Truba Bez Imposta (Shtulp) {ll} (N)"
    },
    "rang_yoq": [
     "Svetnoy (kraska)",
     "Svetnoy",
     "Anod"
+   ],
+   "toliq": {
+    "_izoh": "foydalanuvchi, 2026-11-27: Trio dagidek; eshik qanoti ichki kodlar 6500BK (Balkon Kanot) / 6500BU (Balkon Urta), shtulp 6500SH; metall 6509 − 20; dvaynoy Fornax 13",
+    "eshik_profili": {
+     "ichkariga": "6500BK",
+     "tashqariga": "6500BU"
+    },
+    "eshik_qanot_r": "10.0",
+    "eshik_kosa": "1.3",
+    "eshik_impost": "1.2",
+    "eshik_2_qoshimcha": "1",
+    "shtulp": "6500SH",
+    "shtulp_ayirma": "1.7",
+    "arka_zapas": "20",
+    "shtapik_qalinligi": "2.2",
+    "eshik_metall": {
+     "6500BK": "6509",
+     "6500BU": "6509"
+    },
+    "eshik_metall_ayirma": "20",
+    "eshik_zatsep": "Zatsepka 6000 (750sht) (Uz)",
+    "shtulp_krishka": "Krishka Shtulp Dlya Adap 6500 (Oq) (Uz)",
+    "dv_komplekt": "(13) KOMPLEKT Dvoy. Otkr (FORNAX)",
+    "dv_blokirator": "(13) Blokirator Ruchki Na Rame (FORNAX)",
+    "otxod": {
+     "6500BK": 65,
+     "6500BU": 65,
+     "6500SH": 200
+    }
+   },
+   "lam_rangi": {
+    "sh/d": "7011-Sheffal Dub-5F01",
+    "z/d": "Zol Dub-S540"
+   },
+   "nom_lam_rang": {
+    "6553": {
+     "z/d": "PENTA 6500 (Zol Dub-S540) Kosa New LAM (N)",
+     "d/m": "PENTA 6500 (Dub Mokko) Kosa (N)"
+    },
+    "6551": {
+     "z/d": "PENTA 6500 (Zol Dub-S540) Kanot New LAM (N)"
+    },
+    "6552": {
+     "z/d": "PENTA 6500 (Zol Dub-S540) Urta New LAM (N)"
+    }
+   },
+   "lam_alohida": [
+    "grey"
    ]
   },
   {

@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from hisob import SERIYA_RAMA, HisobXato, asl_profil, kesish_profili, narx_kaliti, oyna_qalinligi
+from hisob import SERIYA_RAMA, HisobXato, asl_profil, kesish_profili, narx_kaliti, narx_turkumi, oyna_qalinligi
 from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
@@ -35,10 +35,10 @@ def _birlashtir(umumiy, k):
     return natija
 
 
-def _qator_kaliti(t, k):
-    """Material qatori: (boʻlim, artikul, izoh, birlik)."""
+def _qator_kaliti(t, k, narxlar=None, rang_nomi=None):
+    """Material qatori: (boʻlim, artikul, izoh, birlik). Profil izohi — narx turkumi (PENTA grey — "Laminatsiya grey")."""
     if t["bolim"] == "Profil":
-        return ("Profil", t["nomi"], k["tanlov"]["rang"], t["birlik"])
+        return ("Profil", t["nomi"], narx_turkumi(narxlar or {}, t["nomi"], k["tanlov"]["rang"], rang_nomi), t["birlik"])
     if t["bolim"] == "Oyna":
         return ("Oyna", t.get("oyna_turi") or k["tanlov"]["oyna_turi"], oyna_qalinligi(k), t["birlik"])
     if t["nomi"] == "K188 kley":
@@ -99,11 +99,11 @@ def hisobla_zakaz(zakaz, otxod_usuli="chegara", sklad=None):
             oynalar.append({"nom": nom, "i": i, "joy": o["joy"], "en": o["en"], "boy": o["boy"], "soni": o["soni"],
                             "tur": o.get("tur") or k["tanlov"]["oyna_turi"]})
         for t in h["qatorlar"]:
-            kalit = _qator_kaliti(t, k)
+            kalit = _qator_kaliti(t, k, narxlar, sklad_rangi)
             miqdorlar.setdefault(kalit, [0.0] * len(royxat))
             miqdorlar[kalit][i] += round(float(t["miqdor"]), 6)
         for p in n["profillar"]:
-            kalit = (kesish_profili(p), k["tanlov"]["rang"])
+            kalit = (kesish_profili(p), narx_turkumi(narxlar, narx_kaliti(p["profil"]), k["tanlov"]["rang"], sklad_rangi))
             if otxod_usuli.startswith("sklad"):  # sklad rangi boʻyicha: grey va z/d bir hivichdan kesilmaydi
                 kalit += (sklad_rangi,)
             guruh = detallar.setdefault(kalit, {"kerak": Counter(), "ulush": [0] * len(royxat)})

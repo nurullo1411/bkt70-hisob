@@ -223,7 +223,26 @@ def _pvx_bitta(s, umumiy):
     r, yarmi, qanot_r = D(s["r"]), D(s["urta_yarmi"]), D(s["qanot_r"])
     if s["nomi"] in PVX_MALUMOT or kosa in RAMA_R or urta in IMPOST_YARMI or qanot in TABAQA_AYIRMA:
         raise ValueError(f"{s['nomi']}: nomi yoki kosa/urta/qanot kodi boshqa seriyada bor")
-    if any(p in TABAQA_AYIRMA for p in eshik_qanot):
+    # Eshik profili boshqa PVX seriya bilan umumiy boʻlishi mumkin (6000 QVT eshigi — Trio balkoni 6034 / 6034T,
+    # ProfOkna 6000 Quattro; foydalanuvchi, 2026-11-27), agar oʻsha seriyada maʼlumoti aynan bir xil boʻlsa
+    umumiy_eshik = set()
+    if t is not None:
+        for p in [*eshik_qanot, t["shtulp"], *eshik_metall.values()]:
+            boshqa = PVX_PROFIL.get(p)
+            if boshqa is None:
+                continue
+            bt = boshqa.get("toliq") or {}
+            farq = (p == t["shtulp"]) != (p == bt.get("shtulp"))
+            farq |= any(str(bt.get(k)) != str(t[k]) for k in ("eshik_qanot_r", "eshik_metall_ayirma"))
+            if p in eshik_qanot or p == t["shtulp"]:
+                farq |= any((bt.get(k) or {}).get(p) != t[k].get(p) for k in ("eshik_metall", "otxod"))
+                farq |= any((boshqa.get(k) or {}).get(p) != (s.get(k) or {}).get(p) for k in ("kisqa", "nom_lam_rang"))
+                farq |= any((boshqa.get(k) or v) != (s.get(k) or v) for k, v in (("lam_yoq", []), ("lam_rangi", {}),
+                                                                                    ("lam_alohida", [])))
+            if farq:
+                raise ValueError(f"{s['nomi']}: {p} boshqa seriyada boshqacha maʼlumot bilan")
+            umumiy_eshik.add(p)
+    if any(p in TABAQA_AYIRMA and p not in umumiy_eshik for p in eshik_qanot):
         raise ValueError(f"{s['nomi']}: eshik qanoti kodi boshqa seriyada bor")
     kodlar = [kosa, qanot, urta, *s["shtapik"].values(), *dict.fromkeys([*metall.values(), *eshik_metall.values()])]
     if t is not None:
@@ -351,6 +370,31 @@ def profil_narxi(narxlar, artikul, rang):
         # Sheetsʼda Aldoks kraska turkumi "Svetnoy", Termoda "Svetnoy (kraska)" — bitta turkum (foydalanuvchi, 2026-11-15)
         rang = RANG_SINONIM.get(rang, rang)
     return d.get(rang, d.get("*"))
+
+
+GREY_TURKUM = "Laminatsiya grey"
+LAMINAT_RANGLARI = ("grey", "z/d", "d/m", "sh/d", "alux")  # sklad laminat ranglari (docs/raskroy-narx.md)
+
+
+def laminat_rang_nomi(rang_nomi):
+    """Laminat rang nomi: kichik harf; laminat rangi boʻlmasa (yoʻq, eski "oq", xato) — None."""
+    r = str(rang_nomi or "").strip().lower()
+    return r if r in LAMINAT_RANGLARI else None
+
+
+def narx_turkumi(narxlar, artikul, turkum, rang_nomi):
+    """Narx turkumi: 6500 PENTA grey (Anthrazit) laminati alohida narxda (foydalanuvchi, 2026-11-27).
+    Seriya json "lam_alohida": ["grey"] boʻlsa, uning profillari (nom_lam dagi) "Laminatsiya grey" turkumida —
+    narxi yoʻq boʻlsa narxsiz chiqadi, oddiy laminat narxiga qaytmaydi. rang_nomi berilmasa — konstruktordagidek
+    birinchi rang (grey). artikul: "PVX 6553" yoki "6553". narxlar ishlatilmaydi (moslik uchun)."""
+    if turkum != "Laminatsiya":
+        return turkum
+    rang_nomi = laminat_rang_nomi(rang_nomi)
+    kod = asl_profil(str(artikul)[4:] if str(artikul).startswith("PVX ") else str(artikul))
+    s = PVX_PROFIL.get(kod)
+    if s and kod in (s.get("nom_lam") or {}) and (rang_nomi or "grey") in (s.get("lam_alohida") or []):
+        return f"Laminatsiya {rang_nomi or 'grey'}"
+    return turkum
 
 
 # Qanot/Balkon profili impost oʻrnida (Aldoks 181, 185, 198) 90° va aylantirmasdan kesiladi (foydalanuvchi, 2026-11-14):
@@ -1329,6 +1373,27 @@ def _eshik_ogoh(h, qanotlar):
                 h.ogohlantirishlar.append(m)
 
 
+def _tabaqa_ogoh(h, t):
+    """Katta rom tabaqasi (foydalanuvchi, 2026-11-27; ProfOkna 6000 распашная створка): seriyalar.json "tabaqa_chegara"
+    (boʻy, en, en + boʻy sm — ProfOkna "perimetr" 2700 = boʻy + en; qanot kesish oʻlchami) oshsa ogohlantirish."""
+    js = (PVX_MALUMOT.get(h.seriya.nomi) or {}) if h.seriya.pvx else {}
+    rn = laminat_rang_nomi(t.get("rang_nomi"))
+    if t.get("rang") == "Laminatsiya":
+        if rn is None and js.get("lam_alohida"):  # konstruktorda rang nomi berilmasa ekranda birinchisi — grey
+            h.ogohlantirishlar.append(f"{h.seriya.nomi}: laminat rangi tanlanmagan — grey narxi olindi; rangni tanlang")
+        if (rn or "grey") in (js.get("lam_yoq") or []):
+            h.ogohlantirishlar.append(f"{h.seriya.nomi} {rn or 'grey'} rangi AKFA da yoʻq — narx alux boʻyicha; boshqa rang tanlang")
+    ch = js.get("tabaqa_chegara")
+    if not ch:
+        return
+    for e, b in h.rom_qanotlari:
+        if b > D(str(ch["boy"])) or e > D(str(ch["en"])) or e + b > D(str(ch["en_boy"])):
+            m = (f"Tabaqa {format(float(e), 'g').replace('.', ',')} × {format(float(b), 'g').replace('.', ',')} — {h.seriya.nomi} "
+                 f"chegarasidan katta (boʻyi {ch['boy']}, eni {ch['en']}, en + boʻy {ch['en_boy']} sm gacha), tekshiring")
+            if m not in h.ogohlantirishlar:
+                h.ogohlantirishlar.append(m)
+
+
 def _eshik(b, z, h, arka=D(0)):
     ochilish = b.get("ochilish")
     sr = h.seriya
@@ -1610,6 +1675,7 @@ def hisobla(k):
             bolaklar.append({"tur": "gluxoy"}); olchamlar.append(k["ong"])
         bolak = {"tur": "bolinish", "yonalish": "vertikal", "lapsha": True, "olchamlar": olchamlar, "bolaklar": bolaklar}
     _ramalar_hisobi(profil, impost, L, H, bolak, h)
+    _tabaqa_ogoh(h, k.get("tanlov") or {})
 
     m2 = sum((en * boy * n for (_, en, boy, _), n in h.oynalar.items()), D(0)) / 10000
     return {
