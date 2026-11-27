@@ -654,7 +654,7 @@ function skladsizVaroqlar(r) {
   const chizma = (p) => p.hivichlar.map((h, i) => `<div class="kb-qator"><span class="kb-n">#${i + 1}</span><div class="kb">${h.bolaklar.map((b) =>
       `<div style="flex:${b.uzunlik} 0 0;background:${kRang(kk(b.k))[0]};color:${kRang(kk(b.k))[1]}"><i>${kRaqam(kk(b.k))}</i>${kkSon(b.uzunlik)}</div>`).join("")}${h.qoldiq > 0 ?
       `<div class="kb-q${p.otxod_chegara && h.qoldiq < p.otxod_chegara ? " otx" : ""}" style="flex:${h.qoldiq} 0 0">${qoldiqSon(h.qoldiq)}</div>` : ""}</div></div>`).join("");
-  return r.profillar.map((p) => ({ manba: "skladsiz", profil: p.profil, nom: p.nom, hivich_sm: p.hivich_sm, kesim: p.kesim, chegara: p.otxod_chegara,
+  return r.profillar.map((p) => ({ manba: "skladsiz", profil: p.profil, rang: p.rang, nom: p.nom, hivich_sm: p.hivich_sm, kesim: p.kesim, chegara: p.otxod_chegara,
     togri: profilBurchagi(p.kesim) === 90, samaradorlik: p.samaradorlik, kartalar: hivichKartalar(p.hivichlar, p.hivich_sm, (i) => kRaqam(kk(i))), chizma: chizma(p) }));
 }
 // Sklad: konstruksiya raqami nom boʻyicha — faqat bitta mos kelsa (nomsiz/takror nomda raqam yozilmaydi)
@@ -666,7 +666,7 @@ function skladVaroqlar(r) {
 }
 // Kalit: skladsiz:profil yoki sklad:rang:profil (sklad rejasi bitta rang guruhiga). Qiymat {imzo, k: [har karta kesilgan hivich], sana}
 // (foydalanuvchi, 2026-11-16: belgi har hivich kartasida). Reja oʻzgarsa (imzo boshqa) — sanoqlar 0, kulrang "eski reja" yozuvi.
-const kesildiKalit = (v) => v.manba === "sklad" ? `sklad:${v.rang}:${v.profil}` : "skladsiz:" + v.profil;
+const kesildiKalit = (v) => v.manba === "sklad" ? `sklad:${v.rang}:${v.profil}` : "skladsiz:" + v.profil + (v.rang ? ":" + v.rang : "");
 const kesildiSaq = (v) => zakaz.kesildi && zakaz.kesildi[kesildiKalit(v)];
 const kesSanoq = (v) => kesildiOqi(kesildiSaq(v), v.kartalar, imzo(v.kartalar));
 function kesJami(v) { const s = kesSanoq(v); return { bor: s.k.reduce((a, x) => a + x, 0), jami: v.kartalar.reduce((a, k) => a + k.soni, 0), eski: s.eski }; }
@@ -759,9 +759,11 @@ function varoqSur(dan) {
   // toʻla kartalar roʻyxatda yoʻq: oldinda kesilgan karta boʻlsa (indeks > 0) — surish
   if (k && Number(k.dataset.karta) > 0) k.scrollIntoView({ block: "start" });
 }
+// varoq belgisi: profil (+ narx turkumi, bir profil turkumlarga boʻlinganda)
+const varoqId = (v) => v.profil + (v.rang && v.manba !== "sklad" ? ":" + v.rang : "");
 function eslanganVaroq() { try { return (JSON.parse(localStorage.getItem("kesish_varoq") || "{}") || {})[zakaz.id]; } catch (e) { return null; } }
 function varoqniEsla() {
-  try { const m = JSON.parse(localStorage.getItem("kesish_varoq") || "{}") || {}; m[zakaz.id] = varoqlar[varoqI].profil; localStorage.setItem("kesish_varoq", JSON.stringify(m)); } catch (e) {}
+  try { const m = JSON.parse(localStorage.getItem("kesish_varoq") || "{}") || {}; m[zakaz.id] = varoqId(varoqlar[varoqI]); localStorage.setItem("kesish_varoq", JSON.stringify(m)); } catch (e) {}
 }
 function varoqlarniChiz(saqlaI, sur) {
   if (!zakaz) return;
@@ -769,9 +771,9 @@ function varoqlarniChiz(saqlaI, sur) {
   // boshlangʻich manba — narx qaysi usulda hisoblangan boʻlsa (otxod usuli "sklad…" — sklad bilan)
   if (!varoqManba) varoqManba = otxodUsuli().startsWith("sklad") ? "sklad" : "skladsiz";
   if (!bor[varoqManba]) varoqManba = bor.sklad && !bor.skladsiz ? "sklad" : "skladsiz";
-  const eski = varoqlar[varoqI] && varoqlar[varoqI].profil;
+  const eski = varoqlar[varoqI] && varoqId(varoqlar[varoqI]);
   varoqlar = varoqManba === "sklad" && skladReja ? skladVaroqlar(skladReja) : kesishNatija ? skladsizVaroqlar(kesishNatija) : [];
-  const izla = (p) => varoqlar.findIndex((v) => v.profil === p);
+  const izla = (p) => varoqlar.findIndex((v) => varoqId(v) === p);
   const i = izla(saqlaI ? eski : eslanganVaroq());
   varoqI = i >= 0 ? i : Math.min(varoqI, Math.max(varoqlar.length - 1, 0));
   $("kesish-manba").hidden = !(bor.sklad && bor.skladsiz);
@@ -788,7 +790,7 @@ function varoqlarniChiz(saqlaI, sur) {
   document.documentElement.style.setProperty("--bosh-h", (document.querySelector("header").offsetHeight || 50) + "px");
   const hammasi = varoqlar.length && varoqlar.every(kesildimi);
   $("kesish-tayyor").hidden = !hammasi;
-  const qn = varoqlar.map((v) => qisqaNom(v.nom)), tabNom = (v, i) => (qn.indexOf(qn[i]) !== qn.lastIndexOf(qn[i]) ? v.nom : qn[i]);
+  const qn = varoqlar.map((v) => qisqaNom(v.nom)), tabNom = (v, i) => (qn.indexOf(qn[i]) !== qn.lastIndexOf(qn[i]) ? v.nom : qn[i]) + (v.rang && v.manba !== "sklad" ? " · " + v.rang.replace("Laminatsiya", "Lam.") : "");
   $("kesish-tablar").innerHTML = varoqlar.map((v, i) => { const kj = kesJami(v);
     return `<button role="tab" data-varoq="${i}" aria-selected="${i === varoqI}" class="${i === varoqI ? "on" : ""}${kesildimi(v) ? " kesildi" : ""}">${kesildimi(v) ? "✓ " : ""}${esc(tabNom(v, i))} · ${kj.bor}/${kj.jami}${kj.eski ? " ?" : ""}</button>`; }).join("");
   $("kesish-pdf").hidden = !varoqlar.length;
@@ -859,7 +861,7 @@ $("kesish").addEventListener("click", (e) => {
     return;
   }
   if (e.target.closest("[data-varoq-pdf]")) {
-    const rangQism = v.manba === "sklad" && skladGuruhlar.length > 1 ? "_" + skladReja.rang.replace(/[^\w-]+/g, "") : "";
+    const rangQism = v.manba === "sklad" && skladGuruhlar.length > 1 ? "_" + skladReja.rang.replace(/[^\w-]+/g, "") : v.manba !== "sklad" && v.rang ? "_" + v.rang.replace(/[^\w-]+/g, "") : "";
     chopEt(`<div class="kv-sahifa">${varoqPdfSarlavha(v)}${varoqHtml(v, true)}</div>`,
       `${zakaz.raqam ? "Z-" + zakaz.raqam + "_" : ""}${v.profil}${v.fayl ? "_" + v.fayl.replace("_" + v.profil, "") : ""}${rangQism}`);
     return;

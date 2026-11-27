@@ -12,7 +12,7 @@ from copy import deepcopy
 from math import ceil
 from pathlib import Path
 
-from hisob import PVX_MALUMOT, TERMO_MALUMOT, HisobXato, asl_profil, hisobla, kesish_profili
+from hisob import PVX_MALUMOT, TERMO_MALUMOT, HisobXato, asl_profil, hisobla, kesish_profili, narx_turkumi
 from zakaz import _birlashtir
 
 HIVICH = 650
@@ -432,15 +432,29 @@ def kesish_chizmasi(zakaz):
     Har profilga hivichlar, ulardagi boʻlaklar (sm) va boʻlak qaysi konstruksiyaniki (indeks).
     """
     faol = [k for k in zakaz.get("konstruksiyalar") or [] if k.get("soni", 1) != 0]
-    royxat, jami = detallarni_yig({**zakaz, "konstruksiyalar": faol})
+    royxat, _ = detallarni_yig({**zakaz, "konstruksiyalar": faol})
+    # Narx turkumi boʻyicha alohida (foydalanuvchi, 2026-11-27: PENTA grey alohida kesiladi; narxdagi otxod kaliti
+    # zakaz.hisobla_zakaz dagidek — Oq va laminat, PENTA grey va boshqa laminat bir hivichdan kesilmaydi)
+    u = zakaz.get("umumiy") or {}
+    jami = {}
+    for k, el in zip(royxat, faol):
+        sr, turkum = _konstruksiya_rangi(u.get("tanlov") or {}, el)
+        for d in k["detallar"]:
+            g = (d["profil"], narx_turkumi(None, d["profil"], turkum, sr))
+            jami.setdefault(g, Counter())[_b(d["uzunlik"])] += d["soni"] * k["soni"]
+            k.setdefault("_turkum", {})[d["profil"]] = g[1]
+    turkumlar = {}
+    for p, tk in jami:
+        turkumlar.setdefault(p, set()).add(tk)
     profillar = []
-    for p in sorted(jami, key=lambda x: TARTIB.index(x) if x in TARTIB else 99):
+    for p, tk in sorted(jami, key=lambda x: (TARTIB.index(x[0]) if x[0] in TARTIB else 99, str(x[1]))):
         egalari = {}
         for i, k in enumerate(royxat):
             for d in k["detallar"]:
-                if d["profil"] == p:
+                if d["profil"] == p and k["_turkum"][p] == tk:
                     egalari.setdefault(_b(d["uzunlik"]), []).extend([i] * (d["soni"] * k["soni"]))
-        o = otxod_hisobi(p, jami[p])
+        alohida = len(turkumlar[p]) > 1
+        o = otxod_hisobi(p, jami[(p, tk)])
         L = hivich(p) * 100
         hivichlar = []
         for t in o["variant"]:
@@ -451,8 +465,9 @@ def kesish_chizmasi(zakaz):
             hivichlar.append({"bolaklar": bolaklar, "qoldiq": round(_qoldiq(L, t, p) / 100, 2)})
         hivichlar.sort(key=lambda h: h["qoldiq"])
         profillar.append({
-            "profil": p, "nom": toliq_nom(p), "kesim": _kesim_matni(p, royxat), "hivich_sm": hivich(p),
-            "hivichlar": hivichlar, "kesimlar": sum(jami[p].values()),
+            "profil": p, "nom": toliq_nom(p), "kesim": _kesim_matni(p, royxat),
+            "hivich_sm": hivich(p), **({"rang": tk} if alohida else {}),
+            "hivichlar": hivichlar, "kesimlar": sum(jami[(p, tk)].values()),
             "samaradorlik": round(o["ishlatilgan"] / (len(hivichlar) * L) * 100, 1),
             "qoldiq_sm": round(sum(h["qoldiq"] for h in hivichlar), 2),
             "otxod_chegara": OTXOD_CHEGARA.get(p),
