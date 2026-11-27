@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from hisob import SERIYA_RAMA, HisobXato, asl_profil, kesish_profili, kesish_turkumi, narx_kaliti, narx_turkumi, oyna_qalinligi
+from hisob import SERIYA_RAMA, HisobXato, asl_profil, kesish_profili, kesish_turkumi, narx_kaliti, narx_turkumi, oyna_qalinligi, rangsiz_profil
 from hisobot import ARKA_OYNA, hisobot, narxlarni_oqi
 
 # Steklopaket narxi Narxlar jadvalida soʻmda, qolgan narxlar dollarda
@@ -105,7 +105,7 @@ def hisobla_zakaz(zakaz, otxod_usuli="chegara", sklad=None):
         for p in n["profillar"]:
             kalit = (kesish_profili(p), kesish_turkumi(narx_kaliti(p["profil"]), k["tanlov"]["rang"], sklad_rangi))
             if otxod_usuli.startswith("sklad"):  # sklad rangi boʻyicha: grey va z/d bir hivichdan kesilmaydi
-                kalit += (sklad_rangi,)
+                kalit += (None if rangsiz_profil(p["profil"]) else sklad_rangi,)  # metall skladda yoʻq — hamma rangda birga
             guruh = detallar.setdefault(kalit, {"kerak": Counter(), "ulush": [0] * len(royxat)})
             uzun = int(round(float(p["uzunlik"]) * 100))
             guruh["kerak"][uzun] += p["soni"] * soni

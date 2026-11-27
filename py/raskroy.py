@@ -12,7 +12,7 @@ from copy import deepcopy
 from math import ceil
 from pathlib import Path
 
-from hisob import PVX_MALUMOT, TERMO_MALUMOT, HisobXato, asl_profil, hisobla, kesish_profili, kesish_turkumi
+from hisob import PVX_MALUMOT, TERMO_MALUMOT, HisobXato, asl_profil, hisobla, kesish_profili, kesish_turkumi, rangsiz_profil
 from zakaz import _birlashtir
 
 HIVICH = 650
@@ -609,17 +609,48 @@ def sklad_rejasi(zakaz, sklad_qatorlari, rang, guruh=None):
         faol = [k for k in faol if _konstruksiya_rangi(umumiy.get("tanlov") or {}, k) == kalit]
         # turkum tekshiruvi shu guruh boʻyicha (konstruksiyaning oʻz turkumi umumiydan farq qilishi mumkin)
         umumiy = {**umumiy, "tanlov": {**(umumiy.get("tanlov") or {}), "rang": kalit[1]}}
+    hamma_faol = {**zakaz, "konstruksiyalar": [k for k in zakaz.get("konstruksiyalar") or [] if k.get("soni", 1) != 0]}
     faol = {**zakaz, "umumiy": umumiy, "konstruksiyalar": faol}
     reja = toliq_reja(faol, sklad_qatorlari, rang)
+    # rangsiz metall hamma rang guruhidan birga (foydalanuvchi, 2026-11-27): har guruh rejasida bir xil, butun zakaz boʻyicha
+    # Varaq faqat bitta rejada — metall birinchi uchragan konstruksiya rangi rejasida (PDF da ikki marta kesilmasin),
+    # boshqa rang rejalarida izoh. Boshqa rangdagi konstruksiya xato bersa — shu guruh metali, izoh bilan.
+    metall_konstr, metall_izoh = reja["konstruksiyalar"], []
+    if guruh is not None:
+        kalit = (guruh.get("rang"), guruh.get("turkum"))
+        try:
+            metall_konstr, jami_h = detallarni_yig(hamma_faol)
+        except HisobXato as e:
+            jami_h = None
+            if any(rangsiz_profil(r["profil"]) for r in reja["rejalar"]):
+                metall_izoh.append(f"Metall faqat shu rang uchun — boshqa konstruksiyada xato ({e})")
+        if jami_h is not None:
+            egasi = {}
+            for k, el in zip(metall_konstr, hamma_faol["konstruksiyalar"]):
+                for d in k["detallar"]:
+                    if rangsiz_profil(d["profil"]):
+                        egasi.setdefault(d["profil"], _konstruksiya_rangi(zakaz.get("umumiy", {}).get("tanlov") or {}, el))
+            boshqa = [r for r in reja["rejalar"] if not rangsiz_profil(r["profil"])]
+            metall = []
+            for p in jami_h:
+                if not rangsiz_profil(p):
+                    continue
+                if egasi[p] == kalit:
+                    metall.append(profil_rejasi(p, jami_h[p], sklad_bolaklari(sklad_qatorlari, p, reja["rang"])[0]))
+                elif any(r["profil"] == p for r in reja["rejalar"]):
+                    metall_izoh.append(f"{toliq_nom(p)} — hamma ranglar uchun birga, \"{egasi[p][0] or egasi[p][1]}\" rejasida")
+            reja["rejalar"] = sorted(boshqa + metall, key=lambda r: TARTIB.index(r["profil"]) if r["profil"] in TARTIB else 99)
     rejalar = []
     for r in reja["rejalar"]:
         p = r["profil"]
+        kons = metall_konstr if rangsiz_profil(p) else reja["konstruksiyalar"]
         kartalar = [{
             "manba": k["manba"], "L": k["L"] / 100, "soni": k["soni"], "qoldiq": round(k["qoldiq"] / 100, 2),
             "bolaklar": [[d / 100, n] for d, n in sorted(k["t"].items(), reverse=True)],
         } for k in r["kartalar"]]
         rejalar.append({
-            "profil": p, "nom": toliq_nom(p), "fayl": fayl_nomi(p), "kesim": _kesim_matni(p, reja["konstruksiyalar"]), "hivich_sm": hivich(p),
+            "profil": p, "nom": toliq_nom(p), "fayl": fayl_nomi(p), "kesim": _kesim_matni(p, kons), "hivich_sm": hivich(p),
+            **({"hamma_rang": True} if rangsiz_profil(p) else {}),
             "togri": p in TOGRI_KESIM, "kartalar": kartalar, "yangi_soni": r["yangi_soni"],
             "sklad_soni": sum(k["soni"] for k in r["kartalar"] if k["manba"] == "SKLAD"),
             "jami_detal": sum(n * k["soni"] for k in r["kartalar"] for n in k["t"].values()),
@@ -628,9 +659,9 @@ def sklad_rejasi(zakaz, sklad_qatorlari, rang, guruh=None):
                 "nom": k["nom"], "L": k["L"], "H": k["H"], "soni": k["soni"],
                 "detallar": [{"nomi": d["nomi"], "uzunlik": _b(d["uzunlik"]) / 100, "soni": d["soni"] * k["soni"]}
                              for d in k["detallar"] if d["profil"] == p],
-            } for k in reja["konstruksiyalar"] if any(d["profil"] == p for d in k["detallar"])],
+            } for k in kons if any(d["profil"] == p for d in k["detallar"])],
         })
-    return {"rang": reja["rang"], "hivich_sm": HIVICH, "rejalar": rejalar, "izohlar": reja["izohlar"]}
+    return {"rang": reja["rang"], "hivich_sm": HIVICH, "rejalar": rejalar, "izohlar": reja["izohlar"], "metall_izoh": metall_izoh}
 
 
 def _burchak_matni(konstruksiyalar, profil):

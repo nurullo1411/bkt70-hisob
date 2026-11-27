@@ -660,14 +660,14 @@ function skladsizVaroqlar(r) {
 // Sklad: konstruksiya raqami nom boʻyicha — faqat bitta mos kelsa (nomsiz/takror nomda raqam yozilmaydi)
 const skladK = (n) => { const m = zakaz.konstruksiyalar.filter((z) => z.nom === n && (z.soni ?? 1) !== 0); return m.length === 1 ? m[0] : null; };
 function skladVaroqlar(r) {
-  return r.rejalar.map((p) => ({ manba: "sklad", profil: p.profil, nom: p.nom, fayl: p.fayl, hivich_sm: p.hivich_sm || r.hivich_sm, kesim: p.kesim,
+  return r.rejalar.map((p) => ({ manba: "sklad", profil: p.profil, hamma_rang: !!p.hamma_rang, nom: p.nom, fayl: p.fayl, hivich_sm: p.hivich_sm || r.hivich_sm, kesim: p.kesim,
     chegara: otxodChegarasi(p.profil), togri: p.togri, sklad: true, rang: r.rang, konstruksiyalar: p.konstruksiyalar,
     kartalar: skladKartalar(p.kartalar, p.konstruksiyalar.map((k) => ({ raqam: skladK(k.nom) ? kRaqam(skladK(k.nom)) : null, detallar: k.detallar }))) }));
 }
 // Kalit: skladsiz:profil yoki sklad:rang:profil (sklad rejasi bitta rang guruhiga). Qiymat {imzo, k: [har karta kesilgan hivich], sana}
 // (foydalanuvchi, 2026-11-16: belgi har hivich kartasida). Reja oʻzgarsa (imzo boshqa) — sanoqlar 0, kulrang "eski reja" yozuvi.
-const kesildiKalit = (v) => v.manba === "sklad" ? `sklad:${v.rang}:${v.profil}` : "skladsiz:" + v.profil + (v.rang ? ":" + v.rang : "");
-const kesildiSaq = (v) => zakaz.kesildi && zakaz.kesildi[kesildiKalit(v)];
+const kesildiKalit = (v) => v.manba === "sklad" ? `sklad:${v.hamma_rang ? "*" : v.rang}:${v.profil}` : "skladsiz:" + v.profil + (v.rang ? ":" + v.rang : "");
+const kesildiSaq = (v) => zakaz.kesildi && (zakaz.kesildi[kesildiKalit(v)] || (v.hamma_rang ? zakaz.kesildi[`sklad:${v.rang}:${v.profil}`] : undefined));  // eski kalit (2026-11-27 gacha)
 const kesSanoq = (v) => kesildiOqi(kesildiSaq(v), v.kartalar, imzo(v.kartalar));
 function kesJami(v) { const s = kesSanoq(v); return { bor: s.k.reduce((a, x) => a + x, 0), jami: v.kartalar.reduce((a, k) => a + k.soni, 0), eski: s.eski }; }
 const kesildimi = (v) => { const j = kesJami(v); return j.jami > 0 && j.bor === j.jami; };
@@ -733,7 +733,7 @@ function varoqHtml(v, pdf) {
   const kartaHtml = v.kartalar.map(karta).join("");
   return `<div class="kv">
     <div class="kv-bosh">
-      <div class="kv-q1"><b>${esc(v.nom)}</b>${v.rang ? " · " + esc(v.rang) : ""} · ${hiv}</div>
+      <div class="kv-q1"><b>${esc(v.nom)}</b>${v.hamma_rang ? " · hamma ranglar" : v.rang ? " · " + esc(v.rang) : ""} · ${hiv}</div>
       <div class="kv-q2">${kesimQisqa(v.kesim)} · arra 0,4 · samaradorlik <b>${son(j.samaradorlik, 1)} %</b></div>
       <div class="kv-q3">${KESIM_IZOH_HTML}</div>
       ${pdf ? "" : `<div class="kv-tug">${v.chizma ? '<button data-chizma aria-expanded="false">Chizma</button>' : ""}<button data-varoq-pdf>PDF</button></div>`}
@@ -1491,7 +1491,8 @@ _sk`));
   if (d.xato) { $("sklad-reja").innerHTML = `<p class="ogoh">${esc(d.xato)}</p>`; varoqlarniChiz(true); return; }
   const r = d.ok;
   varoqlarniChiz(true);
-  $("sklad-reja").innerHTML = (r.izohlar.length ? `<details class="xira"><summary>Skladdagi ${r.izohlar.length} ta qator olinmadi</summary>${r.izohlar.map(esc).join("<br>")}</details>` : "");
+  $("sklad-reja").innerHTML = (r.metall_izoh || []).map((x) => `<p class="xira">${esc(x)}</p>`).join("") +
+    (r.izohlar.length ? `<details class="xira"><summary>Skladdagi ${r.izohlar.length} ta qator olinmadi</summary>${r.izohlar.map(esc).join("<br>")}</details>` : "");
 }
 // Profil otxod chegarasi (raskroy.OTXOD_CHEGARA, faqat oʻqiladi) — "butun boʻlak" belgisi uchun
 let otxodChegaralari = null;
