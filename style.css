@@ -1542,3 +1542,13 @@ body.d2.qora #konstruksiyalar .kq { border-top-color: #2A313C; }
 body.d2.qora #konstruksiyalar .kq .soni, body.d2.qora #konstruksiyalar .kq .kq-menyu { background: #222833; }
 body.d2.qora #konstruksiyalar .kq .soni button[data-d="-1"] { background: #2E3540; color: #fff; box-shadow: none; }
 body.d2.qora #konstruksiyalar .kq .soni button[data-d="1"] { background: #FFB800; color: #0E1116; box-shadow: 0 4px 10px rgba(255,184,0,.25); }
+
+/* Karta tanlash: tanlangani koʻk chegara + "Ochish uchun yana bosing" (foydalanuvchi, 2026-11-28) */
+.arxiv-k[data-karta] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.a-och-izoh { display: none; grid-column: 1 / -1; font-size: 14px; font-weight: 700; color: var(--asosiy); }
+.arxiv-k.joriy .a-och-izoh { display: block; }
+body.d2 #e-royxat .arxiv-k { transition: box-shadow .15s, outline-color .15s; }
+body.d2 #e-royxat .arxiv-k:active { transform: scale(.995); }
+body.d2 #e-royxat .arxiv-k.joriy { outline: 3px solid #0047FF; outline-offset: -3px; box-shadow: 0 10px 26px rgba(0,71,255,.18); }
+body.d2.qora #e-royxat .arxiv-k.joriy { outline-color: #FFB800; box-shadow: 0 10px 26px rgba(255,184,0,.15); }
+body.d2.qora .a-och-izoh { color: #FFB800; }

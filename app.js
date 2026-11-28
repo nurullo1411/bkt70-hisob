@@ -392,6 +392,7 @@ function pulHolati(z) {
   const qarz = sh.summa - z.tolangan;
   return `${p(sh.summa)} · toʻlangan ${p(z.tolangan)}${Math.abs(qarz) > 0.009 ? ` · <b class="${qarz > 0 ? "qarz" : "ortiq"}">${qarz > 0 ? "qarz" : "ortiqcha"} ${p(Math.abs(qarz))}</b>` : " ✓"}`;
 }
+let arxivTanlangan = null;  // roʻyxatda tanlangan karta (yana bosilsa ochiladi)
 function arxivniChiz() {
   const a = arxivOl();
   const narxi = (z) => { const sh = shartnomaSumma(z); return sh.valyuta === "USD" ? sh.summa * (Number(ol("kurs")) || 0) : sh.summa; };
@@ -418,13 +419,13 @@ function arxivniChiz() {
     tartib.push({ guruh: g, soni: ich.length, summa: ich.reduce((s2, x) => s2 + narxi(x), 0) }, ...ich);
   }
   t = tartib;
-  $("arxiv").innerHTML = t.map((z) => z.guruh ? `<div class="btb-guruh"><b>BTB · ${esc(z.guruh)}</b><span>${z.soni} ta · ${som(z.summa)}</span></div>` : `<div class="arxiv-k${zakaz && zakaz.id === z.id ? " joriy" : ""}${btbNom(z) ? " btb" : ""}">
+  $("arxiv").innerHTML = t.map((z) => z.guruh ? `<div class="btb-guruh"><b>BTB · ${esc(z.guruh)}</b><span>${z.soni} ta · ${som(z.summa)}</span></div>` : `<div class="arxiv-k${(arxivTanlangan ?? (zakaz && zakaz.id)) === z.id ? " joriy" : ""}${btbNom(z) ? " btb" : ""}" data-karta="${z.id}" role="button" tabindex="0" aria-label="${esc((z.mijoz && z.mijoz.ism) || z.nom || "Zakaz")} — tanlash, yana bosilsa ochiladi">
       <div class="arxiv-eskiz">${z.konstruksiyalar[0] ? chizmaSVG(z.konstruksiyalar[0], { kichik: true }) : ""}</div>
       <div class="arxiv-matn"><span class="xira arxiv-raqam">${z.baza_id ? `<b class="id-teg">ID ${z.baza_id}</b> ` : `<b>№${esc(z.raqam ?? "")}</b> · `}${z.konstruksiyalar.length} ta konstruksiya</span>
         <b class="arxiv-nom">${esc((z.mijoz && z.mijoz.ism) || z.nom || "Mijoz")}</b>
         ${((ph) => ph === "—" ? "" : `<span class="pul-holat">${ph}</span>`)(pulHolati(z))}
         <span class="arxiv-teglar">${z.sana ? `<span class="a-teg a-sana">${esc(String(z.sana).replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3.$2.$1"))}</span>` : ""}<span class="a-teg">${esc(holatNomi(holatOl(z)))}</span>${montajBor(z) ? "" : '<span class="a-teg">montajsiz</span>'}</span></div>
-      ${keyingiHolat(z)}<div class="arxiv-tugma"><button data-och="${z.id}" class="tugma asosiy">Ochish</button><button data-dub="${z.id}" class="tugma">⧉ Dublikat</button><button data-arx-ochir="${z.id}" class="tugma a-ochir" aria-label="Oʻchirish" title="Oʻchirish">🗑</button></div>
+      ${keyingiHolat(z)}<span class="a-och-izoh">Ochish uchun yana bosing ›</span><div class="arxiv-tugma"><button data-dub="${z.id}" class="tugma">⧉ Dublikat</button><button data-arx-ochir="${z.id}" class="tugma a-ochir" aria-label="Oʻchirish" title="Oʻchirish">🗑</button></div>
     </div>`).join("") || '<p class="xira">Bu boʻlimda zakaz yoʻq.</p>';
 }
 
@@ -1418,9 +1419,21 @@ $("arxiv-tablar").addEventListener("click", (e) => {
   const b = e.target.closest("[data-tab]");
   if (b) { arxivTab = b.dataset.tab; ekran("royxat"); }
 });
+// Karta: birinchi bosish — koʻk chegara bilan tanlaydi, tanlanganini yana bosish — ochadi ("Ochish" tugmasi oʻrniga;
+// foydalanuvchi, 2026-11-28). Boshlangʻich tanlangani — oxirgi ochilgan zakaz. (arxivTanlangan — arxivniChiz oldida)
+function arxivKarta(k) {
+  const id = k.dataset.karta, joriyId = arxivTanlangan ?? (zakaz && zakaz.id);
+  if (joriyId === id) { const z = arxivOl().find((x) => x.id === id); if (z) { arxivTanlangan = null; zakazniOch(JSON.stringify(z)); } return; }
+  arxivTanlangan = id;
+  $("arxiv").querySelectorAll(".arxiv-k").forEach((x) => x.classList.toggle("joriy", x === k));
+}
+$("arxiv").addEventListener("keydown", (e) => {
+  const k = e.target.closest && e.target.closest("[data-karta]");
+  if (k && e.target === k && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); arxivKarta(k); }
+});
 $("arxiv").addEventListener("click", async (e) => {
   const b = e.target.closest("button");
-  if (!b) return;
+  if (!b) { const k = e.target.closest("[data-karta]"); if (k) arxivKarta(k); return; }
   const a = arxivOl(), d = b.dataset;
   if (await holatTugma(d)) { arxivniChiz(); return; }
   if (d.och) {
