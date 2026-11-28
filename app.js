@@ -1471,10 +1471,8 @@ $("pdf-ber").addEventListener("click", () => {
   saqla("bajaruvchi_tel", $("pdf-baj-tel").value.trim());
   $("pdf-oyna").hidden = true;
   saqla("pdf_usul", $("pdf-usul").checked ? "1" : "");
-  $("chop").innerHTML = pdfHtml({ narx: $("pdf-narx").checked, olcham: $("pdf-olcham").checked, mat: $("pdf-mat").checked, usul: $("pdf-usul").checked });
-  const eski = document.title;
-  document.title = `${zakaz.raqam ? "№" + zakaz.raqam + " " : ""}${(zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "zakaz"}`;
-  setTimeout(() => { window.print(); document.title = eski; }, 100);
+  chopEt(pdfHtml({ narx: $("pdf-narx").checked, olcham: $("pdf-olcham").checked, mat: $("pdf-mat").checked, usul: $("pdf-usul").checked }),
+    `${zakaz.raqam ? "№" + zakaz.raqam + " " : ""}${(zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || "zakaz"}`);
 });
 
 // Seriya nomi (hisob natijasidan; zaxira — rama boʻyicha): "Termo 70", "Aldoks", "Engelberg 7000"
@@ -1704,10 +1702,157 @@ _dl`));
 const zakazNomi = () => `${zakaz.raqam ? "№" + zakaz.raqam + " " : ""}${(zakaz.mijoz && zakaz.mijoz.ism) || zakaz.nom || ""}`.trim();
 function chopEt(html, sarlavha) {
   $("chop").innerHTML = html;
+  // Avval ilova ichida koʻrish (foydalanuvchi, 2026-11-28): hamma varaq kichik, bittasi butun ekranda, yaqinlashtirish.
+  // window.print almashtirilgan boʻlsa (e2e testlar) — avvalgidek toʻgʻridan chop.
+  if (/\[native code\]/.test(Function.prototype.toString.call(window.print))) { korishOch(html, sarlavha); return; }
+  chopBer(sarlavha);
+}
+function chopBer(sarlavha) {
   const eski = document.title;
   document.title = sarlavha;
   setTimeout(() => { window.print(); document.title = eski; }, 100);
 }
+
+// ---------- PDF koʻrish oynasi ----------
+// Varaq = #chop dagi .kv-sahifa (kesish varaqlari), boʻlmasa butun hujjat bitta. Har varaq iframe da: style.css ning
+// "@media print" qoidalari "@media all" qilib qoʻyiladi — koʻrinish chop etilgandagidek. A4: 794 px, chet 10 mm (38 px).
+const A4_EN = 794, A4_BOY = 1123, A4_CHET = 38;
+let korishCss = null, korish = null;
+async function korishCssOl() {
+  if (korishCss) return korishCss;
+  const l = document.querySelector('link[rel="stylesheet"][href*="style.css"]');
+  try { korishCss = (await (await fetch(l ? l.href : "style.css")).text()).replace(/@media\s+print/g, "@media all").replace(/@media\s+screen/g, "@media not all"); }
+  catch (e) { korishCss = ""; }
+  return korishCss;
+}
+function korishVaraq(html, css) {
+  const f = document.createElement("iframe");
+  f.className = "korish-if";
+  f.setAttribute("tabindex", "-1");
+  f.style.width = (A4_EN - 2 * A4_CHET) + "px";
+  f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style><style>html,body{margin:0;padding:0;background:#fff!important;overflow:hidden}#chop{display:block!important}</style></head><body class="${esc(document.body.className)}"><div id="chop">${html}</div></body></html>`;
+  return f;
+}
+async function korishOch(html, sarlavha) {
+  const css = await korishCssOl();
+  const t = document.createElement("div");
+  t.innerHTML = html;
+  const vs = [...t.children].filter((c) => c.classList.contains("kv-sahifa"));
+  const varaqlar = vs.length > 1 ? vs.map((v) => v.outerHTML) : [html];
+  korish = { varaqlar, css, sarlavha, i: 0, zoom: 1, boy: [] };
+  $("korish-nom").textContent = sarlavha;
+  $("korish").hidden = false;
+  document.body.classList.add("korish-ochiq");
+  if (varaqlar.length > 1) korishHammasi(); else korishBitta(0);
+}
+function korishYop() { $("korish").hidden = true; document.body.classList.remove("korish-ochiq"); $("korish-tor").innerHTML = ""; $("korish-bitta").innerHTML = ""; korish = null; }
+// Varaq iframe ni masshtab bilan joylash; balandlik — yuklangach (boy: true — A4 nisbatida kesiladi)
+function korishJoyla(quti, i, s, a4) {
+  const f = korishVaraq(korish.varaqlar[i], korish.css);
+  const q = document.createElement("div");
+  q.className = "korish-q";
+  q.style.cssText = `width:${A4_EN * s}px;height:${A4_BOY * s}px`;
+  const ich = document.createElement("div");
+  ich.className = "korish-ichki";
+  ich.style.cssText = `width:${A4_EN}px;padding:${A4_CHET}px;transform:scale(${s})`;
+  ich.appendChild(f);
+  q.appendChild(ich);
+  quti.appendChild(q);
+  f.addEventListener("load", () => {
+    const h = Math.max(f.contentDocument.documentElement.scrollHeight, 100);
+    f.style.height = h + "px";
+    korish && (korish.boy[i] = h);
+    if (!a4) q.style.height = Math.max(A4_BOY, h + 2 * A4_CHET) * s + "px";
+  });
+  return q;
+}
+function korishHammasi() {
+  $("korish").dataset.rejim = "hammasi";
+  const tor = $("korish-tor");
+  tor.innerHTML = "";
+  const en = Math.min(260, Math.max(140, (tor.clientWidth - 24) / Math.max(2, Math.floor((tor.clientWidth - 24) / 200)) - 14));
+  korish.varaqlar.forEach((_, i) => {
+    const b = document.createElement("button");
+    b.className = "korish-k";
+    b.dataset.ki = i;
+    korishJoyla(b, i, en / A4_EN, true);
+    const y = document.createElement("span");
+    y.textContent = `${i + 1} / ${korish.varaqlar.length}`;
+    b.appendChild(y);
+    tor.appendChild(b);
+  });
+}
+function korishBitta(i) {
+  korish.i = i;
+  $("korish").dataset.rejim = "bitta";
+  korishChiz();
+}
+function korishChiz(markaz) {
+  const q = $("korish-bitta"), fit = Math.min((q.clientWidth - 24) / A4_EN, 1.6), s = fit * korish.zoom;
+  const nisbat = markaz || (q.scrollWidth > q.clientWidth || q.scrollHeight > q.clientHeight
+    ? [(q.scrollLeft + q.clientWidth / 2) / q.scrollWidth, (q.scrollTop + q.clientHeight / 2) / q.scrollHeight] : [0.5, 0]);
+  q.innerHTML = "";
+  const v = korishJoyla(q, korish.i, s, false);
+  v.classList.add("katta");
+  requestAnimationFrame(() => { q.scrollLeft = nisbat[0] * q.scrollWidth - q.clientWidth / 2; q.scrollTop = nisbat[1] * q.scrollHeight - (nisbat[1] ? q.clientHeight / 2 : 0); });
+  $("korish-son").textContent = `${korish.i + 1} / ${korish.varaqlar.length}`;
+  $("korish-foiz").textContent = Math.round(korish.zoom * 100) + "%";
+  $("korish-old").disabled = korish.i === 0;
+  $("korish-key").disabled = korish.i >= korish.varaqlar.length - 1;
+  $("korish-hammasi").hidden = korish.varaqlar.length < 2;
+}
+function korishZoom(z, markaz) {
+  if (!korish) return;
+  korish.zoom = Math.min(4, Math.max(0.5, Math.round(z * 100) / 100));
+  // tez masshtab: iframe qayta yuklanmaydi — ichki transform va oʻlcham oʻzgaradi
+  const q = $("korish-bitta"), v = q.querySelector(".korish-q"), ich = v && v.querySelector(".korish-ichki");
+  if (!v) return korishChiz(markaz);
+  const fit = Math.min((q.clientWidth - 24) / A4_EN, 1.6), s = fit * korish.zoom, h = korish.boy[korish.i] || A4_BOY;
+  const nisbat = markaz || [(q.scrollLeft + q.clientWidth / 2) / q.scrollWidth, (q.scrollTop + q.clientHeight / 2) / q.scrollHeight];
+  v.style.width = A4_EN * s + "px";
+  v.style.height = Math.max(A4_BOY, h + 2 * A4_CHET) * s + "px";
+  ich.style.transform = `scale(${s})`;
+  q.scrollLeft = nisbat[0] * q.scrollWidth - q.clientWidth / 2;
+  q.scrollTop = nisbat[1] * q.scrollHeight - q.clientHeight / 2;
+  $("korish-foiz").textContent = Math.round(korish.zoom * 100) + "%";
+}
+$("korish-yop").addEventListener("click", korishYop);
+$("korish-chop").addEventListener("click", () => { const s = korish ? korish.sarlavha : document.title; chopBer(s); });
+$("korish-tor").addEventListener("click", (e) => { const b = e.target.closest("[data-ki]"); if (b) { korish.zoom = 1; korishBitta(Number(b.dataset.ki)); } });
+$("korish-hammasi").addEventListener("click", () => korishHammasi());
+$("korish-old").addEventListener("click", () => { if (korish.i > 0) { korish.zoom = 1; korishBitta(korish.i - 1); } });
+$("korish-key").addEventListener("click", () => { if (korish.i < korish.varaqlar.length - 1) { korish.zoom = 1; korishBitta(korish.i + 1); } });
+$("korish-kich").addEventListener("click", () => korishZoom(korish.zoom / 1.25));
+$("korish-kat").addEventListener("click", () => korishZoom(korish.zoom * 1.25));
+$("korish-foiz").addEventListener("click", () => korishZoom(1));
+// Barmoq bilan: ikki barmoq — yaqinlashtirish, ikki marta bosish — 100% ⇄ 250%
+{
+  const q = $("korish-bitta"), b = new Map();
+  let d0 = 0, z0 = 1, oxirgi = 0;
+  const masofa = () => { const [a, c] = [...b.values()]; return Math.hypot(a.x - c.x, a.y - c.y); };
+  q.addEventListener("pointerdown", (e) => {
+    b.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (b.size === 2) { d0 = masofa(); z0 = korish.zoom; }
+    if (b.size === 1 && e.pointerType !== "mouse") {
+      const t = Date.now();
+      if (t - oxirgi < 300) {
+        const r = q.getBoundingClientRect();
+        korishZoom(korish.zoom > 1.2 ? 1 : 2.5, [(q.scrollLeft + e.clientX - r.left) / q.scrollWidth, (q.scrollTop + e.clientY - r.top) / q.scrollHeight]);
+        oxirgi = 0;
+      } else oxirgi = t;
+    }
+  });
+  q.addEventListener("pointermove", (e) => {
+    if (!b.has(e.pointerId)) return;
+    b.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (b.size === 2 && d0 > 0) { e.preventDefault(); korishZoom(z0 * masofa() / d0); }
+  });
+  const tug = (e) => { b.delete(e.pointerId); if (b.size < 2) d0 = 0; };
+  q.addEventListener("pointerup", tug); q.addEventListener("pointercancel", tug); q.addEventListener("pointerleave", tug);
+  q.addEventListener("dblclick", (e) => { const r = q.getBoundingClientRect(); korishZoom(korish.zoom > 1.2 ? 1 : 2.5, [(q.scrollLeft + e.clientX - r.left) / q.scrollWidth, (q.scrollTop + e.clientY - r.top) / q.scrollHeight]); });
+  q.addEventListener("wheel", (e) => { if (e.ctrlKey) { e.preventDefault(); korishZoom(korish.zoom * (e.deltaY < 0 ? 1.1 : 0.9)); } }, { passive: false });
+}
+document.addEventListener("keydown", (e) => { if (korish && e.key === "Escape") korishYop(); });
 // Dillerga roʻyxat (foydalanuvchi, 2026-11-16): bitta jadval, avval tahrirlash oynasi; qoʻlda oʻzgarishlar zakaz.diller_tahrir da
 let dlHisob = [], dlIzoh = [];
 const dlTahrir = () => zakaz.diller_tahrir || dtYangi();

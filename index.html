@@ -2,14 +2,14 @@
 <html lang="uz">
 <head>
 <meta charset="utf-8">
-<meta name="ilova-versiya" content="2026-11-28 · 7ed1622b">
+<meta name="ilova-versiya" content="2026-11-28 · aa93923e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d47a1">
 <title>BKT 70 hisob</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=7ed1622b">
+<link rel="stylesheet" href="style.css?v=aa93923e">
 </head>
 <body>
 <header>
@@ -249,6 +249,25 @@
 </div>
 <div id="dl-oyna" class="pdf-fon" hidden><div id="dl-quti" class="pdf-quti dl-quti" role="dialog" aria-label="Dillerga roʻyxat"></div></div>
 <div id="chop" hidden></div>
+<div id="korish" class="korish" data-rejim="hammasi" hidden>
+  <div class="korish-tepa">
+    <button id="korish-yop" class="korish-t" aria-label="Yopish">✕</button>
+    <span id="korish-nom" class="korish-nom"></span>
+    <button id="korish-chop" class="korish-t asosiy">🖨 Chop / PDF</button>
+  </div>
+  <div id="korish-tor" class="korish-tor"></div>
+  <div id="korish-bitta" class="korish-bitta"></div>
+  <div class="korish-past">
+    <button id="korish-hammasi" class="korish-t" aria-label="Hamma varaq">▦</button>
+    <button id="korish-old" class="korish-t" aria-label="Oldingi varaq">‹</button>
+    <span id="korish-son" class="korish-son"></span>
+    <button id="korish-key" class="korish-t" aria-label="Keyingi varaq">›</button>
+    <span class="korish-bosh"></span>
+    <button id="korish-kich" class="korish-t" aria-label="Kichraytirish">−</button>
+    <button id="korish-foiz" class="korish-t korish-foiz" aria-label="100%">100%</button>
+    <button id="korish-kat" class="korish-t" aria-label="Yaqinlashtirish">+</button>
+  </div>
+</div>
 <div id="k-menyu" class="k-menyu" role="menu" hidden></div>
 <div id="katta-chizma" class="katta-chizma" role="dialog" aria-modal="true" aria-label="Konstruksiya chizmasi" hidden>
   <div class="kc-bosh"><div class="kc-sarlavha"></div><button id="katta-yop" class="kc-yop" aria-label="Yopish">✕</button></div>
@@ -332,20 +351,20 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
-<script src="ranglar.js?v=7ed1622b"></script>
-<script src="kesish_karta.js?v=7ed1622b"></script>
-<script src="diller_tahrir.js?v=7ed1622b"></script>
-<script src="app.js?v=7ed1622b"></script>
-<script src="qalam.js?v=7ed1622b"></script>
-<script src="fasonlar.js?v=7ed1622b"></script>
-<script src="konstruktor.js?v=7ed1622b"></script>
-<script src="kassa.js?v=7ed1622b"></script>
-<script src="zakaz_baza.js?v=7ed1622b"></script>
-<script src="hisobot.js?v=7ed1622b"></script>
-<script src="hisobot_ekran.js?v=7ed1622b"></script>
-<script src="katalog.js?v=7ed1622b"></script>
-<script src="xlsx.js?v=7ed1622b"></script>
-<script src="server.js?v=7ed1622b"></script>
-<script src="sklad.js?v=7ed1622b"></script>
+<script src="ranglar.js?v=aa93923e"></script>
+<script src="kesish_karta.js?v=aa93923e"></script>
+<script src="diller_tahrir.js?v=aa93923e"></script>
+<script src="app.js?v=aa93923e"></script>
+<script src="qalam.js?v=aa93923e"></script>
+<script src="fasonlar.js?v=aa93923e"></script>
+<script src="konstruktor.js?v=aa93923e"></script>
+<script src="kassa.js?v=aa93923e"></script>
+<script src="zakaz_baza.js?v=aa93923e"></script>
+<script src="hisobot.js?v=aa93923e"></script>
+<script src="hisobot_ekran.js?v=aa93923e"></script>
+<script src="katalog.js?v=aa93923e"></script>
+<script src="xlsx.js?v=aa93923e"></script>
+<script src="server.js?v=aa93923e"></script>
+<script src="sklad.js?v=aa93923e"></script>
 </body>
 </html>

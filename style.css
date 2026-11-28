@@ -1552,3 +1552,40 @@ body.d2 #e-royxat .arxiv-k:active { transform: scale(.995); }
 body.d2 #e-royxat .arxiv-k.joriy { outline: 3px solid #0047FF; outline-offset: -3px; box-shadow: 0 10px 26px rgba(0,71,255,.18); }
 body.d2.qora #e-royxat .arxiv-k.joriy { outline-color: #FFB800; box-shadow: 0 10px 26px rgba(255,184,0,.15); }
 body.d2.qora .a-och-izoh { color: #FFB800; }
+
+/* PDF koʻrish oynasi (foydalanuvchi, 2026-11-28): hamma varaq kichik — bosilsa bittasi butun ekranda, yaqinlashtirish */
+.korish { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: #E6E9EE; color: #0a0a0a; }
+.korish[hidden] { display: none; }
+body.korish-ochiq { overflow: hidden; }
+.korish-tepa, .korish-past { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #fff; box-shadow: 0 1px 0 #dde2e8; }
+.korish-past { box-shadow: 0 -1px 0 #dde2e8; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+.korish-nom { flex: 1; min-width: 0; font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.korish-t { min-width: 48px; height: 48px; padding: 0 14px; border: 0; border-radius: 24px; background: #F2F4F7; color: #0a0a0a; font: inherit; font-size: 20px; font-weight: 700; cursor: pointer; }
+.korish-t.asosiy { background: #0047FF; color: #fff; font-size: 16px; }
+.korish-t:disabled { opacity: .35; }
+.korish-foiz { font-size: 15px; min-width: 72px; }
+.korish-son { min-width: 56px; text-align: center; font-weight: 700; }
+.korish-bosh { flex: 1; }
+.korish-tor { flex: 1; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 16px; padding: 16px; }
+.korish-bitta { flex: 1; overflow: auto; padding: 12px; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+.korish[data-rejim="hammasi"] .korish-bitta, .korish[data-rejim="hammasi"] .korish-past, .korish[data-rejim="bitta"] .korish-tor { display: none; }
+.korish-k { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-weight: 700; color: #444; }
+.korish-k .korish-q { border-radius: 6px; box-shadow: 0 4px 14px rgba(16,24,40,.14); }
+.korish-k:active .korish-q, .korish-k:focus-visible .korish-q { outline: 3px solid #0047FF; }
+.korish-q { position: relative; overflow: hidden; background: #fff; flex: 0 0 auto; }
+.korish-q.katta { margin: 0 auto; box-shadow: 0 6px 24px rgba(16,24,40,.18); }
+.korish-ichki { position: absolute; left: 0; top: 0; transform-origin: 0 0; box-sizing: border-box; background: #fff; }
+.korish-if { display: block; border: 0; height: 1000px; pointer-events: none; background: #fff; }
+body.d2.qora .korish { background: #0E1116; }
+body.d2.qora .korish-tepa, body.d2.qora .korish-past { background: #171B22; box-shadow: none; color: #fff; }
+body.d2.qora .korish-nom, body.d2.qora .korish-son, body.d2.qora .korish-k { color: #fff; }
+body.d2.qora .korish-t { background: #222833; color: #fff; }
+body.d2.qora .korish-t.asosiy { background: #FFB800; color: #0E1116; }
+@media print { #korish { display: none !important; } body.korish-ochiq { overflow: visible; } }
+@media (max-width: 480px) {
+  .korish-past { gap: 4px; padding-left: 8px; padding-right: 8px; }
+  .korish-past .korish-t { min-width: 44px; padding: 0 8px; }
+  .korish-past .korish-foiz { min-width: 60px; font-size: 14px; }
+  .korish-son { min-width: 44px; font-size: 14px; }
+  .korish-tepa .korish-t.asosiy { padding: 0 12px; font-size: 15px; }
+}
