@@ -420,10 +420,11 @@ function arxivniChiz() {
   t = tartib;
   $("arxiv").innerHTML = t.map((z) => z.guruh ? `<div class="btb-guruh"><b>BTB · ${esc(z.guruh)}</b><span>${z.soni} ta · ${som(z.summa)}</span></div>` : `<div class="arxiv-k${zakaz && zakaz.id === z.id ? " joriy" : ""}${btbNom(z) ? " btb" : ""}">
       <div class="arxiv-eskiz">${z.konstruksiyalar[0] ? chizmaSVG(z.konstruksiyalar[0], { kichik: true }) : ""}</div>
-      <div class="arxiv-matn"><span class="xira">${z.baza_id ? `<b class="id-teg">ID ${z.baza_id}</b> ` : `№${esc(z.raqam ?? "")} · `}${esc(z.sana || "")} · ${esc(holatNomi(holatOl(z)))}${montajBor(z) ? "" : " · montajsiz"}</span>
-        <b>${esc((z.mijoz && z.mijoz.ism) || z.nom || "Mijoz")}</b>
-        <span class="pul-holat">${pulHolati(z)}</span></div>
-      ${keyingiHolat(z)}<div class="arxiv-tugma"><button data-och="${z.id}" class="tugma asosiy">Ochish</button><button data-dub="${z.id}" class="tugma">Dublikat</button><button data-arx-ochir="${z.id}" class="tugma">Oʻchirish</button></div>
+      <div class="arxiv-matn"><span class="xira arxiv-raqam">${z.baza_id ? `<b class="id-teg">ID ${z.baza_id}</b> ` : `<b>№${esc(z.raqam ?? "")}</b> · `}${z.konstruksiyalar.length} ta konstruksiya</span>
+        <b class="arxiv-nom">${esc((z.mijoz && z.mijoz.ism) || z.nom || "Mijoz")}</b>
+        ${((ph) => ph === "—" ? "" : `<span class="pul-holat">${ph}</span>`)(pulHolati(z))}
+        <span class="arxiv-teglar">${z.sana ? `<span class="a-teg a-sana">${esc(String(z.sana).replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3.$2.$1"))}</span>` : ""}<span class="a-teg">${esc(holatNomi(holatOl(z)))}</span>${montajBor(z) ? "" : '<span class="a-teg">montajsiz</span>'}</span></div>
+      ${keyingiHolat(z)}<div class="arxiv-tugma"><button data-och="${z.id}" class="tugma asosiy">Ochish</button><button data-dub="${z.id}" class="tugma">⧉ Dublikat</button><button data-arx-ochir="${z.id}" class="tugma a-ochir" aria-label="Oʻchirish" title="Oʻchirish">🗑</button></div>
     </div>`).join("") || '<p class="xira">Bu boʻlimda zakaz yoʻq.</p>';
 }
 
