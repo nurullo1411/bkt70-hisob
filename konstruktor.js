@@ -1181,6 +1181,7 @@ function asboblarniChiz() {
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
   $("k-maslahat").textContent = asbob === "ochir" ? "Impostni olib tashlash: impost yonidagi boʻlakka bosing — shu boʻlak va uning chap/tepa impost(i) olinadi, joyi qoʻshnisiga oʻtadi"
     : nom ? `${nom}: rasmdagi boʻlakka bosing` : "";  // umumiy maslahat olib tashlandi (foydalanuvchi, 2026-11-28: "bu yozuv kerak emas")
+  kSigdir();
 }
 
 // Tabaqa ichi impost joylari (hisob.py _tabaqa_ichi kabi): jami — ichki oʻlcham; boʻsh boʻlaklar teng
@@ -1363,7 +1364,7 @@ function asbobniQollaIchki(kalit) {
   yangila();
 }
 
-function xabar(m) { $("k-maslahat").textContent = m; }
+function xabar(m) { $("k-maslahat").textContent = m; kSigdir(); }
 
 // ---------- oʻlcham kiritish: oʻz raqam klaviaturasi (Romchi kabi) ----------
 // Eski qiymat kulrang koʻrinadi; birinchi bosilgan raqam uning oʻrniga yoziladi.
@@ -1639,7 +1640,23 @@ function yangila() {
   $("k-chizma").innerHTML = chizmaSVG(tahrir, { tanlangan: asbob || tanlanganImpost ? null : tanlangan, tanlanganImpost, tabOl, kesYoz });
   panelniChiz();
   oldindanHisobla();
+  kSigdir();
 }
+
+// Planshet (keng yotiq ekran; foydalanuvchi, 2026-11-28): sahifa surilmaydi — oʻng ustun (narx, tanlov jadvali,
+// boʻlak paneli) ekranga sigʻadi va oʻzi ichida suriladi, chizma qolgan balandlikni toʻliq egallaydi.
+const K_KENG = matchMedia("(min-width: 900px) and (orientation: landscape)");
+function kSigdir() {
+  const ong = $("k-ong"), kc = $("k-chizma"), svg = kc.querySelector(".chizma");
+  if (!K_KENG.matches || $("konstruktor").hidden) { ong.style.maxHeight = ""; if (svg) svg.style.maxHeight = ""; return; }
+  const past = 24, yuq = (el) => el.getBoundingClientRect().top + scrollY;
+  ong.style.maxHeight = Math.max(320, innerHeight - yuq(ong) - past) + "px";
+  if (svg) {
+    const ich = kc.offsetHeight - kc.clientHeight + (parseFloat(getComputedStyle(kc).paddingTop) || 0) * 2;
+    svg.style.maxHeight = Math.max(240, innerHeight - yuq(kc) - past - ich) + "px";
+  }
+}
+addEventListener("resize", () => { if (tahrir) kSigdir(); });
 
 const tugmalar = (amal, qiymat, variantlar) => `<div class="seg">${variantlar.map(([v, y]) => `<button data-amal="${amal}" data-v="${esc(JSON.stringify(v))}" class="${JSON.stringify(v) === JSON.stringify(qiymat) ? "faol" : ""}">${esc(y)}</button>`).join("")}</div>`;
 
@@ -2040,7 +2057,7 @@ function panelniChiz() {
         + tugmalar("esh_en", tur, [["teng", "Teng"], ["l2", "Ikkinchisi 65"], ["l1", "Ruchkalisi 65"], ["boshqa", "Boshqa…"]]);
     }
     p += ichkiPanel(b, "Tabaqa ichiga impost: tik yoki yotiq asbobni eshikka suring.");
-  } else p += `<div class="xira">Turini almashtirish uchun tepadan asbob tanlab, boʻlakka bosing.</div>`;
+  } else p += `<div class="xira k-tur-maslahat">Turini almashtirish uchun tepadan asbob tanlab, boʻlakka bosing.</div>`;
   // Lapsha bilan ulangan rama: oʻlchami, kalta qilish va tekislash
   const rm = o.rama;
   if (rm && rm.guruh != null) {

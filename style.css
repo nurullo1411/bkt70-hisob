@@ -755,6 +755,13 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
   #konstruktor > .k-tepa { grid-column: 1 / -1; }
   /* narx jadval tepasida, ikkalasi bitta oʻng ustunda (foydalanuvchi, 2026-11-15) */
   #konstruktor > #k-ong { grid-column: 2; grid-row: 2 / span 7; }
+  /* planshet (foydalanuvchi, 2026-11-28): boʻlak paneli ham oʻngda (jadval ostida), ustun ekranga sigʻib oʻzi suriladi
+     (balandlik — konstruktor.js kSigdir); chizma ostida sozlama yoʻq */
+  #konstruktor > #k-ong { overflow-y: auto; overscroll-behavior: contain; padding-bottom: 8px; }
+  #k-ong > #k-panel { margin-top: 12px; }
+  #k-ong > #k-panel:empty { display: none; }
+  #k-panel .k-tur-maslahat { display: none; }
+  #k-chizma .chizma { width: 100%; }
 }
 .parda.markaz .oyna-quti { border-radius: 16px; max-height: 80vh; }
 .jadval .jq-juft { cursor: default; }
