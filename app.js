@@ -1157,17 +1157,19 @@ function mijozRejimQoy(yoq) {
 }
 $("mijoz-rejim").addEventListener("click", () => { menyuYop(); mijozRejimQoy(!mijozRejim()); });
 // Dizayn tanlovi (foydalanuvchi, 2026-11-28): eski · oq ("1") · qora ("qora"); faqat koʻrinish — body.d2 (+ .qora)
+// "oq asosiy boʻlsin": tanlanmagan boʻlsa — Oq. Kalit "dizayn" (eski "dizayn2" da hammada "" yozilib qolgan, oʻqilmaydi)
+function dizaynOl() { const q = ol("dizayn"); return q === null ? "1" : q; }
 const DIZAYNLAR = { "": "Eski", "1": "Oq", "qora": "Qora" };
 function d2Qoy(q) {
   if (!(q in DIZAYNLAR)) q = "";
-  saqla("dizayn2", q);
+  saqla("dizayn", q);
   document.body.classList.toggle("d2", q !== "");
   document.body.classList.toggle("qora", q === "qora");
   $("d2-tugma").setAttribute("aria-pressed", String(q !== ""));
   $("d2-tugma").textContent = "🎨 Dizayn: " + DIZAYNLAR[q];
 }
-$("d2-tugma").addEventListener("click", () => { const k = ["", "1", "qora"]; /* Object.keys "1" ni oldinga qoʻyadi */ d2Qoy(k[(k.indexOf(ol("dizayn2") || "") + 1) % k.length]); });
-d2Qoy(ol("dizayn2") || "");
+$("d2-tugma").addEventListener("click", () => { const k = ["", "1", "qora"]; /* Object.keys "1" ni oldinga qoʻyadi */ d2Qoy(k[(k.indexOf(dizaynOl() || "") + 1) % k.length]); });
+d2Qoy(dizaynOl() || "");
 document.querySelectorAll("[data-valyuta]").forEach((b) => b.addEventListener("click", () => {
   saqla("valyuta", b.dataset.valyuta);
   if (natija) hisobKitobniChiz();

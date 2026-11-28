@@ -1429,3 +1429,24 @@ body.d2.qora .hero-tugma small { color: #0E1116; opacity: .8; }
 body.d2.qora { --olcham: #FFD15C; }
 body.d2.qora #kassa-och b, body.d2.qora #katalog-och b { color: #F5F7FA; }
 body.d2.qora .bolim-son { color: #FFB800; }
+/* label.tugma.keng qatorga choʻzilsin (Sklad: "Zaxira fayldan tiklash" boshqa tugma ustiga chiqib qolardi) */
+label.tugma.keng { display: flex; align-items: center; justify-content: center; }
+
+/* ===== Oq uslub — qolgan ekranlar (foydalanuvchi, 2026-11-28: "oq asosiy boʻlsin") ===== */
+body.d2:not(.qora) .tugma { border-radius: 24px; border: 0; background: #f2f2f2; color: #0a0a0a; font-weight: 700; box-shadow: none; }
+body.d2:not(.qora) .tugma.asosiy { background: #0047FF; color: #fff; }
+body.d2:not(.qora) .tugma.xavf { background: #c62828; color: #fff; }
+body.d2:not(.qora) .tugma.yashil { background: #1a7f37; color: #fff; }
+body.d2 .karta { border-radius: 20px; }
+body.d2 input, body.d2 select, body.d2 textarea { border-radius: 14px; }
+body.d2:not(.qora) input, body.d2:not(.qora) select, body.d2:not(.qora) textarea { background: #f7f7f7; border-color: #e5e5e5; }
+body.d2 .seg { border-radius: 24px; }
+body.d2 .seg button { border-radius: 22px; }
+/* bosh sahifa: "Buyurtma kiritish" — koʻk, tekis */
+body.d2:not(.qora) .hero-tugma { background: #0047FF; box-shadow: 0 8px 24px rgba(0,71,255,.25); }
+body.d2:not(.qora) .bosh-hero { box-shadow: none; }
+body.d2:not(.qora) .davom, body.d2:not(.qora) .bolim-k { box-shadow: none; border-color: #e5e5e5; }
+/* roʻyxat: "Shartnoma tuzildi" — koʻk chiziqli tabletka */
+body.d2:not(.qora) .holat-ot .kichik-t { border-radius: 24px; }
+body.d2 header .orqaga[hidden] { display: none; }
+body.d2:not(.qora) .d2-tugma[aria-pressed="true"] { background: #f2f2f2; color: #0a0a0a; border-color: #f2f2f2; }
