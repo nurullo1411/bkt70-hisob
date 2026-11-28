@@ -1156,6 +1156,15 @@ function mijozRejimQoy(yoq) {
   if (zakaz && natija) { hisobKitobniChiz(); royxatniChiz(); }
 }
 $("mijoz-rejim").addEventListener("click", () => { menyuYop(); mijozRejimQoy(!mijozRejim()); });
+// Yangi dizayn sinovi (foydalanuvchi, 2026-11-28: "2 yoqdi … ishlatib koʻrsam"): faqat koʻrinish, body.d2
+function d2Qoy(yoq) {
+  saqla("dizayn2", yoq ? "1" : "0");
+  document.body.classList.toggle("d2", yoq);
+  $("d2-tugma").setAttribute("aria-pressed", String(yoq));
+  $("d2-tugma").textContent = yoq ? "✨ Yangi dizayn: YONIQ" : "✨ Yangi dizayn (sinov)";
+}
+$("d2-tugma").addEventListener("click", () => d2Qoy(ol("dizayn2") !== "1"));
+d2Qoy(ol("dizayn2") === "1");
 document.querySelectorAll("[data-valyuta]").forEach((b) => b.addEventListener("click", () => {
   saqla("valyuta", b.dataset.valyuta);
   if (natija) hisobKitobniChiz();

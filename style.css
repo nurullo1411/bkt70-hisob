@@ -1340,3 +1340,54 @@ details.karta > summary { padding-top: 12px; padding-bottom: 12px; }
 .k-raqam { font-size: 14px; font-weight: 800; }
 #k-nom span, #k-nom .k-raqam, .k-nom-q .k-raqam { font-size: 14px; }
 #konstruktor .k-nom span, #konstruktor .k-nom .k-nom-q .k-raqam { font-size: 14px; }
+
+/* ===== Yangi dizayn (sinov) — "Toza oq" (foydalanuvchi, 2026-11-28). Faqat body.d2 da; eski koʻrinish oʻzgarmaydi ===== */
+.d2-tugma { min-height: 48px; padding: 0 16px; border-radius: 24px; border: 2px solid currentColor; background: transparent; color: inherit; font: inherit; font-size: 15px; font-weight: 700; }
+.d2-tugma[aria-pressed="true"] { background: #fff; color: #0047FF; border-color: #fff; }
+body.d2 { --fon: #fff; --karta: #fff; --matn: #0a0a0a; --xira: #525252; --chiziq: #e5e5e5; --asosiy: #0047FF; background: #fff; color: #0a0a0a; }
+body.d2 header, body.d2[data-ekran] header { background: #fff; color: #0a0a0a; box-shadow: none; border-bottom: 1px solid #e5e5e5; }
+body.d2 header .orqaga { width: 48px; height: 48px; border-radius: 24px; background: #f2f2f2; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; }
+body.d2 header .holat { background: #f2f2f2; color: #0a0a0a; }
+body.d2 .karta { box-shadow: none; border: 1px solid #e5e5e5; border-radius: 18px; }
+/* zakaz sahifasi: summa katta koʻk */
+body.d2 #e-zakaz .zakaz-tepa #zakaz-nomi { font-size: 15px; font-weight: 600; color: #525252; }
+body.d2 #e-zakaz .mijoz-tugma { border-radius: 24px; background: #f2f2f2; border: 0; color: #0a0a0a; font-weight: 700; }
+body.d2 #e-zakaz .xulosa, body.d2 #e-zakaz[data-tab] .xulosa[data-t] { position: static; display: flex; grid-template-columns: none; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; background: none !important; color: #0a0a0a; box-shadow: none; border: 0; padding: 4px 4px 14px; margin: 0 0 4px; border-bottom: 1px solid #e5e5e5; border-radius: 0; }
+body.d2 #e-zakaz .xulosa > div.x-stat { display: flex; flex-direction: row; align-items: baseline; gap: 4px; padding: 0; border: 0 !important; }
+body.d2 #e-zakaz .xulosa > div.x-stat b { font-size: 17px; color: #0a0a0a; }
+body.d2 #e-zakaz .xulosa > div.x-stat span { font-size: 15px; color: #525252; text-transform: none; font-weight: 600; letter-spacing: 0; }
+body.d2 #e-zakaz .xulosa > div.x-narx { order: -1; flex: 0 0 100%; flex-direction: column; align-items: flex-start; gap: 0; }
+body.d2 #e-zakaz .xulosa > div.x-narx b { font-size: 40px; line-height: 1.1; font-weight: 800; letter-spacing: -0.03em; color: #0047FF; font-variant-numeric: tabular-nums; }
+body.d2 #e-zakaz .xulosa > div.x-narx span { order: -1; font-size: 15px; }
+body.d2 #e-zakaz .xulosa > div.x-amal { flex: 0 0 100%; margin: 10px 0 0; gap: 8px; }
+body.d2 #e-zakaz .x-amal > .x-tugma { flex: 0 0 auto; min-height: 48px; padding: 0 16px; border-radius: 24px; border: 0; background: #f2f2f2; color: #0a0a0a; font-size: 15px; font-weight: 700; box-shadow: none; }
+/* "+ Qoʻshish" — pastda oʻngda suzib turadi (tablar ustida) */
+body.d2 #e-zakaz .x-amal > #k-qosh2 { position: fixed; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 4; min-height: 60px; padding: 0 26px; border-radius: 30px; background: #0047FF; color: #fff; font-size: 17px; font-weight: 800; box-shadow: 0 8px 24px rgba(0,71,255,.35); }
+body.d2 #e-zakaz[data-tab="h"] #k-qosh2, body.d2 #e-zakaz[data-tab="s"] #k-qosh2, body.d2 #e-zakaz[data-tab="d"] #k-qosh2 { display: none; }
+body.d2 #e-zakaz #k-qosh { display: none; }
+body.d2 #e-zakaz .konstr-bolim { padding-bottom: 96px; }
+/* konstruksiya qatori: chiziq bilan ajratilgan, oʻlcham yirik */
+body.d2 #e-zakaz .bosh-sarlavha { color: #525252; }
+body.d2 #konstruksiyalar .karta, body.d2 #konstruksiyalar > div { box-shadow: none; }
+body.d2 .kq { border-top: 1px solid #e5e5e5; background: #fff; }
+body.d2 .kq-matn b { font-size: 16px; }
+body.d2 .kq-olcham { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+body.d2 .kq-narx b { font-size: 16px; }
+body.d2 .kq .soni { background: none; gap: 4px; }
+body.d2 .kq .soni button { border-radius: 24px; background: #fff; border: 2px solid #0a0a0a; box-shadow: none; font-weight: 800; }
+body.d2 .kq .kq-menyu { border-radius: 24px; background: #f2f2f2; }
+/* pastki tablar: oq, faol — qora "tabletka" */
+body.d2 .tablar { background: #fff; box-shadow: 0 -1px 0 #e5e5e5; }
+body.d2 .tablar button { border-radius: 24px; color: #525252; font-weight: 700; }
+body.d2 .tablar button span { filter: grayscale(1); }
+body.d2 .tablar button.faol, body.d2 #z-tablar button.faol { background: #0a0a0a; color: #fff; }
+body.d2 .tablar button.faol span { filter: none; }
+/* qator ikki qavat: yuqorida rasm, nom, oʻlcham, narx; pastda − soni + ⋯ (oʻlcham siqilmasin) */
+body.d2 #konstruksiyalar .kq { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "ich narx" "bosh bosh"; }
+body.d2 #konstruksiyalar .kq > .kq-ich { grid-area: ich; }
+body.d2 #konstruksiyalar .kq > .kq-amal { display: contents; }
+body.d2 #konstruksiyalar .kq-narx { grid-area: narx; align-self: start; padding: 10px 10px 0 0; }
+body.d2 #konstruksiyalar .kq-boshqar { grid-area: bosh; justify-content: flex-end; padding: 0 8px 10px; gap: 8px; }
+body.d2 #konstruksiyalar .kq > :not(.kq-ich):not(.kq-amal) { grid-column: 1 / -1; }
+body.d2 #konstruksiyalar .kq-olcham { white-space: nowrap; }
+body.d2 #konstruksiyalar .kq .soni button { background: #f2f2f2; border: 0; width: 48px; height: 48px; border-radius: 24px; }
