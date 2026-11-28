@@ -1796,10 +1796,9 @@ function korishChiz(markaz) {
   v.classList.add("katta");
   requestAnimationFrame(() => { q.scrollLeft = nisbat[0] * q.scrollWidth - q.clientWidth / 2; q.scrollTop = nisbat[1] * q.scrollHeight - (nisbat[1] ? q.clientHeight / 2 : 0); });
   $("korish-son").textContent = `${korish.i + 1} / ${korish.varaqlar.length}`;
-  $("korish-foiz").textContent = Math.round(korish.zoom * 100) + "%";
   $("korish-old").disabled = korish.i === 0;
   $("korish-key").disabled = korish.i >= korish.varaqlar.length - 1;
-  $("korish-hammasi").hidden = korish.varaqlar.length < 2;
+  for (const id of ["korish-hammasi", "korish-old", "korish-key", "korish-son"]) $(id).hidden = korish.varaqlar.length < 2;
 }
 function korishZoom(z, markaz) {
   if (!korish) return;
@@ -1814,7 +1813,6 @@ function korishZoom(z, markaz) {
   ich.style.transform = `scale(${s})`;
   q.scrollLeft = nisbat[0] * q.scrollWidth - q.clientWidth / 2;
   q.scrollTop = nisbat[1] * q.scrollHeight - q.clientHeight / 2;
-  $("korish-foiz").textContent = Math.round(korish.zoom * 100) + "%";
 }
 $("korish-yop").addEventListener("click", korishYop);
 $("korish-chop").addEventListener("click", () => { const s = korish ? korish.sarlavha : document.title; chopBer(s); });
@@ -1822,35 +1820,34 @@ $("korish-tor").addEventListener("click", (e) => { const b = e.target.closest("[
 $("korish-hammasi").addEventListener("click", () => korishHammasi());
 $("korish-old").addEventListener("click", () => { if (korish.i > 0) { korish.zoom = 1; korishBitta(korish.i - 1); } });
 $("korish-key").addEventListener("click", () => { if (korish.i < korish.varaqlar.length - 1) { korish.zoom = 1; korishBitta(korish.i + 1); } });
-$("korish-kich").addEventListener("click", () => korishZoom(korish.zoom / 1.25));
-$("korish-kat").addEventListener("click", () => korishZoom(korish.zoom * 1.25));
-$("korish-foiz").addEventListener("click", () => korishZoom(1));
-// Barmoq bilan: ikki barmoq — yaqinlashtirish, ikki marta bosish — 100% ⇄ 250%
+// Barmoq bilan (foydalanuvchi, 2026-11-28: "+ tugmasi kerak emas, barmoq bilan katta-kichik"): ikki barmoq —
+// kattalashtirish/kichraytirish (barmoqlar orasidagi nuqta joyida qoladi), bir barmoq — surish, ikki marta tegish — 100% ⇄ 250%.
+// Touch hodisalari: ikki barmoqda brauzer surishni boshlamaydi (preventDefault), pointer uzilib qolmaydi.
 {
-  const q = $("korish-bitta"), b = new Map();
-  let d0 = 0, z0 = 1, oxirgi = 0;
-  const masofa = () => { const [a, c] = [...b.values()]; return Math.hypot(a.x - c.x, a.y - c.y); };
-  q.addEventListener("pointerdown", (e) => {
-    b.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (b.size === 2) { d0 = masofa(); z0 = korish.zoom; }
-    if (b.size === 1 && e.pointerType !== "mouse") {
-      const t = Date.now();
+  const q = $("korish-bitta");
+  let d0 = 0, z0 = 1, oxirgi = 0, nuqta = null;
+  const masofa = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const orta = (t) => { const r = q.getBoundingClientRect(); return [(q.scrollLeft + (t[0].clientX + t[1].clientX) / 2 - r.left) / q.scrollWidth, (q.scrollTop + (t[0].clientY + t[1].clientY) / 2 - r.top) / q.scrollHeight]; };
+  q.addEventListener("touchstart", (e) => {
+    if (!korish) return;
+    if (e.touches.length === 2) { d0 = masofa(e.touches); z0 = korish.zoom; nuqta = orta(e.touches); e.preventDefault(); return; }
+    if (e.touches.length === 1) {
+      const t = Date.now(), x = e.touches[0];
       if (t - oxirgi < 300) {
         const r = q.getBoundingClientRect();
-        korishZoom(korish.zoom > 1.2 ? 1 : 2.5, [(q.scrollLeft + e.clientX - r.left) / q.scrollWidth, (q.scrollTop + e.clientY - r.top) / q.scrollHeight]);
-        oxirgi = 0;
+        korishZoom(korish.zoom > 1.2 ? 1 : 2.5, [(q.scrollLeft + x.clientX - r.left) / q.scrollWidth, (q.scrollTop + x.clientY - r.top) / q.scrollHeight]);
+        oxirgi = 0; e.preventDefault();
       } else oxirgi = t;
     }
-  });
-  q.addEventListener("pointermove", (e) => {
-    if (!b.has(e.pointerId)) return;
-    b.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (b.size === 2 && d0 > 0) { e.preventDefault(); korishZoom(z0 * masofa() / d0); }
-  });
-  const tug = (e) => { b.delete(e.pointerId); if (b.size < 2) d0 = 0; };
-  q.addEventListener("pointerup", tug); q.addEventListener("pointercancel", tug); q.addEventListener("pointerleave", tug);
-  q.addEventListener("dblclick", (e) => { const r = q.getBoundingClientRect(); korishZoom(korish.zoom > 1.2 ? 1 : 2.5, [(q.scrollLeft + e.clientX - r.left) / q.scrollWidth, (q.scrollTop + e.clientY - r.top) / q.scrollHeight]); });
-  q.addEventListener("wheel", (e) => { if (e.ctrlKey) { e.preventDefault(); korishZoom(korish.zoom * (e.deltaY < 0 ? 1.1 : 0.9)); } }, { passive: false });
+  }, { passive: false });
+  q.addEventListener("touchmove", (e) => {
+    if (!korish || e.touches.length !== 2 || !d0) return;
+    e.preventDefault();
+    korishZoom(z0 * masofa(e.touches) / d0, nuqta);
+  }, { passive: false });
+  q.addEventListener("touchend", (e) => { if (e.touches.length < 2) d0 = 0; });
+  q.addEventListener("dblclick", (e) => { if (!korish) return; const r = q.getBoundingClientRect(); korishZoom(korish.zoom > 1.2 ? 1 : 2.5, [(q.scrollLeft + e.clientX - r.left) / q.scrollWidth, (q.scrollTop + e.clientY - r.top) / q.scrollHeight]); });
+  q.addEventListener("wheel", (e) => { if (korish && e.ctrlKey) { e.preventDefault(); korishZoom(korish.zoom * (e.deltaY < 0 ? 1.1 : 0.9)); } }, { passive: false });
 }
 document.addEventListener("keydown", (e) => { if (korish && e.key === "Escape") korishYop(); });
 // Dillerga roʻyxat (foydalanuvchi, 2026-11-16): bitta jadval, avval tahrirlash oynasi; qoʻlda oʻzgarishlar zakaz.diller_tahrir da
