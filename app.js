@@ -71,6 +71,27 @@ async function shifrliOch(fayl) {
   }
 }
 
+// Kalitli havolani qoʻlda qoʻyish (foydalanuvchi, 2026-11-28: planshetda Telegram ichki brauzeri kalitni ilovaga bermadi).
+// Toʻliq havola yoki faqat kalit qabul qilinadi; narxlar.enc ochilsa saqlanib, sahifa qayta yuklanadi.
+async function havoladanNarx() {
+  const matn = ($("narx-havola").value || "").trim();
+  const m = matn.match(/k=([A-Za-z0-9_-]{16,})/) || matn.match(/^([A-Za-z0-9_-]{16,})$/);
+  const ogoh = (t) => { $("narx-havola-xato").textContent = t; $("narx-havola-xato").hidden = !t; };
+  if (!m) { ogoh("Havolada kalit topilmadi: havola oxirida “#k=…” boʻlishi kerak"); return; }
+  const eski = ol("narx_kalit");
+  saqla("narx_kalit", m[1]);
+  ogoh(""); $("narx-havola-ok").disabled = true;
+  const ochiq = await shifrliNarx();
+  $("narx-havola-ok").disabled = false;
+  if (!ochiq) {
+    if (eski) saqla("narx_kalit", eski); else { try { localStorage.removeItem("narx_kalit"); } catch (e) {} }
+    ogoh(navigator.onLine === false ? "Internet yoʻq — ulanib, qayta urinib koʻring" : "Kalit mos kelmadi — havolani toʻliq nusxalang");
+    return;
+  }
+  location.reload();
+}
+$("narx-havola-ok").addEventListener("click", havoladanNarx);
+
 async function shifrliNarx() {
   const m = location.hash.match(/k=([A-Za-z0-9_-]+)/);
   if (m) { saqla("narx_kalit", m[1]); history.replaceState(null, "", location.pathname); }
