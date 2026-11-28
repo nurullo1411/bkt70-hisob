@@ -1574,9 +1574,21 @@ function almashtirIchida(ildiz, p, yangi) {
 }
 
 // ---------- tahrirlash oynasi ----------
+// Yangi konstruksiya oldingisining seriyasi, rangi va oynasini oladi (foydalanuvchi, 2026-11-28: tanlov standart
+// "faqat shu" boʻlgani uchun — aks holda har yangi konstruksiya zakazning umumiy seriyasiga qaytardi).
+// Faqat oldingisining oʻziga yozilgan (zakazdan farqli) qiymatlar koʻchadi; qolgani — zakazning umumiysidan.
+function oldingidan(k) {
+  const ol_ = (zakaz.konstruksiyalar || [])[zakaz.konstruksiyalar.length - 1];
+  if (!ol_) return;
+  for (const kalit of ["rama", "oyna_qalinligi"]) if (ol_[kalit] != null) k[kalit] = ol_[kalit];
+  const t = {};
+  for (const kalit of ["rang", "rang_nomi", "oyna_turi"]) if (ol_.tanlov && ol_.tanlov[kalit] != null) t[kalit] = ol_.tanlov[kalit];
+  if (Object.keys(t).length) k.tanlov = t;
+}
 function konstruktorniOch(i) {
   tahrirIndeks = i;
   tahrir = i >= 0 ? lapshaDaraxt(nusxa(zakaz.konstruksiyalar[i])) : { nom: "", soni: 1, L: 150, H: 150, bolak: { tur: "gluxoy" } };
+  if (i < 0) oldingidan(tahrir);
   tanlangan = geometriya(tahrir).barglar[0].p;
   asbob = null;
   faqatShu = true;  // standart "Faqat shu konstruksiyaga" (foydalanuvchi, 2026-11-28); butun zakazga — ⚙ da
