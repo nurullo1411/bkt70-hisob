@@ -755,12 +755,8 @@ button.plitka { font: inherit; font-size: 14px; font-weight: 600; }
   #konstruktor > .k-tepa { grid-column: 1 / -1; }
   /* narx jadval tepasida, ikkalasi bitta oʻng ustunda (foydalanuvchi, 2026-11-15) */
   #konstruktor > #k-ong { grid-column: 2; grid-row: 2 / span 7; }
-  /* planshet (foydalanuvchi, 2026-11-28): boʻlak paneli ham oʻngda (jadval ostida), ustun ekranga sigʻib oʻzi suriladi
-     (balandlik — konstruktor.js kSigdir); chizma ostida sozlama yoʻq */
+  /* planshet (foydalanuvchi, 2026-11-28): oʻng ustun ekranga sigʻib oʻzi suriladi (balandlik — konstruktor.js kSigdir) */
   #konstruktor > #k-ong { overflow-y: auto; overscroll-behavior: contain; padding-bottom: 8px; }
-  #k-ong > #k-panel { margin-top: 12px; }
-  #k-ong > #k-panel:empty { display: none; }
-  #k-panel .k-tur-maslahat { display: none; }
   #k-chizma .chizma { width: 100%; }
 }
 .parda.markaz .oyna-quti { border-radius: 16px; max-height: 80vh; }
@@ -1460,3 +1456,20 @@ body.d2:not(.qora) .d2-tugma[aria-pressed="true"] { background: #f2f2f2; color: 
 /* "hidden" doim ustun (2026-11-28): #orqaga { display: inline-flex } (HIG) bosh sahifada ← ni, .davom boʻsh kartani chiqarib qoʻygan edi */
 [hidden] { display: none !important; }
 #k-maslahat:empty { display: none; }
+
+/* Planshet konstruktori (foydalanuvchi, 2026-11-28: "konstruksiya ostidagi sozlamalar kerak emas — olib tashla;
+   konstruksiya maydoni juda kichik"): boʻlak paneli yoʻq; boʻlimlar va asboblar chizmaning chap tomonida tik ustunda,
+   chizma qolgan joyni (eni va boʻyi) toʻliq oladi, oʻngda narx va tanlov jadvali. Telefon oʻzgarmadi. */
+@media (min-width: 900px) and (orientation: landscape) {
+  main#konstruktor:not([hidden]) { max-width: none; grid-template-columns: auto auto minmax(0, 1fr) 360px; grid-template-rows: auto auto 1fr; column-gap: 12px; }
+  #konstruktor > .k-tepa { grid-column: 1 / -1; grid-row: 1; }
+  #konstruktor > #k-bolimlar { grid-column: 1; grid-row: 2 / span 2; flex-direction: column; overflow: visible; padding: 0; gap: 6px; align-self: start; }
+  #konstruktor > #k-bolimlar .bosh { display: none; }
+  #konstruktor > #k-bolimlar button.faol { border: 2px solid var(--asosiy); border-radius: 12px; }
+  #konstruktor > #k-asboblar { grid-column: 2; grid-row: 2 / span 2; display: grid; grid-template-columns: repeat(2, auto); gap: 6px; overflow: visible; padding: 0; align-self: start; align-content: start; }
+  #konstruktor > #k-maslahat { grid-column: 3; grid-row: 2; margin: 0 0 8px; }
+  #konstruktor > #k-chizma { grid-column: 3; grid-row: 3; align-self: start; }
+  #konstruktor > #k-ong { grid-column: 4; grid-row: 2 / span 2; }
+  #konstruktor > .qalam-tugat { grid-column: 3; }
+  #k-ong > #k-panel { display: none; }
+}
