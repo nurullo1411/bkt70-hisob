@@ -17,6 +17,15 @@ let bolim = "impost";   // asboblar boʻlimi
 let asbob = null;       // tanlangan asbob yoki null (tanlash rejimi)
 let eshikOchilish = "ichkariga";
 // Konstruksiyadagi hamma eshik (ochilishi ⚙ dagi eshik profilidan: Balkon Qanot — ichkariga, Balkon Oʻrta — tashqariga)
+// Konstruksiyada nima bor (foydalanuvchi, 2026-11-28: tanlovlar konstruksiyaga qarab — furnitura ochiladigan tabaqa
+// qoʻshilsa, fortochka tanlovi fortochka boʻlsa, ruchka ochiladigan boʻlsa, impost soedineli impost boʻlsa chiqadi)
+function tarkib(n, t = { tabaqa: false, fortochka: false, impost: false }) {
+  if (!n) return t;
+  if (n.tur === "tabaqa") { if (n.fortochka) t.fortochka = true; else t.tabaqa = true; }
+  if (n.tur === "bolinish" || n.tabaqa_impost) t.impost = true;
+  for (const c of n.bolaklar || []) tarkib(c, t);
+  return t;
+}
 function eshiklar(n, r = []) {
   if (!n) return r;
   if (n.tur === "eshik") r.push(n);
@@ -74,8 +83,8 @@ function yangiZakaz() {
     nom: "Yangi zakaz",
     umumiy: {
       rama: "F702", oyna_qalinligi: 24,
-      // podokonnik standarti 30 (foydalanuvchi, 2026-11-15; faqat rom va fortochkaga — eshikda hisobot qoʻymaydi)
-      tanlov: { rang: "Laminatsiya", oyna_turi: "Oq+oq", ruchka: ESHIK_RUCHKA[0], zamok: ZAMOKLAR[0], montaj: false, podokonnik: 30 },
+      // podokonnik standarti — yoʻq (foydalanuvchi, 2026-11-28; oldin 30 — 2026-11-15); faqat rom va fortochkaga, eshikda hisobot qoʻymaydi
+      tanlov: { rang: "Laminatsiya", oyna_turi: "Oq+oq", ruchka: ESHIK_RUCHKA[0], zamok: ZAMOKLAR[0], montaj: false, podokonnik: null },
     },
     konstruksiyalar: [],
   };
@@ -1570,7 +1579,7 @@ function konstruktorniOch(i) {
   tahrir = i >= 0 ? lapshaDaraxt(nusxa(zakaz.konstruksiyalar[i])) : { nom: "", soni: 1, L: 150, H: 150, bolak: { tur: "gluxoy" } };
   tanlangan = geometriya(tahrir).barglar[0].p;
   asbob = null;
-  faqatShu = alohidami(tahrir);  // jadvaldagi "Butun zakaz | Faqat shu" boshlangʻich holati
+  faqatShu = true;  // standart "Faqat shu konstruksiyaga" (foydalanuvchi, 2026-11-28); butun zakazga — ⚙ da
   orqaga = []; oldinga = [];
   $("asosiy").hidden = true;
   $("konstruktor").hidden = false;
@@ -1618,6 +1627,7 @@ function qoralamaniTikla() {
   setTimeout(() => { try { localStorage.removeItem("qoralama_tiklash"); } catch (e) {} }, 6000);
   tahrirIndeks = q.indeks < zakaz.konstruksiyalar.length ? q.indeks : -1;
   tahrir = q.tahrir;
+  faqatShu = true;
   orqaga = q.orqaga || []; oldinga = [];
   tanlangan = geometriya(tahrir).barglar[0].p;
   asbob = null;
@@ -2181,23 +2191,25 @@ function engFurnituraHtml(k, faol, yangi = false) {
   const t = k.tanlov || {}, ut = zakaz.umumiy.tanlov || {};
   const v = (kalit, std) => t[kalit] ?? ut[kalit] ?? std;
   const seg = (kalit, std, royxat) => `<div class="sz-seg">${royxat.map(([q, y]) => `<button data-sz="t:${kalit}" data-v="${esc(JSON.stringify(q))}" class="${faol(v(kalit, std) === q)}">${esc(y)}</button>`).join("")}</div>`;
-  if (yangi) return `<div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Fornax)</span></div>
-    ${seg("eng_petlya", "prostoe", [["prostoe", "Prostoe Otkr komplekt"], ["100", "Petlya 100 mm (2–3 ta)"]])}
-    ${yangi === "toliq" ? `<div class="sz-bolim">Fortochka <span class="xira">(doim ruchka bilan)</span></div>
+  // faqat konstruksiyada bori (foydalanuvchi, 2026-11-28): tabaqa — tabaqa furniturasi, fortochka — fortochka, ikkalasidan biri — ruchka
+  const t_ = tarkib(k.bolak), ruchkaBor = t_.tabaqa || t_.fortochka;
+  if (yangi) return `${!t_.tabaqa ? "" : `<div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Fornax)</span></div>
+    ${seg("eng_petlya", "prostoe", [["prostoe", "Prostoe Otkr komplekt"], ["100", "Petlya 100 mm (2–3 ta)"]])}`}
+    ${yangi === "toliq" && t_.fortochka ? `<div class="sz-bolim">Fortochka <span class="xira">(doim ruchka bilan)</span></div>
     ${seg("eng_fortochka_petlya", "ogranichitel", [["ogranichitel", "Ogranichitel"], ["100", "Petlya 100 mm × 2 + Aldoks ogranichiteli"]])}
     ${seg("eng_ogranichitel", "Uz", [["Uz", "Ogranichitel Uz"], ["Kinglong", "Ogranichitel Kinglong"]])}` : ""}
-    <div class="sz-bolim">Ruchka</div>
-    ${seg("eng_ruchka", ENG_RUCHKALAR[0][0], ENG_RUCHKALAR)}`;
+    ${!ruchkaBor ? "" : `<div class="sz-bolim">Ruchka</div>
+    ${seg("eng_ruchka", ENG_RUCHKALAR[0][0], ENG_RUCHKALAR)}`}`;
   return `<div class="sz-bolim">Metall <span class="xira">(armatura, Romchi kabi)</span></div>
     ${seg("eng_metall", "1.5", [["1.5", "1,5 mm"], ["2", "2 mm"]])}
-    <div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Engelberg)</span></div>
+    ${!t_.tabaqa ? "" : `<div class="sz-bolim">Tabaqa furniturasi <span class="xira">(Engelberg)</span></div>
     ${seg("eng_mexanizm", "fornax", [["fornax", "Fornax"], ["roto", "Roto"]])}
-    ${seg("eng_petlya", "prostoe", [["prostoe", "Prostoe Otkr komplekt"], ["100", "Petlya 100 mm (2–3 ta)"]])}
-    <div class="sz-bolim">Fortochka <span class="xira">(doim ruchka bilan)</span></div>
+    ${seg("eng_petlya", "prostoe", [["prostoe", "Prostoe Otkr komplekt"], ["100", "Petlya 100 mm (2–3 ta)"]])}`}
+    ${!t_.fortochka ? "" : `<div class="sz-bolim">Fortochka <span class="xira">(doim ruchka bilan)</span></div>
     ${seg("eng_fortochka_petlya", "ogranichitel", [["ogranichitel", "Ogranichitel"], ["100", "Petlya 100 mm × 2 + Aldoks ogranichiteli"]])}
-    ${seg("eng_ogranichitel", "Uz", [["Uz", "Ogranichitel Uz"], ["Kinglong", "Ogranichitel Kinglong"]])}
-    <div class="sz-bolim">Ruchka <span class="xira">(dvaynoyda petlya qopqogʻi shu rangda)</span></div>
-    ${seg("eng_ruchka", ENG_RUCHKALAR[0][0], ENG_RUCHKALAR)}`;
+    ${seg("eng_ogranichitel", "Uz", [["Uz", "Ogranichitel Uz"], ["Kinglong", "Ogranichitel Kinglong"]])}`}
+    ${!ruchkaBor ? "" : `<div class="sz-bolim">Ruchka <span class="xira">(dvaynoyda petlya qopqogʻi shu rangda)</span></div>
+    ${seg("eng_ruchka", ENG_RUCHKALAR[0][0], ENG_RUCHKALAR)}`}`;
 }
 
 // Engelberg eshigi (hisobot.py: eng_eshik_zamok, eng_eshik_ruchka, eng_eshik_petlya; foydalanuvchi, 2026-11-11)
@@ -2337,11 +2349,16 @@ function jadvalChiz() {
   const esh = eshiklar(tahrir.bolak), barg = !tahrir.bolak.bolaklar;
   const qator = (nom, qiymat, at, bos = true) => `<button class="jq${bos ? "" : " jq-yoq"}" ${at}><span class="jq-nom">${esc(nom)}</span><span class="jq-q">${esc(qiymat || "—")}</span>${bos ? '<span class="jq-ok">›</span>' : ""}</button>`;
   const juft = (nom, tugmalar) => `<div class="jq jq-juft"><span class="jq-nom">${esc(nom)}</span><span class="jq-tg">${tugmalar}</span></div>`;
-  // Tanlov qayerga yoziladi (foydalanuvchi, 2026-11-15) — ⚙ dagi "Faqat shu konstruksiyaga" belgisi jadvalda
-  let h = juft("Tanlov", [[false, "Butun zakaz"], [true, "Faqat shu"]].map(([v, y]) => `<button class="jb${faqatShu === v ? " faol" : ""}" data-jfaqat="${v}">${y}</button>`).join(""));
-  h += qator("Turi", konstruksiyaTuri(tahrir) + (barg ? "" : " (boʻlaklar — asboblar bilan)"), 'data-jq="__tur"', barg);
-  h += `<div class="jq jq-olcham"><span class="jq-nom">Oʻlcham</span><button class="tugma" data-jol="L">Eni ${yx(Number(tahrir.L))}</button><button class="tugma" data-jol="H">Boʻyi ${yx(Number(tahrir.H))}</button></div>`;
-  for (const b of szBloklar(tmp)) {
+  // Jadval saralandi (foydalanuvchi, 2026-11-28): "Tanlov" (butun zakaz / faqat shu) — ⚙ da, standart "faqat shu";
+  // Oʻlcham — chizmada; PVX / Termo / Alyuminiy — bitta "Seriya" qatori, guruh bosilsa seriyalari oyna tanlovidek qalqib chiqadi
+  let h = qator("Turi", konstruksiyaTuri(tahrir) + (barg ? "" : " (boʻlaklar — asboblar bilan)"), 'data-jq="__tur"', barg);
+  const bloklar = szBloklar(tmp), GURUHLAR = [["PVX", "PVX"], ["Termo", "Termo"], ["Alyuminiy", "Alyumin"]];
+  h += juft("Seriya", GURUHLAR.map(([g, y]) => {
+    const b = bloklar.find((x) => x.nom === g), q = b ? b.qiymat : "";
+    return b ? `<button class="jb${q ? " faol" : ""}" data-jser="${g}">${y}${q ? `<small>${esc(q)}</small>` : ""}</button>` : "";
+  }).join("")).replace('class="jq jq-juft"', 'class="jq jq-juft jq-ser"');
+  for (const b of bloklar) {
+    if (GURUHLAR.some(([g]) => g === b.nom)) continue;
     if (b.nom.startsWith("Eshik") && !esh.length) continue;
     if (b.juft) {
       const tg = b.juft.map((t) => {
@@ -2424,8 +2441,8 @@ function sozlamaHtml() {
     ${eshiklar(k.bolak).length ? "" : `<div class="sz-bolim">Podokonnik <span class="xira">(faqat rom va fortochka; uzunligi L + 15 sm, rangi rom rangida)</span></div>
     <div class="sz-seg sz-pod">${[[null, "Yoʻq"], ...[15, 20, 25, 30, 35, 40, 45].map((v) => [v, String(v)])].map(([v, y]) => `<button data-sz="t:podokonnik" data-v="${JSON.stringify(v)}" class="${faol(j.pod === v)}">${y}</button>`).join("")}</div>`}
 
-    ${pvxmi(j.rama) || aldmi(j.rama) || yangiTermo(j.rama) ? "" : `<div class="sz-bolim">Impost soedineli</div>
-    <div class="sz-seg">${[["ugol", "01.553 ugol"], ["J01+J05", "236 J01 + J05"]].map(([v, y]) => `<button data-sz="t:impost_soedinitel" data-v="${esc(JSON.stringify(v))}" class="${faol(j.soed === v)}">${y}</button>`).join("")}</div>
+    ${pvxmi(j.rama) || aldmi(j.rama) || yangiTermo(j.rama) ? "" : `${!tarkib(k.bolak).impost ? "" : `<div class="sz-bolim">Impost soedineli</div>
+    <div class="sz-seg">${[["ugol", "01.553 ugol"], ["J01+J05", "236 J01 + J05"]].map(([v, y]) => `<button data-sz="t:impost_soedinitel" data-v="${esc(JSON.stringify(v))}" class="${faol(j.soed === v)}">${y}</button>`).join("")}</div>`}
     <div class="sz-bolim">Vertikal shtapik</div>
     <div class="sz-seg">${[["R", "G…-R (ovalniy)"], ["oddiy", "oddiy G"]].map(([v, y]) => `<button data-sz="t:vertikal_shtapik" data-v="${esc(JSON.stringify(v))}" class="${faol(j.sht === v)}">${y}</button>`).join("")}</div>`}
     <div class="sz-bolim">Montaj <span class="xira">(montajli — pena + medved samorez)</span></div>
@@ -2542,10 +2559,12 @@ $("sozlama-oyna").addEventListener("click", (e) => { if (e.target === e.currentT
     yangila();
     return;
   }
+  const js = e.target.closest("[data-jser]");
+  if (js) { szFokus = js.dataset.jser; sozlamaOynasi(); return; }
   const jf = e.target.closest("[data-jfaqat]");
   if (jf) { faqatShu = jf.dataset.jfaqat === "true"; jadvalChiz(); return; }
   const as = e.target.closest("[data-sz-asosiy]");
-  if (as) { szBos(as); faqatShu = false; jadvalChiz(); return; }
+  if (as) { szBos(as); jadvalChiz(); return; }
   const jb = e.target.closest("button.jb");
   if (jb) { szBos(jb); return; }
   const q = e.target.closest("[data-jq]");
