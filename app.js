@@ -1156,15 +1156,18 @@ function mijozRejimQoy(yoq) {
   if (zakaz && natija) { hisobKitobniChiz(); royxatniChiz(); }
 }
 $("mijoz-rejim").addEventListener("click", () => { menyuYop(); mijozRejimQoy(!mijozRejim()); });
-// Yangi dizayn sinovi (foydalanuvchi, 2026-11-28: "2 yoqdi … ishlatib koʻrsam"): faqat koʻrinish, body.d2
-function d2Qoy(yoq) {
-  saqla("dizayn2", yoq ? "1" : "0");
-  document.body.classList.toggle("d2", yoq);
-  $("d2-tugma").setAttribute("aria-pressed", String(yoq));
-  $("d2-tugma").textContent = yoq ? "✨ Yangi dizayn: YONIQ" : "✨ Yangi dizayn (sinov)";
+// Dizayn tanlovi (foydalanuvchi, 2026-11-28): eski · oq ("1") · qora ("qora"); faqat koʻrinish — body.d2 (+ .qora)
+const DIZAYNLAR = { "": "Eski", "1": "Oq", "qora": "Qora" };
+function d2Qoy(q) {
+  if (!(q in DIZAYNLAR)) q = "";
+  saqla("dizayn2", q);
+  document.body.classList.toggle("d2", q !== "");
+  document.body.classList.toggle("qora", q === "qora");
+  $("d2-tugma").setAttribute("aria-pressed", String(q !== ""));
+  $("d2-tugma").textContent = "🎨 Dizayn: " + DIZAYNLAR[q];
 }
-$("d2-tugma").addEventListener("click", () => d2Qoy(ol("dizayn2") !== "1"));
-d2Qoy(ol("dizayn2") === "1");
+$("d2-tugma").addEventListener("click", () => { const k = ["", "1", "qora"]; /* Object.keys "1" ni oldinga qoʻyadi */ d2Qoy(k[(k.indexOf(ol("dizayn2") || "") + 1) % k.length]); });
+d2Qoy(ol("dizayn2") || "");
 document.querySelectorAll("[data-valyuta]").forEach((b) => b.addEventListener("click", () => {
   saqla("valyuta", b.dataset.valyuta);
   if (natija) hisobKitobniChiz();

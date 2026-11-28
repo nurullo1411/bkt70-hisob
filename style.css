@@ -1391,3 +1391,41 @@ body.d2 #konstruksiyalar .kq-boshqar { grid-area: bosh; justify-content: flex-en
 body.d2 #konstruksiyalar .kq > :not(.kq-ich):not(.kq-amal) { grid-column: 1 / -1; }
 body.d2 #konstruksiyalar .kq-olcham { white-space: nowrap; }
 body.d2 #konstruksiyalar .kq .soni button { background: #f2f2f2; border: 0; width: 48px; height: 48px; border-radius: 24px; }
+
+/* ===== Qora rejim (foydalanuvchi, 2026-11-28; 1-maket "Ustaxona"): body.d2.qora — qora fon, sariq urgʻu ===== */
+body.d2.qora { --fon: #0E1116; --karta: #171B22; --matn: #F5F7FA; --xira: #A3ACB9; --chiziq: #2A313C; --asosiy: #FFB800; --asosiy-matn: #0E1116;
+  --urgu: #ff9f5a; --xato: #ff8a80; --yaxshi: #6fcf8f; background: #0E1116; color: #F5F7FA; color-scheme: dark; }
+body.d2.qora header, body.d2.qora[data-ekran] header { background: #0E1116; color: #F5F7FA; border-bottom-color: #2A313C; }
+body.d2.qora header .orqaga, body.d2.qora header .holat { background: #171B22; color: #F5F7FA; border: 1px solid #2A313C; }
+body.d2.qora .karta, body.d2.qora .kq, body.d2.qora #konstruksiyalar > div { background: #171B22; border-color: #2A313C; color: #F5F7FA; }
+body.d2.qora .tugma, body.d2.qora button.tugma, body.d2.qora label.tugma { background: #171B22; color: #F5F7FA; border-color: #2A313C; }
+body.d2.qora .tugma.asosiy { background: #FFB800; color: #0E1116; border-color: #FFB800; }
+body.d2.qora input, body.d2.qora select, body.d2.qora textarea { background: #0E1116; color: #F5F7FA; border-color: #2A313C; }
+/* zakaz */
+body.d2.qora #e-zakaz .mijoz-tugma, body.d2.qora #e-zakaz .x-amal > .x-tugma { background: #171B22; color: #F5F7FA; border: 1px solid #2A313C; }
+body.d2.qora #e-zakaz .xulosa { border-bottom-color: #2A313C; }
+body.d2.qora #e-zakaz .xulosa > div.x-stat b { color: #F5F7FA; }
+body.d2.qora #e-zakaz .xulosa > div.x-narx b { color: #FFB800; }
+body.d2.qora #e-zakaz .x-amal > #k-qosh2 { background: #FFB800; color: #0E1116; border: 0; box-shadow: 0 8px 24px rgba(255,184,0,.25); }
+body.d2.qora #konstruksiyalar .kq .soni button, body.d2.qora .kq .kq-menyu { background: #0E1116; color: #F5F7FA; border: 1px solid #2A313C; }
+body.d2.qora .kq-rasm { background: #E9EEF4; }
+/* tablar */
+body.d2.qora .tablar { background: #0B0D11; box-shadow: 0 -1px 0 #2A313C; }
+body.d2.qora .tablar button { color: #A3ACB9; }
+body.d2.qora .tablar button.faol, body.d2.qora #z-tablar button.faol { background: #FFB800; color: #0E1116; }
+/* bosh sahifa */
+body.d2.qora .bosh-hero, body.d2.qora .kurs-pill { background: #171B22; color: #F5F7FA; border-color: #2A313C; }
+body.d2.qora .d2-tugma[aria-pressed="true"] { background: #FFB800; color: #0E1116; border-color: #FFB800; }
+/* qora: xira yozuvlar va chiziqlar (oq rejimdagi #525252 / #e5e5e5 oʻrniga) */
+body.d2.qora #e-zakaz .zakaz-tepa #zakaz-nomi, body.d2.qora #e-zakaz .xulosa > div.x-stat span, body.d2.qora #e-zakaz .bosh-sarlavha, body.d2.qora .bosh-sarlavha,
+body.d2.qora .tablar button, body.d2.qora .xira { color: #A3ACB9; }
+body.d2.qora #e-zakaz .xulosa, body.d2.qora #e-zakaz[data-tab] .xulosa[data-t] { border-bottom-color: #2A313C; }
+body.d2.qora .kq { border-top-color: #2A313C; }
+body.d2.qora .davom b, body.d2.qora .bolim-k b { color: #F5F7FA; }
+body.d2.qora .bosh-bolimlar .bolim-k::after { opacity: .12; }
+body.d2.qora .hero-tugma { background: #FFB800; color: #0E1116; box-shadow: none; }
+body.d2.qora .hero-tugma .hero-plus { background: rgba(14,17,22,.12); color: #0E1116; }
+body.d2.qora .hero-tugma small { color: #0E1116; opacity: .8; }
+body.d2.qora { --olcham: #FFD15C; }
+body.d2.qora #kassa-och b, body.d2.qora #katalog-och b { color: #F5F7FA; }
+body.d2.qora .bolim-son { color: #FFB800; }
