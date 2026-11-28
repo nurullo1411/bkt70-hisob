@@ -1235,3 +1235,51 @@ body.sk-band #sk-oyna .tugma.asosiy, body.sk-band .sk-firma .tugma { opacity: .6
 .sk-tarix li { padding: 8px 2px; border-bottom: 1px solid var(--chiziq, #e3e6ea); font-size: 14px; line-height: 1.4; }
 .sk-tarix li .tugma.kichik { margin-top: 6px; padding: 6px 12px; font-size: 13px; }
 .sk-tarix-t { margin-top: 8px; }
+
+/* ---------- Shadcn uslubi (foydalanuvchi, 2026-11-28; docs/dizayn.md "Umumiy uslub") ----------
+   Faqat koʻrinish: neytral (zinc) fon va chegara, oq maydonlar, fokus halqasi, radius 8/12, yengil soya.
+   Oʻzgarmaydi: boʻlim aksentlari (sarlavha, faol tab), konstruksiya palitrasi, "Kesildi" zangorisi, oʻlchamlar (≥ 44 px). */
+:root { --fon: #f4f4f5; --karta: #fff; --matn: #09090b; --xira: #71717a; --chiziq: #e4e4e7;
+        --muted: #f4f4f5; --halqa: #3b82f6; --soya: 0 1px 2px rgba(9, 9, 11, .06); --soya-2: 0 4px 16px rgba(9, 9, 11, .08);
+        --r: 8px; --r-k: 12px; }
+@media (prefers-color-scheme: dark) {
+  :root { --fon: #09090b; --karta: #18181b; --matn: #fafafa; --xira: #a1a1aa; --chiziq: #27272a; --muted: #27272a; --halqa: #60a5fa;
+          --soya: 0 1px 2px rgba(0, 0, 0, .4); --soya-2: 0 4px 16px rgba(0, 0, 0, .5); }
+}
+h1, h2, h3, .karta h2 { letter-spacing: -.01em; }
+.karta { border-radius: var(--r-k); border-color: var(--chiziq); box-shadow: var(--soya); }
+/* tugmalar: asosiy (toʻla), oddiy (chegarali), xavf (qizil) */
+.tugma { border-radius: var(--r); border-color: var(--chiziq); background: var(--karta); font-weight: 500;
+         box-shadow: var(--soya); transition: background-color .15s, border-color .15s, transform .05s; }
+.tugma:hover { background: var(--muted); }
+.tugma.asosiy:hover { background: color-mix(in srgb, var(--asosiy) 88%, #000); }
+.tugma:active { transform: translateY(1px); }
+.tugma:disabled { box-shadow: none; transform: none; cursor: not-allowed; }
+/* maydonlar: oq fon, yupqa chegara, fokusda halqa */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea, .eslatma {
+  background: var(--karta); border-color: var(--chiziq); border-radius: var(--r); box-shadow: var(--soya);
+  transition: border-color .15s, box-shadow .15s; }
+input::placeholder, textarea::placeholder { color: var(--xira); opacity: .8; }
+:is(input, select, textarea, .eslatma):focus-visible { outline: none; border-color: var(--halqa);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--halqa) 25%, transparent); }
+:is(button, .tugma, a, summary, [role="tab"]):focus-visible { outline: 2px solid var(--halqa); outline-offset: 2px; }
+/* tanlov tugmalari (seg): oddiy — chegarali, faol — toʻla */
+.seg button, .sz-seg button { border-radius: var(--r); border-color: var(--chiziq); background: var(--karta); font-weight: 500; box-shadow: var(--soya); }
+/* ikki tanlovli almashtirgich (soʻm | USD, holatlar) — shadcn Tabs: kulrang quti, faol — oq */
+.seg.valyuta { gap: 2px; padding: 3px; border: 0; border-radius: 10px; background: var(--muted); overflow: visible; }
+.seg.valyuta button { border-radius: 7px; background: transparent; box-shadow: none; color: var(--xira); font-weight: 500; }
+.seg.valyuta button.faol { background: var(--karta); color: var(--matn); box-shadow: var(--soya); }
+/* soni − / + */
+.soni button, .sk-son button { border-radius: var(--r); border-color: var(--chiziq); background: var(--karta); box-shadow: var(--soya); }
+/* teglar — badge */
+.teglar span { border-radius: 999px; border: 1px solid var(--chiziq); background: var(--muted); color: var(--matn); font-weight: 500; }
+/* jadval: sarlavha kulrang, qatorlar orasida yupqa chiziq */
+th { color: var(--xira); font-weight: 500; font-size: 13px; }
+th, td { border-bottom-color: var(--chiziq); }
+/* pastki tablar va oynalar */
+.tablar { box-shadow: 0 -1px 0 var(--chiziq); border-top: 0; }
+.hujjatlar .hujjat { border-radius: var(--r-k); background: var(--karta); box-shadow: var(--soya); }
+.hujjatlar .hujjat:hover { background: var(--muted); }
+.oyna-quti { border-radius: 14px 14px 0 0; box-shadow: var(--soya-2); }
+.parda.markaz .oyna-quti { border-radius: 14px; }
+details.karta > summary { list-style-position: inside; }
