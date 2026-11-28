@@ -2363,7 +2363,8 @@ function jadvalChiz() {
   const juft = (nom, tugmalar) => `<div class="jq jq-juft"><span class="jq-nom">${esc(nom)}</span><span class="jq-tg">${tugmalar}</span></div>`;
   // Jadval saralandi (foydalanuvchi, 2026-11-28): "Tanlov" (butun zakaz / faqat shu) — ⚙ da, standart "faqat shu";
   // Oʻlcham — chizmada; PVX / Termo / Alyuminiy — bitta "Seriya" qatori, guruh bosilsa seriyalari oyna tanlovidek qalqib chiqadi
-  let h = qator("Turi", konstruksiyaTuri(tahrir) + (barg ? "" : " (boʻlaklar — asboblar bilan)"), 'data-jq="__tur"', barg);
+  // "Turi" qatori yoʻq (foydalanuvchi, 2026-11-28): tur chizishda oʻzgaradi — tabaqa qoʻshilsa rom, eshik qoʻshilsa eshik tanlovlari chiqadi
+  let h = "";
   const bloklar = szBloklar(tmp), GURUHLAR = [["PVX", "PVX"], ["Termo", "Termo"], ["Alyuminiy", "Alyumin"]];
   h += juft("Seriya", GURUHLAR.map(([g, y]) => {
     const b = bloklar.find((x) => x.nom === g), q = b ? b.qiymat : "";
