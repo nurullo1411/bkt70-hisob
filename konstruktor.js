@@ -1186,7 +1186,6 @@ function asboblarniChiz() {
   const nom = asbob ? (ASBOBLAR[bolim].find((a) => a[0] === asbob) || [])[1] : null;
   $("k-chizma").classList.toggle("qalam", qalam);
   qalamTugma().hidden = !qalam || $("konstruktor").hidden;
-  $("konstruktor").classList.toggle("qalam-rejim", qalam);  // chizishda pastdagi ⚙ / ✓ yashirin (✓ Chizib boʻldim bilan ustma-ust)
   if (qalam) { $("k-maslahat").textContent = QALAM_MASLAHAT; return; }
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
   $("k-maslahat").textContent = asbob === "ochir" ? "Impostni olib tashlash: impost yonidagi boʻlakka bosing — shu boʻlak va uning chap/tepa impost(i) olinadi, joyi qoʻshnisiga oʻtadi"
