@@ -1329,3 +1329,14 @@ details.karta > summary { padding-top: 12px; padding-bottom: 12px; }
 #e-zakaz .xulosa span { font-size: 14px; }
 #e-zakaz .panjara label, .karta .panjara label { font-size: 14px; }
 .karta .panjara.ish label, .panjara.ish label { font-size: 14px; }
+/* oʻrta daraja (foydalanuvchi, 2026-11-28): 13 px → 14–15, 44–47 px tugmalar → 48, raqam doirachasi yirikroq */
+.tugma, .arxiv-tugma .tugma, .kv-tug button, #kesish-pdf, #yakunla, #yangi2, .holat-ot .kichik-t, #kassa-yangila, .kq-izoh,
+#k-jadval .jq, .sz-oynalar .sz-oyna, .seg.valyuta button { min-height: 48px; }
+.seg.valyuta { padding: 2px; }
+#holat, .bosh-sarlavha, .bolim-summa, .pul-holat, .arxiv-tugma .tugma, .x-amal .x-tugma, #k-qosh2, .kq-teg, .hk-maydon label,
+#j-tan2, .sarlavha-kichik, .keng-label, #materiallar .bolim, th, .hujjat small, #k-nom span, #k-maslahat, .k-narx,
+#k-panel .sarlavha, .sz-oyna, .bosh-hero small, .hero-tugma small { font-size: 14px; }
+#e-kassa td, #hb-ich td { font-size: 15px; }
+.k-raqam { font-size: 14px; font-weight: 800; }
+#k-nom span, #k-nom .k-raqam, .k-nom-q .k-raqam { font-size: 14px; }
+#konstruktor .k-nom span, #konstruktor .k-nom .k-nom-q .k-raqam { font-size: 14px; }
