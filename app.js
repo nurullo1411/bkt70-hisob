@@ -91,6 +91,20 @@ async function havoladanNarx() {
   location.reload();
 }
 $("narx-havola-ok").addEventListener("click", havoladanNarx);
+// "Planshetga ulash" (foydalanuvchi, 2026-11-28): kalit bor qurilmada toʻliq kalitli havolani ulashish/nusxalash.
+// Ilova ochilganda #k= manzildan oʻchiriladi, shuning uchun brauzerdan nusxalangan havolada kalit boʻlmaydi.
+function ulashKorsat() { $("ulash-tugma").hidden = !ol("narx_kalit"); }
+$("ulash-tugma").addEventListener("click", async () => {
+  const k = ol("narx_kalit");
+  if (!k) return;
+  const havola = location.origin + location.pathname + "#k=" + k;
+  try {
+    if (navigator.share) { await navigator.share({ title: "BKT 70 hisob", text: "Narx havolasi (faqat oʻzingiz uchun)", url: havola }); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(havola); holat("Havola nusxalandi — planshetga yuboring"); }
+  catch (e) { window.prompt("Havolani nusxalang:", havola); }
+});
+ulashKorsat();
 
 async function shifrliNarx() {
   const m = location.hash.match(/k=([A-Za-z0-9_-]+)/);
