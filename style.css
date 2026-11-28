@@ -1479,3 +1479,20 @@ body.d2:not(.qora) .d2-tugma[aria-pressed="true"] { background: #f2f2f2; color: 
 .jadval .jq-ser .jq-nom { flex-basis: 100%; }
 .jadval .jq-ser .jb { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }
 .jadval .jq-ser .jb small { font-size: 12px; font-weight: 500; opacity: .9; }
+
+/* Konstruktor: ⚙ Sozlamalar va ✓ Tayyor doim koʻrinadi — "+ Qoʻshish" kabi pastki oʻng burchakda (foydalanuvchi, 2026-11-28) */
+#konstruktor .k-tepa { gap: 8px; }
+.k-fab-m { display: none; }
+body.d2 #konstruktor .dumaloq.k-fab { position: fixed; z-index: 6; bottom: calc(18px + env(safe-area-inset-bottom)); width: auto; height: 60px;
+  min-width: 60px; padding: 0 22px; border-radius: 30px; font-size: 17px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;
+  box-shadow: 0 8px 24px rgba(16,24,40,.18); }
+body.d2 #konstruktor .k-fab .k-fab-m { display: inline; }
+body.d2 #konstruktor #k-saqla.k-fab { right: 16px; background: #0047FF; color: #fff; box-shadow: 0 8px 24px rgba(0,71,255,.35); }
+body.d2 #konstruktor #k-sozlama.k-fab { right: 170px; background: var(--karta); color: var(--matn); border: 1px solid var(--chiziq); }
+body.d2.qora #konstruktor #k-saqla.k-fab { background: #FFB800; color: #0E1116; box-shadow: 0 8px 24px rgba(255,184,0,.25); }
+body.d2 #konstruktor.qalam-rejim .k-fab { display: none; }
+body.d2 #konstruktor:not([hidden]) { padding-bottom: 96px; }
+@media (min-width: 900px) and (orientation: landscape) {
+  body.d2 #konstruktor:not([hidden]) { padding-bottom: 24px; }
+  body.d2 #konstruktor > #k-ong { padding-bottom: 88px; }
+}
