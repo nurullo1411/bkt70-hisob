@@ -41,8 +41,11 @@ async function yukla() {
     py.runPython("import sys; sys.path.insert(0, '/home/pyodide'); import json, tannarx, hisob");
     $("versiya").dataset.hisob = versiya.trim() || "nusxa";
     // Sheets dan olingan oxirgi narx saytdagi narxlar.enc dan yangiroq: avval u
-    if (!narxlarniQoy(ol("narxlar_jonli") || await shifrliNarx() || ol("narxlar"))) { jonliNarx(); return; }
+    const bosh = boshNarx();
+    if (!narxlarniQoy(bosh || ol("narxlar_jonli") || await shifrliNarx() || ol("narxlar"))) { jonliNarx(); narxServerdan(); return; }
+    kursQollash();
     jonliNarx();
+    narxServerdan();
     const oxirgi = ol("oxirgi_zakaz");
     if (oxirgi) zakazniOch(oxirgi, true);
     zakazlarniOl();
@@ -70,6 +73,100 @@ async function shifrliOch(fayl) {
     return null;
   }
 }
+
+// ---------- Umumiy narx va kurs serverda (foydalanuvchi, 2026-11-28; docs/server.md "0004") ----------
+// Kirgan qurilma: server narxi (hisob uid siga bogʻlangan nusxa `narx_server`) asosiy; ilova egasida serverga yetmagan
+// yangi narx (`narx_yuklanmagan`) undan ustun; boshqalarda qoʻlda yuklangan fayl (`narx_qolda` {uid, v}) serverda yangi
+// narx versiyasi (`narx_versiya`, kurs oshirmaydi) chiqquncha ustun. Kurs — ilova egasi qoʻyadi, boshqalarda maydon
+// faqat oʻqiladi. Kirmagan qurilma — avvalgidek (havola, Sheets, fayl).
+const sbBor = () => typeof SB !== "undefined" && SB.kirgan && SB.kirgan();
+const sbUid = () => { const s = sbBor() ? SB.sessiya() : null; return s ? s.uid : null; };
+const jsonOl = (k) => { try { return JSON.parse(ol(k) || "null"); } catch (e) { return null; } };
+function serverNarx() { const n = jsonOl("narx_server"), u = sbUid(); return n && u && n.uid === u ? n : null; }
+function adminmi() { const u = sbUid(); return !!(u && ol("sb_admin") === u); }
+const KURS_MIN = 1000, KURS_MAX = 100000;  // server ham shu chegarani tekshiradi (kurs_qoy)
+function qoldaUstun(sn) {
+  const q = jsonOl("narx_qolda");
+  if (!q || q.uid !== sbUid()) return false;
+  return q.v == null || (sn.narx_versiya || 0) <= q.v;
+}
+function boshNarx() {
+  if (adminmi() && ol("narx_yuklanmagan")) return ol("narx_yuklanmagan");
+  const sn = serverNarx();
+  if (!sn || !sn.matn || qoldaUstun(sn)) return null;
+  return sn.matn;
+}
+function kursQollash() {
+  const sn = serverNarx(), kursM = $("kurs");
+  const qulf = !!(sn && sn.kurs) && !adminmi();
+  kursM.readOnly = qulf;
+  kursM.title = qulf ? "Kursni ilova egasi qoʻyadi" : "";
+  if (sn && sn.kurs && !(adminmi() && ol("kurs_yuklanmagan"))) {
+    const k = String(Number(sn.kurs));
+    if (kursM.value !== k) { kursM.value = k; saqla("kurs", k); return true; }
+  }
+  return false;
+}
+const narxToza = (m) => { try { const o = JSON.parse(m); delete o.manba; delete o.kurs; return JSON.stringify(o); } catch (e) { return ""; } };
+// Server nusxasi boʻyicha narx va kursni qoʻllash; oʻzgarsa qayta hisob
+function serverniQollash(xabar) {
+  const yangi = boshNarx();
+  const narxOzgardi = !!yangi && narxToza(yangi) !== narxToza(ol("narxlar"));
+  if (narxOzgardi) narxlarniQoy(yangi);
+  const kursOzgardi = kursQollash();
+  if ((narxOzgardi || kursOzgardi) && zakaz) hisobla();
+  if (narxOzgardi && xabar) holat("Narxlar serverdan yangilandi");
+}
+function serverNusxaTozala() { try { localStorage.removeItem("narx_server"); localStorage.removeItem("sb_admin"); } catch (e) {} kursQollash(); }
+const vaqtli = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error("vaqt")), ms))]);
+const radEtildi = (e) => e && (e.st === 403 || e.kod === "42501");  // aʼzo emas (chetlatilgan) — nusxa ishlatilmaydi
+let narxSorov = null;
+function narxServerdan() {
+  if (!sbBor() || navigator.onLine === false || !py) return Promise.resolve();
+  if (!narxSorov) narxSorov = (async () => {
+    const uid = sbUid();
+    try { saqla("sb_admin", (await vaqtli(SB.rpc("men_adminmi", {}), 10000)) === true ? uid : ""); } catch (e) {}
+    let j = null;
+    try { j = await vaqtli(SB.rpc("narx_ol", { p_versiya: (serverNarx() || {}).versiya || 0 }), 10000); }
+    catch (e) { if (radEtildi(e)) { serverNusxaTozala(); return; } }
+    if (!j || sbUid() !== uid) return;  // javob yoʻq (internet, 10 s) — saqlangan nusxa bilan qolamiz
+    if (j.versiya != null && !j.ozgarmadi && !j.yoq)
+      saqla("narx_server", JSON.stringify({ uid, versiya: j.versiya, narx_versiya: j.narx_versiya || 0, matn: j.matn, kurs: j.kurs, yangilandi: j.yangilandi }));
+    // qoʻlda yuklangan fayl server versiyasi nomaʼlum paytda yuklangan boʻlsa — shu versiyadan ustun
+    const q = jsonOl("narx_qolda"), sn = serverNarx();
+    if (q && q.uid === uid && q.v == null) saqla("narx_qolda", JSON.stringify({ uid, v: sn ? sn.narx_versiya || 0 : 0 }));
+    serverniQollash(true);
+    await adminYukla();
+  })().finally(() => { narxSorov = null; });
+  return narxSorov;
+}
+// Ilova egasi: serverga yetmagan narx va kurs (internet yoʻq edi) — keyingi ochilishda ham qayta urinadi.
+// Yetgach nusxa `narx_server` ham yangilanadi (aks holda keyingi ochilishda eski server narxi qaytardi).
+async function adminYukla() {
+  if (!adminmi() || navigator.onLine === false) return;
+  const uid = sbUid();
+  const nusxa = (o) => {
+    const sn = serverNarx() || { uid, versiya: 0, narx_versiya: 0, matn: null, kurs: null };
+    // oldingi versiyani bilsak — yangisini yozamiz; bilmasak 0 (keyingi narx_ol toʻliq oladi)
+    const v = sn.versiya && (o.versiya === sn.versiya + 1 || (o.ozgarmadi && o.versiya === sn.versiya)) ? o.versiya : 0;
+    saqla("narx_server", JSON.stringify(Object.assign({}, sn, o.qism, { uid, versiya: v, narx_versiya: o.narx_versiya != null ? o.narx_versiya : sn.narx_versiya })));
+  };
+  const tashla = (k, qiymat) => { if (ol(k) === qiymat) try { localStorage.removeItem(k); } catch (e) {} };
+  const qaytaUrin = (e) => !e || !e.st || e.st >= 500 || e.st === 401 || e.st === 408 || e.st === 429;
+  const matn = ol("narx_yuklanmagan");
+  if (matn) try {
+    const r = await vaqtli(SB.rpc("narx_yukla", { p_matn: matn, p_op: crypto.randomUUID() }), 15000);
+    nusxa({ versiya: r.versiya, narx_versiya: r.narx_versiya, ozgarmadi: r.ozgarmadi, qism: { matn } });
+    tashla("narx_yuklanmagan", matn);
+  } catch (e) { if (!qaytaUrin(e)) { tashla("narx_yuklanmagan", matn); holat("Narx serverga yuklanmadi: " + e.message); } }
+  const kurs = ol("kurs_yuklanmagan");
+  if (kurs) try {
+    const r = await vaqtli(SB.rpc("kurs_qoy", { p_kurs: Number(kurs), p_op: crypto.randomUUID() }), 15000);
+    nusxa({ versiya: r.versiya, ozgarmadi: r.ozgarmadi, qism: { kurs: Number(kurs) } });
+    tashla("kurs_yuklanmagan", kurs);
+  } catch (e) { if (!qaytaUrin(e)) { tashla("kurs_yuklanmagan", kurs); holat("Kurs serverga yuklanmadi: " + e.message); } }
+}
+window.addEventListener("online", () => { narxServerdan(); });
 
 // Kalitli havolani qoʻlda qoʻyish (foydalanuvchi, 2026-11-28: planshetda Telegram ichki brauzeri kalitni ilovaga bermadi).
 // Toʻliq havola yoki faqat kalit qabul qilinadi; narxlar.enc ochilsa saqlanib, sahifa qayta yuklanadi.
@@ -147,8 +244,11 @@ json.dumps(narx_sheets.tuz(json.loads(_nj)), ensure_ascii=False)`);
   } catch (e) { if (qolda) xato("Sheets narxlari oʻqilmadi: " + e.message.split("\n").slice(-2).join(" ")); return; }
   const toza = (m) => { try { const o = JSON.parse(m); delete o.manba; delete o.kurs; return JSON.stringify(o); } catch (e) { return ""; } };
   const ozgardi = toza(ol("narxlar")) !== toza(matn);
+  // kirgan, ilova egasi boʻlmagan qurilmada server narxi asosiy — Sheets narxi faqat zaxira sifatida saqlanadi
+  if (!adminmi() && boshNarx()) { saqla("narxlar_jonli", matn); return; }
   if (!narxlarniQoy(matn)) return;
   saqla("narxlar_jonli", matn);
+  if (adminmi()) { saqla("narx_yuklanmagan", matn); adminYukla(); }
   if (ozgardi && zakaz) hisobla();
   holat(ozgardi ? "Narxlar Sheets dan yangilandi" : "Tayyor");
   if (qolda && !ozgardi) holat("Narxlar oʻzgarmagan");
@@ -1021,6 +1121,9 @@ for (const id of ["narx-fayl", "narx-fayl2"]) {
     xato("");
     if (narxlarniQoy(await f.text())) {
       try { localStorage.removeItem("narxlar_jonli"); } catch (e) {}  // qoʻlda yuklangan fayl ustun
+      // ilova egasi — serverga ham (hamma qurilmaga); boshqalarda faqat shu qurilmada, serverda yangi versiya chiqquncha
+      if (adminmi()) { saqla("narx_yuklanmagan", ol("narxlar")); adminYukla(); }
+      else if (sbBor()) { const sn = serverNarx(); saqla("narx_qolda", JSON.stringify({ uid: sbUid(), v: sn ? sn.narx_versiya || 0 : null })); }
       holat("Narxlar yangilandi"); hisobla();
     }
   });
@@ -1030,6 +1133,12 @@ $("matn-hisobla").addEventListener("click", () => zakazniOch($("matn").value));
 $("namuna").addEventListener("click", async () => zakazniOch(await (await fetch("namuna_z002.json")).text()));
 $("kurs").addEventListener("input", () => { if (Number($("kurs").value) > 0) saqla("kurs", $("kurs").value); });
 $("kurs").addEventListener("change", () => { if (Number($("kurs").value) > 0) saqla("kurs", $("kurs").value); else $("kurs").value = ol("kurs") || 12000; hisobla(); });
+$("kurs").addEventListener("change", () => {
+  if (!adminmi()) return;
+  const k = Number($("kurs").value);
+  if (!(k >= KURS_MIN && k <= KURS_MAX)) { xato(`Kurs ${KURS_MIN.toLocaleString("ru")} – ${KURS_MAX.toLocaleString("ru")} soʻm boʻlishi kerak — serverga yuborilmadi`); return; }
+  saqla("kurs_yuklanmagan", String(k)); adminYukla();
+});
 // Roʻyxatdagi oʻzgarish (soni, nusxa, oʻchirish): rang_id lar ham shu bilan saqlanadi
 function royxatOzgardi() {
   rangBer(zakaz.konstruksiyalar);

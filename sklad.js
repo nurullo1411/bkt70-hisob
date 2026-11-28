@@ -902,7 +902,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     else if (a === "yangila") { xabarMatn = ""; kutganiYangila(); }
     else if (a === "chiq") {
       if (SB.navbat().length && tasdiqB !== "chiq") { tasdiqB = "chiq"; xabarMatn = `${SB.navbat().length} ta amal serverga yetmagan — shu raqam bilan qayta kirsangiz yuboriladi. Yana bir bosing`; chiz(); return; }
-      SB.chiq(); srvHolat = ""; xabarMatn = ""; tasdiqB = null; chiz();
+      SB.chiq(); if (typeof kursQollash === "function") kursQollash(); srvHolat = ""; xabarMatn = ""; tasdiqB = null; chiz();
     }
     else if (a === "firma-yarat" || a === "taklif-ol") firmaAmal(a);
   });
@@ -954,6 +954,7 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     try { await SB.kirish(tel, parol, oyna.yangi); }
     catch (e) { oyna.xato = e.message; oynaChiz(); return; }
     yop(); seriya = null;
+    if (typeof narxServerdan === "function") narxServerdan();  // umumiy narx va kurs (docs/server.md)
     await kutganiYangila();
   }
   // Navbat oʻzgarsa (fonda yuborildi, ziddiyat keldi) — ekran yangilanadi; ochiq oyna va terilayotgan maydon tegilmaydi
@@ -1082,11 +1083,11 @@ if (typeof document !== "undefined" && document.getElementById("e-sklad")) (func
     else if (a === "chiq") {
       if (tasdiq !== "chiq" && tasdiq !== "chiq2") { tasdiq = "chiq"; oynaChiz(); return; }
       if (tasdiq === "chiq" && SB.navbat().length) {  // yuborilmagan amal — avval yuborishga urinish
-        SB.sinxron().then(() => { if (SB.navbat().length) { tasdiq = "chiq2"; oynaChiz(); } else { SB.chiq(); srvHolat = ""; xabarMatn = ""; yop(); } },
+        SB.sinxron().then(() => { if (SB.navbat().length) { tasdiq = "chiq2"; oynaChiz(); } else { SB.chiq(); if (typeof kursQollash === "function") kursQollash(); srvHolat = ""; xabarMatn = ""; yop(); } },
           () => { tasdiq = "chiq2"; oynaChiz(); });
         return;
       }
-      SB.chiq(); srvHolat = ""; xabarMatn = ""; yop();
+      SB.chiq(); if (typeof kursQollash === "function") kursQollash(); srvHolat = ""; xabarMatn = ""; yop();
     }
   });
   el("sk-oyna").addEventListener("keydown", (e) => {

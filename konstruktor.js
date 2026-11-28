@@ -1180,7 +1180,7 @@ function asboblarniChiz() {
   if (qalam) { $("k-maslahat").textContent = QALAM_MASLAHAT; return; }
   if (bolim === "shakl") { $("k-maslahat").textContent = "Shakl butun konstruksiyaga qoʻllanadi. Arka balandligi oʻngda, H — choʻqqigacha boʻy."; return; }
   $("k-maslahat").textContent = asbob === "ochir" ? "Impostni olib tashlash: impost yonidagi boʻlakka bosing — shu boʻlak va uning chap/tepa impost(i) olinadi, joyi qoʻshnisiga oʻtadi"
-    : nom ? `${nom}: rasmdagi boʻlakka bosing` : "Asbobni bosib turib boʻlakka suring. Boʻlak yoki impostga bosib tanlang, impostni surib joyini oʻzgartiring, oʻlcham — raqamga bosing.";
+    : nom ? `${nom}: rasmdagi boʻlakka bosing` : "";  // umumiy maslahat olib tashlandi (foydalanuvchi, 2026-11-28: "bu yozuv kerak emas")
 }
 
 // Tabaqa ichi impost joylari (hisob.py _tabaqa_ichi kabi): jami — ichki oʻlcham; boʻsh boʻlaklar teng
