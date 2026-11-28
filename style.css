@@ -1518,3 +1518,27 @@ body.d2.qora #e-royxat .arxiv-k.joriy { outline-color: #FFB800; }
   body.d2 #e-royxat .arxiv-k { margin-bottom: 0; }
   body.d2 #e-royxat .btb-guruh, body.d2 #e-royxat #arxiv > p { grid-column: 1 / -1; }
 }
+
+/* Zakaz sahifasi (Konstruksiya tabi): konstruksiyalar paneli kulrang fon ustida oq karta boʻlib ajralib turadi;
+   soni boshqaruvi — kapsula ichida − son +, «+» koʻk (foydalanuvchi, 2026-11-28) */
+body.d2[data-ekran="zakaz"][data-tab="k"], body.d2[data-ekran="zakaz"][data-tab="k"] header { background: #EEF1F5; }
+body.d2 #konstruksiyalar .kpanel { border: 0; border-radius: 22px; background: #fff;
+  box-shadow: 0 6px 18px rgba(16,24,40,.08), 0 1px 3px rgba(16,24,40,.05); }
+body.d2 #konstruksiyalar .kp-teglar { background: #F7F9FC; border-bottom-color: #E9EDF3; }
+body.d2 #konstruksiyalar .kq { border-top-color: #EEF1F5; background: transparent; }
+body.d2 #konstruksiyalar .kq .soni { display: inline-flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: #F2F4F7; }
+body.d2 #konstruksiyalar .kq .soni button { width: 44px; height: 44px; border: 0; border-radius: 50%; box-shadow: none; font-size: 22px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; line-height: 1; cursor: pointer; }
+body.d2 #konstruksiyalar .kq .soni button[data-d="-1"] { background: #fff; color: #0a0a0a; box-shadow: 0 1px 3px rgba(16,24,40,.12); }
+body.d2 #konstruksiyalar .kq .soni button[data-d="1"] { background: #0047FF; color: #fff; box-shadow: 0 4px 10px rgba(0,71,255,.3); }
+body.d2 #konstruksiyalar .kq .soni button:active { transform: scale(.94); }
+body.d2 #konstruksiyalar .kq .soni span { min-width: 36px; font-size: 18px; font-weight: 800; }
+body.d2 #konstruksiyalar .kq.nol .soni button[data-d="-1"] { opacity: .4; }
+body.d2 #konstruksiyalar .kq .kq-menyu { width: 52px; height: 52px; border-radius: 50%; background: #F2F4F7; font-size: 22px; }
+body.d2.qora[data-ekran="zakaz"][data-tab="k"], body.d2.qora[data-ekran="zakaz"][data-tab="k"] header { background: #0E1116; }
+body.d2.qora #konstruksiyalar .kpanel { background: #171B22; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+body.d2.qora #konstruksiyalar .kp-teglar { background: #1C212A; border-bottom-color: #2A313C; }
+body.d2.qora #konstruksiyalar .kq { border-top-color: #2A313C; }
+body.d2.qora #konstruksiyalar .kq .soni, body.d2.qora #konstruksiyalar .kq .kq-menyu { background: #222833; }
+body.d2.qora #konstruksiyalar .kq .soni button[data-d="-1"] { background: #2E3540; color: #fff; box-shadow: none; }
+body.d2.qora #konstruksiyalar .kq .soni button[data-d="1"] { background: #FFB800; color: #0E1116; box-shadow: 0 4px 10px rgba(255,184,0,.25); }
